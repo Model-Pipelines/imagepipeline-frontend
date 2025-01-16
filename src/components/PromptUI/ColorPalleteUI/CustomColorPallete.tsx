@@ -113,10 +113,10 @@ export default function CustomColorPalette() {
   }
 
   return (
-    <Card className="fixed w-[300px] bg-white/20 backdrop-blur-md  text-white">
+    <Card className="fixed w-[300px]  bg-white/20 backdrop-blur-md  text-white">
       <CardContent className="p-4">
         <h2 className="mb-4 text-lg text-black font-semibold">Color palette</h2>
-        <ScrollArea className="h-[400px] pr-4">
+        <ScrollArea className="h-[450px] pr-4">
           <div className="space-y-4">
             {/* Existing Palettes */}
             {defaultPalettes.map((palette) => (

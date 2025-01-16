@@ -1,26 +1,28 @@
+import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "@/components/ui/input";
 import { VscSettings } from "react-icons/vsc";
-import { IoEyeOutline } from "react-icons/io5";
-import { FaLock } from "react-icons/fa";
-import { Label } from "@/components/ui/label";
 import { IoMdColorPalette } from "react-icons/io";
-import { useState } from "react";
-import SettingsPanel from "./SettingsPanel";
+import { FaLock, FaUpload } from "react-icons/fa";
 import { Switch } from "../ui/switch";
-import { FaUpload } from "react-icons/fa";
-
+import SettingsPanel from "./SettingsPanel";
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"; // Import your palette component
 
 const ImagePromptUI = () => {
-  const [magicPrompt, setMagicPrompt] = useState(false); // Initially set to "Off"
+  const [magicPrompt, setMagicPrompt] = useState(false);
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false); // State for color palette
 
   const handleMagicPromptToggle = () => {
-    setMagicPrompt((prev) => !prev); // Toggle magicPrompt state
+    setMagicPrompt((prev) => !prev);
   };
 
   const toggleSettingsPanel = () => {
-    setIsSettingsPanelVisible((prev) => !prev); // Toggle settings panel visibility
+    setIsSettingsPanelVisible((prev) => !prev);
+  };
+
+  const toggleColorPalette = () => {
+    setIsColorPaletteVisible((prev) => !prev); // Toggle color palette visibility
   };
 
   return (
@@ -40,7 +42,7 @@ const ImagePromptUI = () => {
           </div>
         </div>
         <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
-        <FaUpload size={20} />
+          <FaUpload size={20} />
         </div>
         <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
           <VscSettings
@@ -56,20 +58,16 @@ const ImagePromptUI = () => {
       {/* Lower Section */}
       <div className="mt-6 flex items-center gap-6">
         <div className="flex flex-row items-center gap-2">
-        <Switch/>
+          <Switch />
           <span className="text-gray-400 dark:text-gray-400 font-semibold">
             Public
           </span>
           <FaLock className="text-gray-400 dark:text-gray-400" size={10} />
         </div>
 
-        {/* Height and Width Inputs */}
         <div className="flex items-center gap-6">
-
           <div className="flex items-center gap-2">
-            {/* Magic Prompt Toggle */}
             <Switch
-            
               checked={magicPrompt}
               onCheckedChange={handleMagicPromptToggle}
             />
@@ -83,6 +81,7 @@ const ImagePromptUI = () => {
         <IoMdColorPalette
           size={25}
           className="text-gray-400 hover:text-gray-500 cursor-pointer dark:text-white"
+          onClick={toggleColorPalette} // Attach toggle function
         />
 
         <span className="text-gray-400 dark:text-gray-200">
@@ -91,10 +90,17 @@ const ImagePromptUI = () => {
         </span>
       </div>
 
-      {/* Show SettingsPanel if visible */}
+      {/* Render SettingsPanel if visible */}
       {isSettingsPanelVisible && (
         <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-56 -translate-y-60 flex justify-center items-center">
           <SettingsPanel />
+        </div>
+      )}
+
+      {/* Render CustomColorPalette if visible */}
+      {isColorPaletteVisible && (
+        <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-[600px] -translate-y-[650px]">
+          <CustomColorPalette />
         </div>
       )}
     </div>
