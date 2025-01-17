@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FC } from "react";
+import { FC, useState } from "react";
 import { usePromptUIStore } from "@/lib/store";
 import { MdOutlinePhotoSizeSelectActual, MdVideoLibrary, MdHeadset } from "react-icons/md";
 import { FaBars } from "react-icons/fa6";
@@ -9,7 +9,13 @@ import { FaUserCircle } from "react-icons/fa";
 
 const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
+  const [activeIcon, setActiveIcon] = useState<string | null>(null);
 
+
+  const handleIconClick = (type: string)=>{
+    setActiveIcon((prev) => (prev === type ? null : type));
+    setSelectedType(type);
+  }
   return (
     <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 ">
       <Link href="#" aria-label="Logo">
@@ -17,25 +23,38 @@ const Sidebar: FC = () => {
       </Link>
 
       <div className="flex flex-col items-center space-y-20">
-        <div
-          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
-          onClick={() => setSelectedType("image")}
+      <div
+          className={`p-2 rounded-md cursor-pointer ${
+            activeIcon === "image"
+              ? "bg-yellow-500 dark:bg-gray-700 text-white"
+              : "hover:bg-yellow-500 dark:hover:bg-gray-700 text-black dark:text-white"
+          }`}
+          onClick={() => handleIconClick("image")}
           aria-label="Photos"
         >
           <MdOutlinePhotoSizeSelectActual size={25} />
         </div>
 
         <div
-          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
-          onClick={() => setSelectedType("video")}
+          className={`p-2 rounded-md cursor-pointer ${
+            activeIcon === "video"
+              ? "bg-yellow-500 dark:bg-gray-700 text-white"
+              : "hover:bg-yellow-500 dark:hover:bg-gray-700 text-black dark:text-white"
+          }`}
+          onClick={() => handleIconClick("video")}
           aria-label="Videos"
         >
           <MdVideoLibrary size={25} />
         </div>
 
-        <div
-          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
-          onClick={() => setSelectedType("audio")}
+
+         <div
+          className={`p-2 rounded-md cursor-pointer ${
+            activeIcon === "audio"
+              ? "bg-yellow-500 dark:bg-gray-700 text-white"
+              : "hover:bg-yellow-500 dark:hover:bg-gray-700 text-black dark:text-white"
+          }`}
+          onClick={() => handleIconClick("audio")}
           aria-label="Audio"
         >
           <MdHeadset size={25} />

@@ -1,169 +1,145 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { useCanvasStore } from '@/lib/store';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
-  Image,
-  Video,
-  Music,
-  Type,
+  Move,
   ZoomIn,
   ZoomOut,
+  Grid,
   RotateCcw,
-  X
-} from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+  Undo,
+  Redo,
+  Download,
+  Upload,
+  Type,
+  Image as ImageIcon,
+} from "lucide-react";
+import { useCanvasStore } from "@/lib/store";
 
-export default function Toolbar() {
-  const { addElement, viewportTransform, setViewportTransform, removeElement } = useCanvasStore();
 
-  // File upload handler for images, videos, and audio
-  const handleFileUpload = useCallback(
-    async (type: 'image' | 'video' | 'audio') => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = type === 'image' ? 'image/*' : type === 'video' ? 'video/*' : 'audio/*';
-      
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) return;
+const Toolbar = () => {
+  const {
+    toggleMovement,
+    toggleGrid,
+    resetCanvas,
+    undo,
+    redo,
+    movementEnabled,
+    gridEnabled,
+    scale,
+    setScale,
+  } = useCanvasStore();
 
-        const url = URL.createObjectURL(file);
-        addElement({
-          id: uuidv4(),
-          type,
-          content: url,
-          x: -viewportTransform.x + window.innerWidth / 2,
-          y: -viewportTransform.y + window.innerHeight / 2,
-          width: 300,
-          height: type === 'audio' ? 50 : 300,
-          rotation: 0,
-          zIndex: 1,
-          scale: 1,
-        });
-      };
-
-      input.click();
-    },
-    [addElement, viewportTransform]
-  );
-
-  // Add a text element
-  const handleAddText = () => {
-    addElement({
-      id: uuidv4(),
-      type: 'text',
-      content: 'Double click to edit',
-      x: -viewportTransform.x + window.innerWidth / 2,
-      y: -viewportTransform.y + window.innerHeight / 2,
-      width: 200,
-      height: 100,
-      rotation: 0,
-      zIndex: 1,
-      scale: 1,
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new window.Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            useCanvasStore.getState().addElement({
+              id: Math.random().toString(36).substr(2, 9),
+              type: 'image',
+              src: event.target?.result as string,
+              x: window.innerWidth / 2 - img.width / 2,
+              y: window.innerHeight / 2 - img.height / 2,
+              width: img.width,
+              height: img.height,
+              rotation: 0,
+              zIndex: useCanvasStore.getState().elements.length,
+            });
+          };
+        };
+        reader.readAsDataURL(file);
+      }
     });
   };
 
-  // Zoom handler
-  const handleZoom = (delta: number) => {
-    const newScale = Math.min(Math.max(viewportTransform.scale + delta, 0.1), 5);
-    setViewportTransform({
-      ...viewportTransform,
-      scale: newScale,
-    });
-  };
-
-  // Reset view
-  const handleReset = () => {
-    setViewportTransform({
-      x: 0,
-      y: 0,
-      scale: 1,
-    });
-  };
-
-  // Handle deleting the selected element
-  const handleDelete = (id: string) => {
-    removeElement(id); // Assuming removeElement is defined in your store to remove an element by its ID
+  const exportCanvas = async () => {
+    const canvas = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = 'canvas-export.png';
+      link.href = dataUrl;
+      link.click();
+    }
   };
 
   return (
-    <div className="fixed left-20 top-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 p-2 rounded-lg shadow-lg space-y-2">
+    <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-2 flex items-center gap-2">
       <Button
-        variant="ghost"
+        variant={movementEnabled ? "default" : "outline"}
         size="icon"
-        onClick={() => handleFileUpload('image')}
-        title="Add Image"
+        onClick={toggleMovement}
+        title="Toggle Movement"
       >
-        <Image className="h-4 w-4" />
+        <Move className="h-4 w-4" />
       </Button>
-      
       <Button
-        variant="ghost"
+        variant={gridEnabled ? "default" : "outline"}
         size="icon"
-        onClick={() => handleFileUpload('video')}
-        title="Add Video"
+        onClick={toggleGrid}
+        title="Toggle Grid"
       >
-        <Video className="h-4 w-4" />
+        <Grid className="h-4 w-4" />
       </Button>
-      
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        onClick={() => handleFileUpload('audio')}
-        title="Add Audio"
-      >
-        <Music className="h-4 w-4" />
-      </Button>
-      
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleAddText}
-        title="Add Text"
-      >
-        <Type className="h-4 w-4" />
-      </Button>
-
-      <hr className="dark:border-gray-700" />
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={() => handleZoom(0.1)}
+        onClick={() => setScale(scale * 1.1)}
         title="Zoom In"
       >
         <ZoomIn className="h-4 w-4" />
       </Button>
-      
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        onClick={() => handleZoom(-0.1)}
+        onClick={() => setScale(scale / 1.1)}
         title="Zoom Out"
       >
         <ZoomOut className="h-4 w-4" />
       </Button>
-      
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        onClick={handleReset}
-        title="Reset View"
+        onClick={resetCanvas}
+        title="Reset Canvas"
       >
         <RotateCcw className="h-4 w-4" />
       </Button>
-
-      {/* Delete button */}
+      <Button variant="outline" size="icon" onClick={undo} title="Undo">
+        <Undo className="h-4 w-4" />
+      </Button>
+      <Button variant="outline" size="icon" onClick={redo} title="Redo">
+        <Redo className="h-4 w-4" />
+      </Button>
+      <label>
+        <Button variant="outline" size="icon" asChild>
+          <span>
+            <Upload className="h-4 w-4" />
+            <input
+              type="file"
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileUpload}
+              multiple
+            />
+          </span>
+        </Button>
+      </label>
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        onClick={() => handleDelete('someElementId')} // Pass the ID of the element to delete
-        title="Delete Selected Element"
+        onClick={exportCanvas}
+        title="Export Canvas"
       >
-        <X className="h-4 w-4 text-red-500" />
+        <Download className="h-4 w-4" />
       </Button>
     </div>
   );
-}
+};
+
+export default Toolbar;

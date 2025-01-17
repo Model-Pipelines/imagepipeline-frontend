@@ -11,16 +11,10 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 export default function Home() {
   return (
     <div className="flex flex-row ">
-       <Sidebar />
+      <Sidebar />
       <Canvas />
-      {/* <PromptUI /> */}
-      {/* <Canvas /> */}
       <Toolbar />
-      {/* <SettingsPanel /> */}
-      {/* <AudioPromptUI /> */}
       <ParentPromt />
-     
-      {/* <CustomColorPalette /> */}
     </div>
   );
 }

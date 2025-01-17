@@ -1,257 +1,155 @@
-'use client';
+"use client";
 
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import { useCanvasStore } from '@/lib/store';
-import { CanvasElement } from '@/lib/types';
-import { ZoomIn, ZoomOut } from 'lucide-react';
 
-type ResizeHandle = 'top' | 'right' | 'bottom' | 'left' | 'topLeft' | 'topRight' | 'bottomLeft' | 'bottomRight' | null;
+interface DragState {
+  isDragging: boolean;
+  startX: number;
+  startY: number;
+}
 
-export default function Canvas() {
+const Canvas = () => {
   const canvasRef = useRef<HTMLDivElement>(null);
-  const {
-    elements,
-    viewportTransform,
-    selectedElementId,
-    setViewportTransform,
-    setSelectedElement,
-    updateElement,
-    handleZoom,
-  } = useCanvasStore();
+  const [dragState, setDragState] = useState<DragState>({ isDragging: false, startX: 0, startY: 0 });
+  const { elements, scale, position, movementEnabled, gridEnabled, setPosition, setScale } = useCanvasStore();
 
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedElement, setDraggedElement] = useState<string | null>(null);
-  const [startPos, setStartPos] = useState({ x: 0, y: 0 });
-  const [activeHandle, setActiveHandle] = useState<ResizeHandle>(null);
-  const [initialSize, setInitialSize] = useState({ width: 0, height: 0 });
-  const [initialPos, setInitialPos] = useState({ x: 0, y: 0 });
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target?.result as string;
+          img.onload = () => {
+            useCanvasStore.getState().addElement({
+              id: Math.random().toString(36).substr(2, 9),
+              type: 'image',
+              src: event.target?.result as string,
+              x: (e.clientX - position.x) / scale,
+              y: (e.clientY - position.y) / scale,
+              width: img.width,
+              height: img.height,
+              rotation: 0,
+              zIndex: elements.length,
+            });
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }, [elements.length, position.x, position.y, scale]);
+
+  const handleWheel = useCallback((e: WheelEvent) => {
+    e.preventDefault();
+    
+    if (e.ctrlKey) {
+      const scaleBy = 1.1;
+      const oldScale = scale;
+      const newScale = e.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+      const zoom = newScale / oldScale;
+      const newX = mouseX - (mouseX - position.x) * zoom;
+      const newY = mouseY - (mouseY - position.y) * zoom;
+
+      setScale(newScale);
+      setPosition({ x: newX, y: newY });
+    } else {
+      setPosition({
+        x: position.x - e.deltaX,
+        y: position.y - e.deltaY,
+      });
+    }
+  }, [position, scale, setPosition, setScale]);
 
   useEffect(() => {
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const delta = e.deltaY * -0.01;
-      const newScale = Math.min(Math.max(viewportTransform.scale + delta, 0.1), 5);
-
-      setViewportTransform({
-        ...viewportTransform,
-        scale: newScale,
-      });
-    };
-
     const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.addEventListener('wheel', handleWheel, { passive: false });
-    }
+    if (!canvas) return;
 
-    return () => {
-      if (canvas) {
-        canvas.removeEventListener('wheel', handleWheel);
-      }
-    };
-  }, [viewportTransform, setViewportTransform]);
+    canvas.addEventListener('wheel', handleWheel, { passive: false });
+    return () => canvas.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 0) {
-      setIsDragging(true);
-      setStartPos({ x: e.clientX, y: e.clientY });
-    }
+    if (!movementEnabled) return;
+    setDragState({
+      isDragging: true,
+      startX: e.clientX - position.x,
+      startY: e.clientY - position.y,
+    });
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (isDragging) {
-      if (draggedElement) {
-        const element = elements.find((el) => el.id === draggedElement);
-        if (element) {
-          const dx = (e.clientX - startPos.x) / viewportTransform.scale;
-          const dy = (e.clientY - startPos.y) / viewportTransform.scale;
-
-          if (activeHandle) {
-            let newWidth = initialSize.width;
-            let newHeight = initialSize.height;
-            let newX = initialPos.x;
-            let newY = initialPos.y;
-
-            if (activeHandle.includes('right')) newWidth += dx;
-            if (activeHandle.includes('bottom')) newHeight += dy;
-            if (activeHandle.includes('left')) {
-              newWidth -= dx;
-              newX += dx;
-            }
-            if (activeHandle.includes('top')) {
-              newHeight -= dy;
-              newY += dy;
-            }
-
-            const minSize = 50;
-            if (newWidth >= minSize && newHeight >= minSize) {
-              updateElement(draggedElement, { width: newWidth, height: newHeight, x: newX, y: newY });
-            }
-          } else {
-            updateElement(draggedElement, { x: element.x + dx, y: element.y + dy });
-          }
-        }
-      } else {
-        const dx = e.clientX - startPos.x;
-        const dy = e.clientY - startPos.y;
-        setViewportTransform({
-          ...viewportTransform,
-          x: viewportTransform.x + dx,
-          y: viewportTransform.y + dy,
-        });
-      }
-      setStartPos({ x: e.clientX, y: e.clientY });
-    }
+    if (!dragState.isDragging) return;
+    setPosition({
+      x: e.clientX - dragState.startX,
+      y: e.clientY - dragState.startY,
+    });
   };
 
   const handleMouseUp = () => {
-    setIsDragging(false);
-    setActiveHandle(null);
-  };
-
-  const handleElementDragStart = (e: React.MouseEvent, element: CanvasElement, handle: ResizeHandle) => {
-    e.stopPropagation();
-    setIsDragging(true);
-    setDraggedElement(element.id);
-    setStartPos({ x: e.clientX, y: e.clientY });
-    setActiveHandle(handle);
-    setInitialSize({ width: element.width, height: element.height });
-    setInitialPos({ x: element.x, y: element.y });
-    setSelectedElement(element.id);
-  };
-
-  
-
-  return (
-    <div className="relative w-full h-screen overflow-hidden bg-gray-100 dark:bg-gray-900">
-      <div
-        ref={canvasRef}
-        className="absolute inset-0 cursor-grab active:cursor-grabbing"
-        style={{
-          transform: `translate(${viewportTransform.x}px, ${viewportTransform.y}px) scale(${viewportTransform.scale})`,
-          transformOrigin: '0 0',
-        }}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-      >
-        <div className="relative w-[10000px] h-[10000px]">
-          {elements.map((element) => (
-            <CanvasElementComponent
-              key={element.id}
-              element={element}
-              isSelected={element.id === selectedElementId}
-              onSelect={() => setSelectedElement(element.id)}
-              onStartDrag={(e, handle) => handleElementDragStart(e, element, handle)}
-            />
-          ))}
-        </div>
-      </div>
-     <div className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg space-y-2">
-  {/* Zoom In/Out Buttons */}
-  <div className="flex justify-center space-x-2">
-    <button
-      onClick={() => handleZoom(0.1)}
-      className="text-blue-500 focus:outline-none"
-      title="Zoom In"
-    >
-      <ZoomIn className="w-5 h-5" />
-    </button>
-    <button
-      onClick={() => handleZoom(-0.1)}
-      className="text-blue-500 focus:outline-none"
-      title="Zoom Out"
-    >
-      <ZoomOut className="w-5 h-5" />
-    </button>
-  </div>
-  {/* Percentage Display */}
-  <div className="flex justify-center">
-    <span className="text-sm text-gray-600 dark:text-gray-300">
-      {Math.round(viewportTransform.scale * 100)}%
-    </span>
-  </div>
-
-  
-</div>
-
-    </div>
-  );
-}
-
-interface CanvasElementComponentProps {
-  element: CanvasElement;
-  isSelected: boolean;
-  onSelect: () => void;
-  onStartDrag: (e: React.MouseEvent, handle: ResizeHandle) => void;
-}
-
-
-
-function CanvasElementComponent({ element, isSelected, onSelect, onStartDrag }: CanvasElementComponentProps) {
-  const { removeElement } = useCanvasStore(); // Access the removeElement function from the store.
-
-  const handleRemove = () => {
-    removeElement(element.id); // Call removeElement with the element's id.
+    setDragState({ isDragging: false, startX: 0, startY: 0 });
   };
 
   return (
     <div
-      className={`absolute ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
-      style={{
-        left: element.x,
-        top: element.y,
-        width: element.width,
-        height: element.height,
-        transform: `rotate(${element.rotation}deg) scale(${element.scale})`,
-        zIndex: element.zIndex,
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        onSelect();
-      }}
-      onMouseDown={(e) => onStartDrag(e, null)}
+      ref={canvasRef}
+      className="w-full h-full relative overflow-hidden cursor-grab active:cursor-grabbing"
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
-      {element.type === 'image' && (
-        <img src={element.content} alt="" className="w-full h-full object-contain" draggable={false} />
-      )}
-      {element.type === 'video' && <video src={element.content} controls className="w-full h-full" />}
-      {element.type === 'audio' && <audio src={element.content} controls className="w-full h-full" />}
-      {element.type === 'text' && <div className="w-full h-full p-2 outline-none">{element.content}</div>}
-
-      {/* "X" Button for deleting the element */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation(); // Prevent triggering the selection event.
-          handleRemove();
+      <div
+        className="absolute inset-0"
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+          transformOrigin: '0 0',
         }}
-        className="absolute z-10 -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-700"
-        title="Delete"
       >
-        ✕
-      </button>
-
-      {isSelected && (
-        <>
+        {gridEnabled && (
+          <div className="absolute inset-0" style={{ 
+            backgroundImage: 'linear-gradient(to right, #ddd 1px, transparent 1px), linear-gradient(to bottom, #ddd 1px, transparent 1px)',
+            backgroundSize: '50px 50px',
+            width: '100vw',
+            height: '100vh',
+          }} />
+        )}
+        {elements.map((element) => (
           <div
-            className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full cursor-nw-resize -top-1.5 -left-1.5"
-            onMouseDown={(e) => onStartDrag(e, 'topLeft')}
-          />
-          <div
-            className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full cursor-ne-resize -top-1.5 -right-1.5"
-            onMouseDown={(e) => onStartDrag(e, 'topRight')}
-          />
-          <div
-            className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full cursor-se-resize -bottom-1.5 -right-1.5"
-            onMouseDown={(e) => onStartDrag(e, 'bottomRight')}
-          />
-          <div
-            className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-full cursor-sw-resize -bottom-1.5 -left-1.5"
-            onMouseDown={(e) => onStartDrag(e, 'bottomLeft')}
-          />
-        </>
-      )}
+            key={element.id}
+            className="absolute"
+            style={{
+              left: element.x,
+              top: element.y,
+              width: element.width,
+              height: element.height,
+              transform: `rotate(${element.rotation}deg)`,
+              zIndex: element.zIndex,
+            }}
+          >
+            <img
+              src={element.src}
+              alt=""
+              className="w-full h-full object-contain"
+              draggable={false}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
-}
+};
 
+export default Canvas;
