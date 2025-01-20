@@ -11,11 +11,8 @@ import {
   Redo,
   Download,
   Upload,
-  Type,
-  Image as ImageIcon,
 } from "lucide-react";
 import { useCanvasStore } from "@/lib/store";
-
 
 const Toolbar = () => {
   const {
@@ -28,6 +25,7 @@ const Toolbar = () => {
     gridEnabled,
     scale,
     setScale,
+    elements,
   } = useCanvasStore();
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,7 +34,7 @@ const Toolbar = () => {
       if (file.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onload = (event) => {
-          const img = new window.Image();
+          const img = new Image();
           img.src = event.target?.result as string;
           img.onload = () => {
             useCanvasStore.getState().addElement({
@@ -48,7 +46,7 @@ const Toolbar = () => {
               width: img.width,
               height: img.height,
               rotation: 0,
-              zIndex: useCanvasStore.getState().elements.length,
+              zIndex: elements.length,
             });
           };
         };
@@ -57,8 +55,8 @@ const Toolbar = () => {
     });
   };
 
-  const exportCanvas = async () => {
-    const canvas = document.querySelector('.konvajs-content canvas') as HTMLCanvasElement;
+  const exportCanvas = () => {
+    const canvas = document.querySelector('canvas');
     if (canvas) {
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');

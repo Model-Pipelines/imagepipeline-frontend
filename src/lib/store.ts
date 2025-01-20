@@ -50,6 +50,7 @@ interface CanvasState {
   gridEnabled: boolean;
   movementEnabled: boolean;
   addElement: (element: CanvasElement) => void;
+  clearElements: (element: CanvasElement) => void;
   updateElement: (id: string, updates: Partial<CanvasElement>) => void;
   removeElement: (id: string) => void;
   setScale: (scale: number) => void;
@@ -97,6 +98,9 @@ export const useCanvasStore = create<CanvasState>()(
         gridEnabled: false,
         movementEnabled: true,
 
+        clearElements: () => set({ elements: [] }),
+
+        
         addElement: (element) =>
           set((state) => {
             // Compress image data if present
