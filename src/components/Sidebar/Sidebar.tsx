@@ -6,6 +6,7 @@ import { usePromptUIStore } from "@/lib/store";
 import { MdOutlinePhotoSizeSelectActual, MdVideoLibrary, MdHeadset } from "react-icons/md";
 import { FaBars } from "react-icons/fa6";
 import { FaUserCircle } from "react-icons/fa";
+import AccountDropdown from "./AccountDropdown";
 
 const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
@@ -17,7 +18,7 @@ const Sidebar: FC = () => {
     setSelectedType(type);
   }
   return (
-    <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 ">
+    <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
       <Link href="#" aria-label="Logo">
         <div className="p-2 rounded-md text-black dark:text-white font-bold">LOGO</div>
       </Link>
@@ -30,7 +31,7 @@ const Sidebar: FC = () => {
               : "hover:bg-yellow-500 dark:hover:bg-gray-700 text-black dark:text-white"
           }`}
           onClick={() => handleIconClick("image")}
-          aria-label="Photos"
+          aria-label="image"
         >
           <MdOutlinePhotoSizeSelectActual size={25} />
         </div>
@@ -69,13 +70,20 @@ const Sidebar: FC = () => {
         <FaUserCircle size={25} />
       </div>
 
-      <div
+      {/* <div
           className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
           onClick={() => setSelectedType("Settings")}
           aria-label="Settings"
         > 
       <FaBars size={25} />
-      </div>
+      </div> */}
+      <div
+       className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
+      //  onClick={() => setSelectedType("Settings")}
+      //  aria-label="Settings" 
+       >
+        <AccountDropdown />
+       </div>
       </div>
       
     </div>

@@ -1,12 +1,11 @@
-"use client"
-
 import { useState, useRef, useEffect } from "react"
-import { Plus } from 'lucide-react'
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
+import { useColorPaletteStore } from "@/lib/store"
 
 interface ColorPalette {
   name: string
@@ -16,19 +15,19 @@ interface ColorPalette {
 const defaultPalettes: ColorPalette[] = [
   {
     name: "Ember",
-    colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"]
+    colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
   },
   {
     name: "Fresh",
-    colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"]
+    colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"],
   },
   {
     name: "Jungle",
-    colors: ["#006400", "#228B22", "#32CD32", "#90EE90"]
+    colors: ["#006400", "#228B22", "#32CD32", "#90EE90"],
   },
   {
     name: "Magic",
-    colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"]
+    colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"],
   },
 ]
 
@@ -40,16 +39,16 @@ function ColorSpectrum({ onColorSelect }: { onColorSelect: (color: string) => vo
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const ctx = canvas.getContext('2d')
+    const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     const gradientHorizontal = ctx.createLinearGradient(0, 0, canvas.width, 0)
     gradientHorizontal.addColorStop(0, "rgb(255, 0, 0)")
-    gradientHorizontal.addColorStop(1/6, "rgb(255, 255, 0)")
-    gradientHorizontal.addColorStop(2/6, "rgb(0, 255, 0)")
-    gradientHorizontal.addColorStop(3/6, "rgb(0, 255, 255)")
-    gradientHorizontal.addColorStop(4/6, "rgb(0, 0, 255)")
-    gradientHorizontal.addColorStop(5/6, "rgb(255, 0, 255)")
+    gradientHorizontal.addColorStop(1 / 6, "rgb(255, 255, 0)")
+    gradientHorizontal.addColorStop(2 / 6, "rgb(0, 255, 0)")
+    gradientHorizontal.addColorStop(3 / 6, "rgb(0, 255, 255)")
+    gradientHorizontal.addColorStop(4 / 6, "rgb(0, 0, 255)")
+    gradientHorizontal.addColorStop(5 / 6, "rgb(255, 0, 255)")
     gradientHorizontal.addColorStop(1, "rgb(255, 0, 0)")
 
     ctx.fillStyle = gradientHorizontal
@@ -70,14 +69,14 @@ function ColorSpectrum({ onColorSelect }: { onColorSelect: (color: string) => vo
     if (!canvas) return
 
     const rect = canvas.getBoundingClientRect()
-    const x = ('touches' in event ? event.touches[0].clientX : event.clientX) - rect.left
-    const y = ('touches' in event ? event.touches[0].clientY : event.clientY) - rect.top
-    const ctx = canvas.getContext('2d')
+    const x = ("touches" in event ? event.touches[0].clientX : event.clientX) - rect.left
+    const y = ("touches" in event ? event.touches[0].clientY : event.clientY) - rect.top
+    const ctx = canvas.getContext("2d")
     if (!ctx) return
 
     const imageData = ctx.getImageData(x, y, 1, 1)
     const [r, g, b] = imageData.data
-    const color = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+    const color = `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`
     onColorSelect(color)
   }
 
@@ -103,6 +102,17 @@ export default function CustomColorPalette() {
   const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(defaultPalettes[0])
   const [customColors, setCustomColors] = useState<string[]>(Array(5).fill("#FFFFFF"))
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null)
+  const setGlobalSelectedPalette = useColorPaletteStore((state) => state.setSelectedPalette)
+
+  useEffect(() => {
+    // Update global state when selected palette changes
+    setGlobalSelectedPalette(selectedPalette)
+  }, [selectedPalette, setGlobalSelectedPalette])
+
+  const handlePaletteSelect = (palette: ColorPalette) => {
+    setSelectedPalette(palette)
+    setGlobalSelectedPalette(palette)
+  }
 
   const handleColorSelect = (color: string) => {
     if (activeColorIndex !== null) {
@@ -112,103 +122,96 @@ export default function CustomColorPalette() {
     }
   }
 
+  const handleColorInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const newColor = e.target.value
+    if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(newColor)) {
+      const updatedColors = [...customColors]
+      updatedColors[index] = newColor
+      setCustomColors(updatedColors)
+    }
+  }
+
   return (
-    <Card className="fixed w-[300px]  bg-white/20 backdrop-blur-md  text-white">
+    <Card className="fixed w-[300px] bg-white/20 backdrop-blur-md text-white">
       <CardContent className="p-4">
         <h2 className="mb-4 text-lg text-black font-semibold">Color palette</h2>
-        <ScrollArea className="h-[450px] pr-4">
+        <ScrollArea className="h-[300px] pr-4">
           <div className="space-y-4">
-            {/* Existing Palettes */}
             {defaultPalettes.map((palette) => (
               <div key={palette.name} className="space-y-2">
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start text-left text-black font-normal",
-                    selectedPalette.name === palette.name && "bg-yellow-500"
+                    "w-full justify-between text-left text-black font-normal py-2 px-3",
+                    selectedPalette.name === palette.name && "bg-yellow-500",
                   )}
-                  onClick={() => setSelectedPalette(palette)}
+                  onClick={() => handlePaletteSelect(palette)}
                 >
-                  {palette.name}
+                  <span>{palette.name}</span>
+                  <div className="flex items-center space-x-2">
+                    {palette.colors.map((color, index) => (
+                      <div
+                        key={index}
+                        className="h-5 w-5 rounded-sm"
+                        style={{ backgroundColor: color }}
+                        title={color}
+                      />
+                    ))}
+                  </div>
                 </Button>
-                <div className="grid grid-cols-5 gap-1">
-                  {palette.colors.map((color, index) => (
-                    <div
-                      key={index}
-                      className="h-8 w-full rounded-sm"
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    />
-                  ))}
-                </div>
               </div>
             ))}
 
-            {/* Custom Palette */}
             <div className="space-y-2 text-black">
               <Button
                 variant="ghost"
                 className={cn(
-                  "w-full justify-start text-left font-normal",
-                  "custom" === selectedPalette.name && "bg-yellow-500"
+                  "w-full justify-between text-left font-normal py-2 px-3",
+                  "custom" === selectedPalette.name && "bg-yellow-500",
                 )}
                 onClick={() => setSelectedPalette({ name: "custom", colors: customColors })}
               >
-                Custom
+                <span>Custom</span>
+                <div className="flex items-center space-x-2">
+                  {customColors.map((color, index) => (
+                    <Popover key={index}>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "h-5 w-5 rounded-sm transition-all hover:scale-105",
+                            activeColorIndex === index && "ring-1 ring-yellow-500",
+                          )}
+                          style={{ backgroundColor: color }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setActiveColorIndex(index)
+                          }}
+                        >
+                          {color === "#FFFFFF" && <Plus className="h-4 w-4 mx-auto text-zinc-400" />}
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-64 p-2 bg-yellow-500 border-zinc-800">
+                        <ColorSpectrum onColorSelect={handleColorSelect} />
+                        <div className="mt-2 flex justify-between items-center">
+                          <div
+                            className="w-8 h-8 rounded-md border border-zinc-700"
+                            style={{ backgroundColor: customColors[activeColorIndex ?? 0] }}
+                          />
+                          <input
+                            type="text"
+                            value={customColors[activeColorIndex ?? 0].toUpperCase()}
+                            onChange={(e) => handleColorInputChange(e, activeColorIndex ?? 0)}
+                            className="ml-2 w-24 text-sm text-zinc-700 bg-white border border-zinc-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  ))}
+                </div>
               </Button>
-              <div className="grid grid-cols-5 gap-1">
-                {customColors.map((color, index) => (
-                  <Popover key={index}>
-                    <PopoverTrigger asChild>
-                      <button
-                        className={cn(
-                          "h-8 w-full rounded-sm transition-all hover:scale-105",
-                          activeColorIndex === index && "ring-2 ring-white"
-                        )}
-                        style={{ backgroundColor: color }}
-                        onClick={() => setActiveColorIndex(index)}
-                      >
-                        {color === "#FFFFFF" && (
-                          <Plus className="h-4 w-4 mx-auto text-zinc-400" />
-                        )}
-                      </button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-64 p-2 bg-yellow-500 border-zinc-800">
-                      <ColorSpectrum onColorSelect={handleColorSelect} />
-                      <div className="mt-2 flex justify-between items-center">
-                        <div
-                          className="w-8 h-8 rounded-md border border-zinc-700"
-                          style={{ backgroundColor: customColors[activeColorIndex ?? 0] }}
-                        />
-                        <span className="text-sm text-zinc-400">
-                          {customColors[activeColorIndex ?? 0].toUpperCase()}
-                        </span>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                ))}
-              </div>
             </div>
           </div>
         </ScrollArea>
-
-        {/* Selected Palette Info */}
-        <div className="mt-4">
-          <p className="text-sm text-zinc-400">
-            Selected: {selectedPalette.name === "custom" ? "Custom" : selectedPalette.name}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {(selectedPalette.name === "custom" ? customColors : selectedPalette.colors).map((color, index) => (
-              <div key={index} className="flex items-center gap-1.5">
-                <div
-                  className="h-4 w-4 rounded-sm"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="text-xs text-zinc-400">{color.toUpperCase()}</span>
-              </div>
-            ))}
-          </div>
-        </div>
       </CardContent>
     </Card>
   )

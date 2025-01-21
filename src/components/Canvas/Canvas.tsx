@@ -2,6 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useCanvasStore } from '@/lib/store';
+import { FiX} from "react-icons/fi"; 
 
 interface Position {
   x: number;
@@ -241,7 +242,7 @@ const handleMouseDown = (e: React.MouseEvent) => {
   return (
     <canvas
       ref={canvasRef}
-      className="w-full h-full cursor-grab active:cursor-grabbing"
+      className="w-full min-h-screen cursor-grab active:cursor-grabbing overflow-hidden"
       onDragOver={e => e.preventDefault()}
       onDrop={handleDrop}
       onMouseDown={handleMouseDown}

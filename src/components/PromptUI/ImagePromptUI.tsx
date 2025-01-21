@@ -1,4 +1,6 @@
-import { useState } from "react";
+"use client";
+
+import { ChangeEvent, useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "@/components/ui/input";
 import { VscSettings } from "react-icons/vsc";
@@ -6,12 +8,15 @@ import { IoMdColorPalette } from "react-icons/io";
 import { FaLock, FaUpload } from "react-icons/fa";
 import { Switch } from "../ui/switch";
 import SettingsPanel from "./SettingsPanel";
-import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"; // Import your palette component
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
+import { useColorPaletteStore } from "@/lib/store";
+import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
 
 const ImagePromptUI = () => {
   const [magicPrompt, setMagicPrompt] = useState(false);
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false); // State for color palette
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
 
   const handleMagicPromptToggle = () => {
     setMagicPrompt((prev) => !prev);
@@ -22,7 +27,11 @@ const ImagePromptUI = () => {
   };
 
   const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev); // Toggle color palette visibility
+    setIsColorPaletteVisible((prev) => !prev);
+  };
+
+  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    console.log("File uploaded:", event.target.files);
   };
 
   return (
@@ -41,9 +50,21 @@ const ImagePromptUI = () => {
             </Button>
           </div>
         </div>
-        <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
-          <FaUpload size={20} />
-        </div>
+        {/* Upload Button */}
+        <label className="cursor-pointer">
+          <Button className="bg-gray-300 hover:bg-gray-400" size="icon" asChild>
+            <span>
+              <FaUpload className="h-4 w-4 text-white" />
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileUpload}
+                multiple
+              />
+            </span>
+          </Button>
+        </label>
         <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
           <VscSettings
             size={20}
@@ -51,7 +72,6 @@ const ImagePromptUI = () => {
             onClick={toggleSettingsPanel}
           />
         </div>
-
         <Button className="font-bold">Generate</Button>
       </div>
 
@@ -64,7 +84,6 @@ const ImagePromptUI = () => {
           </span>
           <FaLock className="text-gray-400 dark:text-gray-400" size={10} />
         </div>
-
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <Switch
@@ -77,27 +96,31 @@ const ImagePromptUI = () => {
           </div>
         </div>
 
-        {/* Color Palette Icon */}
-        <IoMdColorPalette
-          size={25}
-          className="text-gray-400 hover:text-gray-500 cursor-pointer dark:text-white"
-          onClick={toggleColorPalette} // Attach toggle function
-        />
-
-        <span className="text-gray-400 dark:text-gray-200">
-          Color
-          <span className="font-bold"> Auto</span>
-        </span>
+        {/* Color Palette Icon and Display */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <IoMdColorPalette
+              size={25}
+              className="text-gray-400 hover:text-gray-500 cursor-pointer dark:text-white"
+              onClick={toggleColorPalette}
+            />
+            <span className="text-gray-400 dark:text-gray-200">
+              Color
+              <span className="font-bold">
+                {selectedPalette ? ` ${selectedPalette.name}` : " Auto"}
+              </span>
+            </span>
+          </div>
+          {selectedPalette && <SelectedPaletteDisplay />}
+        </div>
       </div>
 
-      {/* Render SettingsPanel if visible */}
+      {/* Conditional Renders */}
       {isSettingsPanelVisible && (
         <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-56 -translate-y-60 flex justify-center items-center">
           <SettingsPanel />
         </div>
       )}
-
-      {/* Render CustomColorPalette if visible */}
       {isColorPaletteVisible && (
         <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-[600px] -translate-y-[650px]">
           <CustomColorPalette />
