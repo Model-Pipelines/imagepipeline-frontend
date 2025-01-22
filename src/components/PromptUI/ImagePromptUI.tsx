@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, useState } from "react";
+import axios from "axios";
 import { Button } from "../ui/button";
 import { Input } from "@/components/ui/input";
 import { VscSettings } from "react-icons/vsc";
@@ -16,6 +17,9 @@ const ImagePromptUI = () => {
   const [magicPrompt, setMagicPrompt] = useState(false);
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
 
   const handleMagicPromptToggle = () => {
@@ -34,6 +38,65 @@ const ImagePromptUI = () => {
     console.log("File uploaded:", event.target.files);
   };
 
+  const handleGenerateImage = async () => {
+    if (!inputText) {
+      alert("Please enter a description for the image.");
+      return;
+    }
+
+    setLoading(true);
+    setGeneratedImage(null);
+
+    const postUrl = "https://api.imagepipeline.io/generate/v3";
+    const postData = {
+      prompt: inputText,
+      width: 1024,
+      height: 1024,
+    };
+
+    const headers = {
+      "API-Key": "",
+      "Content-Type": "application/json",
+    };
+
+    try {
+      const postResponse = await axios.post(postUrl, postData, { headers });
+
+      if (postResponse.data && postResponse.data.id) {
+        const { id } = postResponse.data;
+        const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`;
+
+        let status = "PENDING";
+        let downloadUrl = null;
+
+        while (status === "PENDING") {
+          const getResponse = await axios.get(getUrl, { headers });
+          status = getResponse.data.status;
+
+          if (status === "SUCCESS") {
+            downloadUrl = getResponse.data.download_urls[0];
+            break;
+          } else if (status === "FAILED") {
+            throw new Error("Image generation failed.");
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 10000));
+        }
+
+        if (downloadUrl) {
+          setGeneratedImage(downloadUrl);
+        } else {
+          throw new Error("Failed to retrieve the image generation ID.");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error generating image:", error.message);
+      alert("Failed to generate the image. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
       {/* Upper Section */}
@@ -41,15 +104,19 @@ const ImagePromptUI = () => {
         <div className="relative flex-grow">
           <Input
             type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
             placeholder="Describe what you want to see or Upload image"
             className="w-full text-black dark:text-white focus:outline-none dark:bg-gray-700 dark:border-gray-600"
           />
-          <div className="absolute inset-y-0 right-2 flex items-center space-x-2">
-            <Button className="hover:bg-[#ffa276] bg-[#fdd700] text-white dark:bg-[var(--primary)] dark:text-[var(--foreground)] h-6 w-[110px] rounded-none font-semibold">
-              Describe Image
-            </Button>
-          </div>
         </div>
+        <Button
+          onClick={handleGenerateImage}
+          className="font-bold bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+          disabled={loading}
+        >
+          {loading ? "Generating..." : "Generate"}
+        </Button>
         {/* Upload Button */}
         <label className="cursor-pointer">
           <Button className="bg-gray-300 hover:bg-gray-400" size="icon" asChild>
@@ -72,8 +139,17 @@ const ImagePromptUI = () => {
             onClick={toggleSettingsPanel}
           />
         </div>
-        <Button className="font-bold">Generate</Button>
       </div>
+
+      {generatedImage && (
+        <div className="fixed -z-10 bottom-96 left-60 mt-6 w-96">
+          <img
+            src={generatedImage}
+            alt="Generated"
+            className="max-w-full mx-auto shadow-lg"
+          />
+        </div>
+      )}
 
       {/* Lower Section */}
       <div className="mt-6 flex items-center gap-6">

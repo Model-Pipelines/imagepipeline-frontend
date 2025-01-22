@@ -10,6 +10,7 @@ import AccountDropdown from "@/components/Sidebar/AccountDropdown";
 
 import Sidebar from "@/components/Sidebar/Sidebar";
 
+
 export default function Home() {
   return (
     <div className="flex flex-row ">
@@ -17,7 +18,7 @@ export default function Home() {
       <Canvas />
       <Toolbar />
       <ParentPromt />
-      
+      {/* <EditImageOptions /> */}
       {/* <EditImageOptions /> */}
     </div>
   );
