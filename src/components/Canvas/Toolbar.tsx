@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import {
   Move,
@@ -13,58 +14,78 @@ import {
   Upload,
 } from "lucide-react";
 import { useCanvasStore } from "@/lib/store";
+import EditImageOptions from './EditImageOptions/EditImageOptions';
 
-const Toolbar = () => {
+
+
+interface ToolbarProps {
+  onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onDownload: () => void;
+}
+
+
+const Toolbar = ({ onUpload, onDownload }: ToolbarProps) => {
   const {
     toggleMovement,
     toggleGrid,
     resetCanvas,
     undo,
     redo,
+    selectedElement,
+    updateElement,
+    setSelectedElement,
     movementEnabled,
     gridEnabled,
     scale,
-    setScale,
-    elements,
+    setPosition,
+
   } = useCanvasStore();
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    files.forEach((file) => {
-      if (file.type.startsWith('image/')) {
+
+
+  const handleZoomIn = () => {
+    const newScale = scale * 1.1;
+    // Optionally adjust position to zoom towards center
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+  };
+
+
+  const handleZoomOut = () => {
+    const newScale = scale / 1.1;
+    // Optionally adjust position to zoom from center
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+
+  };
+
+  const {
+    elements,
+    addElement,
+  } = useCanvasStore();
+
+
+    const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) {
         const reader = new FileReader();
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target?.result as string;
-          img.onload = () => {
-            useCanvasStore.getState().addElement({
-              id: Math.random().toString(36).substr(2, 9),
-              type: 'image',
-              src: event.target?.result as string,
-              x: window.innerWidth / 2 - img.width / 2,
-              y: window.innerHeight / 2 - img.height / 2,
-              width: img.width,
-              height: img.height,
-              rotation: 0,
-              zIndex: elements.length,
-            });
+        reader.onload = (e) => {
+          const newElement = {
+            id: Date.now().toString(),
+            type: 'image' as const, 
+            src: e.target?.result as string,
+            position: { x: 100, y: 100 },
+            size: { width: 200, height: 200 },
+            rotation: 0,
+            zIndex: elements.length,
           };
+          addElement(newElement);
         };
         reader.readAsDataURL(file);
       }
-    });
-  };
+    }, [elements.length, addElement]);
 
-  const exportCanvas = () => {
-    const canvas = document.querySelector('canvas');
-    if (canvas) {
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = 'canvas-export.png';
-      link.href = dataUrl;
-      link.click();
-    }
-  };
+
 
   return (
     <div className="fixed top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-2 flex items-center gap-2">
@@ -87,7 +108,7 @@ const Toolbar = () => {
       <Button
         variant="outline"
         size="icon"
-        onClick={() => setScale(scale * 1.1)}
+        onClick={handleZoomIn}
         title="Zoom In"
       >
         <ZoomIn className="h-4 w-4" />
@@ -95,7 +116,8 @@ const Toolbar = () => {
       <Button
         variant="outline"
         size="icon"
-        onClick={() => setScale(scale / 1.1)}
+        // onClick={() => setScale(scale / 1.1)}
+        onClick={handleZoomOut}
         title="Zoom Out"
       >
         <ZoomOut className="h-4 w-4" />
@@ -114,28 +136,50 @@ const Toolbar = () => {
       <Button variant="outline" size="icon" onClick={redo} title="Redo">
         <Redo className="h-4 w-4" />
       </Button>
-      <label>
-        <Button variant="outline" size="icon" asChild>
-          <span>
-            <Upload className="h-4 w-4" />
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleFileUpload}
-              multiple
-            />
-          </span>
-        </Button>
-      </label>
+
+      <Button variant="outline" size="icon" asChild>
+        <label className="cursor-pointer">
+          <Upload className="h-4 w-4" />
+          <input
+            type="file"
+            className="hidden"
+            accept="image/*"
+            onChange={handleFileUpload}
+            multiple
+          />
+        </label>
+      </Button>
+ 
+
       <Button
         variant="outline"
         size="icon"
-        onClick={exportCanvas}
+        onClick={onDownload}
         title="Export Canvas"
       >
         <Download className="h-4 w-4" />
       </Button>
+
+
+      {selectedElement && (
+        <div className="fixed translate-x-full top-0 ">
+          <EditImageOptions
+            element={selectedElement}
+            prompt=""
+            magicPrompt=""
+            images={[]}
+            model=""
+            style=""
+            resolution=""
+            seed=""
+            dateCreated=""
+            onUpdate={updateElement}
+            onDelete={() => {}}
+            onClose={() => setSelectedElement(null)}
+          />
+        </div>
+      )}
+
     </div>
   );
 };

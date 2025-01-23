@@ -20,8 +20,10 @@ import { CanvasEditor } from "./CanvasEditor"
 import { HumanEditor } from "./HumanEditor"
 import { ExtendImage } from "./ExtendImage"
 import { Upscale } from "./Upscale"
+import { CanvasElement, useCanvasStore } from "@/lib/store"
 
-interface PromptCardProps {
+interface EditImageOptionsProps {
+  element: CanvasElement;
   prompt: string
   magicPrompt: string
   images: string[]
@@ -38,6 +40,7 @@ interface PromptCardProps {
 type EditAction = "background" | "canvas" | "human" | "extend" | "upscale" | null
 
 export default function EditImageOptions({
+  element,
   prompt,
   magicPrompt,
   images,
@@ -49,8 +52,24 @@ export default function EditImageOptions({
   onDelete,
   onDownload,
   onClose,
-}: PromptCardProps) {
-  const [currentAction, setCurrentAction] = useState<EditAction>(null)
+}: EditImageOptionsProps) {
+  const [currentAction, setCurrentAction] = useState<EditAction>(null);
+  const deleteElement = useCanvasStore((state) => state.deleteElement);
+
+  
+  const handleDelete = () => {
+    deleteElement(element.id);
+    if (onDelete) onDelete();
+  };
+
+  const handleDownload = () => {
+    const link = document.createElement("a");
+    link.href = element.src || "";
+    link.download = "canvas-image.png";
+    link.click();
+    if (onDownload) onDownload();
+  };
+
 
   return (
     <Card className="bg-white text-black w-full h-3/4 max-w-md">
@@ -132,16 +151,15 @@ export default function EditImageOptions({
         </div>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" className="gap-2" onClick={onDownload}>
+        <Button variant="outline" className="gap-2" onClick={handleDownload}>
           <Download className="h-4 w-4" />
           Download
         </Button>
-        <Button variant="outline" className="gap-2" onClick={onDelete}>
+        <Button variant="outline" className="gap-2" onClick={handleDelete}>
           <Trash2 className="h-4 w-4" />
           Delete
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
-
