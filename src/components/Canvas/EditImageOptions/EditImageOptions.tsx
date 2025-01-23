@@ -1,80 +1,147 @@
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {Input} from "@/components/ui/input";
-import { FaUpload } from "react-icons/fa";
-import { Button } from "@/components/ui/button";
+"use client"
 
+import {
+  Download,
+  Trash2,
+  X,
+  Paintbrush,
+  UserIcon as Human,
+  Maximize2,
+  ArrowUpIcon as ArrowsOut,
+  ImageIcon,
+} from "lucide-react"
+import Image from "next/image"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { BackgroundEditor } from "./BackgroundEditor"
+import { CanvasEditor } from "./CanvasEditor"
+import { HumanEditor } from "./HumanEditor"
+import { ExtendImage } from "./ExtendImage"
+import { Upscale } from "./Upscale"
 
-const EditImageOptions = () =>{
-  return(
-      <div className="fixed p-4 bg-white/20 backgroup-blur-md text-black rounded-xl shadow-lg  ring-1 ring-black/5 isolate">
-        
-        <Tabs defaultValue="Reference">
-          <TabsList>
-            <TabsTrigger value="Change-Background">Change Background</TabsTrigger>
-            <TabsTrigger value="Edit-in-Canvas">Edit in Canvas</TabsTrigger>
-            <TabsTrigger value="Change-the-Human">Change the Human</TabsTrigger>
-            <TabsTrigger value="Extend-Image">Extend Image</TabsTrigger>
-            <TabsTrigger value="Upscale">Upscale</TabsTrigger>
-          </TabsList>
+interface PromptCardProps {
+  prompt: string
+  magicPrompt: string
+  images: string[]
+  model: string
+  style: string
+  resolution: string
+  seed: string
+  dateCreated: string
+  onDelete?: () => void
+  onDownload?: () => void
+  onClose?: () => void
+}
 
-          <TabsContent value="Change-Background">
-            <div>
-            <div className="mb-4">
-              <label
-                htmlFor="typeInput"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Type
-              </label>
-              <Input
-                id="typeInput"
-                type="text"
-                // value={type}
-                // onChange={(e) => setType(e.target.value)}
-                placeholder="Enter type (e.g., Text, Media)"
-                className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              />
-            </div>
-            </div>
-          </TabsContent>
+type EditAction = "background" | "canvas" | "human" | "extend" | "upscale" | null
 
+export default function EditImageOptions({
+  prompt,
+  magicPrompt,
+  images,
+  model,
+  style,
+  resolution,
+  seed,
+  dateCreated,
+  onDelete,
+  onDownload,
+  onClose,
+}: PromptCardProps) {
+  const [currentAction, setCurrentAction] = useState<EditAction>(null)
 
-          <TabsContent value="Edit-in-Canvas">
-          <div>
-            <div className="mb-4">
-              <label
-                htmlFor="typeInput"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Type
-              </label>
-              <Input
-                id="typeInput"
-                type="text"
-                // value={type}
-                // onChange={(e) => setType(e.target.value)}
-                placeholder="Enter type (e.g., Text, Media)"
-                className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-              />
-            </div>
+  return (
+    <Card className="bg-white text-black w-full h-3/4 max-w-md">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("background")}>
+            <ImageIcon className="h-4 w-4" />
+            Change Background
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("canvas")}>
+            <Paintbrush className="h-4 w-4" />
+            Edit in Canvas
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("human")}>
+            <Human className="h-4 w-4" />
+            Change Human
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("extend")}>
+            <ArrowsOut className="h-4 w-4" />
+            Extend Image
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("upscale")}>
+            <Maximize2 className="h-4 w-4" />
+            Upscale
+          </Button>
+        </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {currentAction && (
+          <>
+            {currentAction === "background" && <BackgroundEditor />}
+            {currentAction === "canvas" && <CanvasEditor />}
+            {currentAction === "human" && <HumanEditor />}
+            {currentAction === "extend" && <ExtendImage />}
+            {currentAction === "upscale" && <Upscale />}
+            <Separator />
+          </>
+        )}
 
-            <div className="flex justify-center mb-4">
-              <Button
-                // onClick={handleUpload}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-              >
-                <FaUpload /> 
-              </Button>
-            </div>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Prompt</h3>
+            <p className="text-sm text-muted-foreground">{prompt}</p>
           </div>
-        </TabsContent>
 
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium">Magic Prompt</h3>
+            <p className="text-sm text-muted-foreground">{magicPrompt}</p>
+          </div>
+        </div>
 
-        
-        </Tabs>
-      </div>
+        <Separator />
+
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div>
+            <p className="font-medium">Model</p>
+            <p className="text-muted-foreground">{model}</p>
+          </div>
+          <div>
+            <p className="font-medium">Style</p>
+            <p className="text-muted-foreground">{style}</p>
+          </div>
+          <div>
+            <p className="font-medium">Resolution</p>
+            <p className="text-muted-foreground">{resolution}</p>
+          </div>
+          <div>
+            <p className="font-medium">Seed</p>
+            <p className="text-muted-foreground">{seed}</p>
+          </div>
+        </div>
+
+        <div className="text-sm">
+          <p className="font-medium">Date created</p>
+          <p className="text-muted-foreground">{dateCreated}</p>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" className="gap-2" onClick={onDownload}>
+          <Download className="h-4 w-4" />
+          Download
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={onDelete}>
+          <Trash2 className="h-4 w-4" />
+          Delete
+        </Button>
+      </CardFooter>
+    </Card>
   )
 }
 
-export default EditImageOptions;

@@ -6,38 +6,42 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Github } from "lucide-react"
 import Image from "next/image"
-// import carsignup from "../../../public/carsignup.png"
 
 const cards = [
   {
     id: 1,
     rotation: -30,
-    image: "/carsignup.png", // Replace with your image paths
-    delay: 0,
+    image: "/carsignup.png",
+    alt: "Car signup image",
+    delay: 0.2,
   },
   {
     id: 2,
     rotation: -15,
     image: "/flowersignup.png",
-    delay: 0.1,
+    alt: "Flower signup image",
+    delay: 0.4,
   },
   {
     id: 3,
     rotation: 0,
     image: "/girlanimesignup.png",
-    delay: 0.2,
+    alt: "Girl anime signup image",
+    delay: 0.6,
   },
   {
     id: 4,
     rotation: 15,
     image: "/girlsignup.png",
-    delay: 0.3,
+    alt: "Girl signup image",
+    delay: 0.8,
   },
   {
     id: 5,
     rotation: 30,
     image: "/naturesignup.png",
-    delay: 0.4,
+    alt: "Nature signup image",
+    delay: 1,
   },
 ]
 
@@ -149,10 +153,10 @@ const Page = () => {
           {cards.map((card) => (
             <motion.div
               key={card.id}
-              className="absolute left-1/2 bottom-0 w-[480px] h-[720px] origin-bottom"
+              className="absolute left-1/2 bottom-0 w-[520px] h-[720px] origin-bottom"
               initial={{ y: 500, rotate: card.rotation, opacity: 0 }}
               animate={{
-                y: 360, // Show only 80% of the card (240px * 0.2 = 48px hidden)
+                y: 360,
                 rotate: card.rotation,
                 opacity: 1,
               }}
@@ -165,10 +169,12 @@ const Page = () => {
               <div className="relative w-full h-full rounded-xl overflow-hidden shadow-xl">
                 <Image
                   src={card.image || "/placeholder.svg"}
-                  alt={`Card ${card.id}`}
+                  alt={card.alt}
                   fill
                   className="object-cover"
-                  sizes="160px"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  quality={85}
+                  priority={card.id <= 2}
                 />
               </div>
             </motion.div>
