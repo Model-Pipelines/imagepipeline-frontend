@@ -90,7 +90,7 @@ const ImagePromptUI = () => {
     };
 
     const headers = {
-      "API-Key": "",
+      "API-Key": " ",
       "Content-Type": "application/json",
     };
 
