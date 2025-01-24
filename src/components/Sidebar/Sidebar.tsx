@@ -12,11 +12,11 @@ const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
   const [activeIcon, setActiveIcon] = useState<string | null>(null);
 
-
-  const handleIconClick = (type: string)=>{
+  const handleIconClick = (type: string) => {
     setActiveIcon((prev) => (prev === type ? null : type));
     setSelectedType(type);
-  }
+  };
+
   return (
     <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
       <Link href="#" aria-label="Logo">
@@ -24,7 +24,7 @@ const Sidebar: FC = () => {
       </Link>
 
       <div className="flex flex-col items-center space-y-20">
-      <div
+        <div
           className={`p-2 rounded-md cursor-pointer ${
             activeIcon === "image"
               ? "bg-yellow-500 dark:bg-gray-700 text-white"
@@ -48,8 +48,7 @@ const Sidebar: FC = () => {
           <MdVideoLibrary size={25} />
         </div>
 
-
-         <div
+        <div
           className={`p-2 rounded-md cursor-pointer ${
             activeIcon === "audio"
               ? "bg-yellow-500 dark:bg-gray-700 text-white"
@@ -63,29 +62,19 @@ const Sidebar: FC = () => {
       </div>
 
       <div className="flex flex-col items-center space-y-10">
-      <div
-        className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-full text-black dark:text-white cursor-pointer"
-        aria-label="Settings"
-      >
-        <FaUserCircle size={25} />
-      </div>
-
-      {/* <div
-          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
-          onClick={() => setSelectedType("Settings")}
+        <div
+          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-full text-black dark:text-white cursor-pointer"
           aria-label="Settings"
-        > 
-      <FaBars size={25} />
-      </div> */}
-      <div
-       className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
-      //  onClick={() => setSelectedType("Settings")}
-      //  aria-label="Settings" 
-       >
-        <AccountDropdown />
-       </div>
+        >
+          <FaUserCircle size={25} />
+        </div>
+
+        <div
+          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
+        >
+          <AccountDropdown />
+        </div>
       </div>
-      
     </div>
   );
 };

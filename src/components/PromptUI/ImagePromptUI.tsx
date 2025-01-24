@@ -1,16 +1,17 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useState, useRef } from "react";
 import axios from "axios";
 import { Button } from "../ui/button";
 import { Input } from "@/components/ui/input";
 import { VscSettings } from "react-icons/vsc";
 import { IoMdColorPalette } from "react-icons/io";
 import { FaLock, FaUpload } from "react-icons/fa";
+import { Paperclip } from "lucide-react";
 import { Switch } from "../ui/switch";
 import SettingsPanel from "./SettingsPanel";
 import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
-import { useColorPaletteStore } from "@/lib/store";
+import { useColorPaletteStore, useCanvasStore } from "@/lib/store";
 import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
 
 const ImagePromptUI = () => {
@@ -21,6 +22,8 @@ const ImagePromptUI = () => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
+  const addMedia = useCanvasStore((state) => state.addMedia);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleMagicPromptToggle = () => {
     setMagicPrompt((prev) => !prev);
@@ -34,8 +37,40 @@ const ImagePromptUI = () => {
     setIsColorPaletteVisible((prev) => !prev);
   };
 
-  const handleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
-    console.log("File uploaded:", event.target.files);
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      const element = new Image();
+      element.src = dataUrl;
+
+      await new Promise((resolve) => {
+        element.onload = resolve;
+      });
+
+      // Calculate size maintaining aspect ratio
+      const aspectRatio = element.width / element.height;
+      let width = 200;
+      let height = width / aspectRatio;
+
+      if (height > 200) {
+        height = 200;
+        width = height * aspectRatio;
+      }
+
+      addMedia({
+        id: crypto.randomUUID(),
+        type: 'image',
+        element,
+        position: { x: 0, y: 0 },
+        size: { width, height },
+        scale: 1,
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleGenerateImage = async () => {
@@ -97,17 +132,50 @@ const ImagePromptUI = () => {
     }
   };
 
+  const handlePaperclipClick = () => {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.onchange = async (event: any) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const dataUrl = event.target?.result as string;
+        const textArea = textAreaRef.current;
+        if (textArea) {
+          const cursorPosition = textArea.selectionStart;
+          const textBeforeCursor = inputText.substring(0, cursorPosition);
+          const textAfterCursor = inputText.substring(cursorPosition);
+          setInputText(`${textBeforeCursor}\n![image](${dataUrl})\n${textAfterCursor}`);
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+    fileInput.click();
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
       {/* Upper Section */}
       <div className="flex items-center gap-4">
         <div className="relative flex-grow">
-          <Input
-            type="text"
+          <button
+            className="absolute left-2 top-2 p-1"
+            onClick={handlePaperclipClick}
+            title="Upload Image"
+          >
+            <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          <textarea
+            ref={textAreaRef}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             placeholder="Describe what you want to see or Upload image"
-            className="w-full text-black dark:text-white focus:outline-none dark:bg-gray-700 dark:border-gray-600"
+            className="w-full text-black dark:text-white focus:outline-none bg-gray-100 dark:bg-gray-700 dark:border-gray-600 resize-none overflow-auto pl-8 rounded-lg p-2"
+            rows={5}
+            style={{ maxHeight: '150px' }}
           />
         </div>
         <Button

@@ -1,30 +1,11 @@
 "use client";
-
-import CanvasMain from "@/components/Canvas/CanvasMain";
-import ParentPromt from "@/components/PromptUI/ParentPrompt";
-
-import Sidebar from "@/components/Sidebar/Sidebar";
+import InfiniteCanvas from "@/components/Canvas/InfiniteCanvas";
 
 export default function Home() {
 
   return (
-    <div className="flex flex-row ">
-      <Sidebar />
-      <CanvasMain />
-      
-      <ParentPromt />
-      {/* <EditImageOptions
-        prompt={""}
-        magicPrompt={""}
-        images={[]}
-        model={""}
-        style={""}
-        resolution={""}
-        seed={""}
-        dateCreated={""}
-      /> */}
-
-      {/* <GenerationQueueStatus /> */}
+    <div className=" w-screen h-screen overflow-hidden">
+      <InfiniteCanvas />
     </div>
   );
 }

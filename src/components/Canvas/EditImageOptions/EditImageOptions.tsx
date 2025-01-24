@@ -33,6 +33,7 @@ interface EditImageOptionsProps {
   seed: string
   dateCreated: string
   onDelete?: () => void
+  onUpdate: (updatedElement: CanvasElement) => void;
   onDownload?: () => void
   onClose?: () => void
 }
