@@ -19,7 +19,6 @@ const ImagePromptUI = () => {
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
   const [inputText, setInputText] = useState("");
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
   const addMedia = useCanvasStore((state) => state.addMedia);
@@ -80,7 +79,6 @@ const ImagePromptUI = () => {
     }
 
     setLoading(true);
-    setGeneratedImage(null);
 
     const postUrl = "https://api.imagepipeline.io/generate/v3";
     const postData = {
@@ -90,7 +88,7 @@ const ImagePromptUI = () => {
     };
 
     const headers = {
-      "API-Key": " ",
+      "API-Key": "",
       "Content-Type": "application/json",
     };
 
@@ -115,11 +113,35 @@ const ImagePromptUI = () => {
             throw new Error("Image generation failed.");
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 10000));
+          await new Promise((resolve) => setTimeout(resolve, 60000));
         }
 
         if (downloadUrl) {
-          setGeneratedImage(downloadUrl);
+          const element = new Image();
+          element.src = downloadUrl;
+
+          await new Promise((resolve) => {
+            element.onload = resolve;
+          });
+
+          // Calculate size maintaining aspect ratio
+          const aspectRatio = element.width / element.height;
+          let width = 200;
+          let height = width / aspectRatio;
+
+          if (height > 200) {
+            height = 200;
+            width = height * aspectRatio;
+          }
+
+          addMedia({
+            id: crypto.randomUUID(),
+            type: 'image',
+            element,
+            position: { x: 0, y: 0 },
+            size: { width, height },
+            scale: 1,
+          });
         } else {
           throw new Error("Failed to retrieve the image generation ID.");
         }
@@ -175,7 +197,7 @@ const ImagePromptUI = () => {
             placeholder="Describe what you want to see or Upload image"
             className="w-full text-black dark:text-white focus:outline-none bg-gray-100 dark:bg-gray-700 dark:border-gray-600 resize-none overflow-auto pl-8 rounded-lg p-2"
             rows={5}
-            style={{ maxHeight: '150px' }}
+            style={{ maxHeight: '50px' }}
           />
         </div>
         <Button
@@ -208,16 +230,6 @@ const ImagePromptUI = () => {
           />
         </div>
       </div>
-
-      {generatedImage && (
-        <div className="fixed -z-10 bottom-96 left-60 mt-6 w-96">
-          <img
-            src={generatedImage}
-            alt="Generated"
-            className="max-w-full mx-auto shadow-lg"
-          />
-        </div>
-      )}
 
       {/* Lower Section */}
       <div className="mt-6 flex items-center gap-6">
