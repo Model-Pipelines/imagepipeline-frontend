@@ -1,36 +1,16 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import { useCanvasStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 import Toolbar from './Toolbar';
 import ZoomControls from './ZoomControls';
-import Sidebar from '../Sidebar/Sidebar';
-import ParentPrompt from '../PromptUI/ParentPrompt';
-
-import { Edit } from 'lucide-react';
-import EditImageOptions from './EditImageOptions/EditImageOptions';
-
-interface CanvasElement {
-  id: string;
-  type: string;
-  element: HTMLImageElement | HTMLVideoElement;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  scale: number;
-}
-
-interface CanvasMedia extends CanvasElement {
-  element: HTMLImageElement | HTMLVideoElement;
-}
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200; // Initial size for uploaded images
 
 export default function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(null);
-
   const {
     scale,
     offset,
@@ -248,19 +228,17 @@ export default function InfiniteCanvas() {
         ctx.translate(item.position.x, item.position.y);
         
         // Draw the image
-        if (item.element instanceof HTMLImageElement || item.element instanceof HTMLVideoElement) {
-          ctx.drawImage(
-            item.element,
-            0,
-            0,
-            item.size.width,
-            item.size.height
-          );
-        }
+        ctx.drawImage(
+          item.element,
+          0,
+          0,
+          item.size.width,
+          item.size.height
+        );
 
         // Draw selection and resize handles
         if (item.id === selectedMediaId) {
-          ctx.strokeStyle = '#ddd';
+          ctx.strokeStyle = '#0066ff';
           ctx.lineWidth = 2 / scale;
           ctx.strokeRect(
             -2 / scale,
@@ -270,8 +248,6 @@ export default function InfiniteCanvas() {
           );
           drawResizeHandles(item);
         }
-
-        
         
         ctx.restore();
       });
@@ -283,100 +259,49 @@ export default function InfiniteCanvas() {
     render();
   }, [scale, offset, media, showGrid, selectedMediaId]);
 
-  const handleEditClick = (e: React.MouseEvent, item: CanvasElement) => {
-    e.stopPropagation();
-    setSelectedElement(item);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedElement(null);
-  };
-
   return (
-    <div className="relative w-full h-full flex ">
-      <Sidebar />
-      <div className="flex-1 relative">
-        <Toolbar
-          onUpload={handleUpload}
-          onDownload={handleDownload}
-        />
-        <ZoomControls />
-        <canvas
-          ref={canvasRef}
-          className={cn(
-            'absolute inset-0 bg-white dark:bg-[#181603]',
-            isMoveTool ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
-          )}
-          onMouseDown={handleDragStart}
-          onMouseUp={() => {
-            setIsDragging(false);
-            setIsResizing(false);
-            setResizeHandle(null);
-          }}
-          onMouseLeave={() => {
-            setIsDragging(false);
-            setIsResizing(false);
-            setResizeHandle(null);
-          }}
-          onMouseMove={(e) => {
-            if (!isDragging && !isResizing) return;
-            
-            if (isResizing && resizeHandle && selectedMediaId) {
-              const dx = e.movementX / scale;
-              const dy = e.movementY / scale;
-              resizeSelectedMedia(resizeHandle, dx, dy);
-            } else if (selectedMediaId && isDragging) {
-              const dx = e.movementX / scale;
-              const dy = e.movementY / scale;
-              moveSelectedMedia(dx, dy);
-            } else if (isMoveTool && isDragging) {
-              setOffset({
-                x: offset.x + e.movementX,
-                y: offset.y + e.movementY,
-              });
-            }
-          }}
-        />
-        {media.map((item) => (
-          <button
-            key={item.id}
-            className="absolute"
-            style={{
-              top: item.position.y * scale + offset.y - 20,
-              left: item.position.x * scale + offset.x - 20,
-            }}
-            onClick={(e) => handleEditClick(e, item)}
-          >
-            <Edit className="text-white bg-black rounded-full p-1" size={20} />
-          </button>
-        ))}
-       {selectedElement && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end items-center z-50">
-    <div className="bg-white p-4 rounded-lg  w-1/4 h-auto overflow-auto m-4">
-      <EditImageOptions
-        element={selectedElement}
-        prompt=""
-        magicPrompt=""
-        images={[]}
-        model=""
-        style=""
-        resolution=""
-        seed=""
-        dateCreated=""
-        onUpdate={(updatedElement) => {
-          // Update the element in the store
-          const updatedMedia = media.map((item) =>
-            item.id === updatedElement.id ? updatedElement : item
-          );
-          setSelectedElement(updatedElement);
-        }}
-        onClose={handleCloseModal}
+    <div className="relative w-full h-full">
+      <Toolbar
+        onUpload={handleUpload}
+        onDownload={handleDownload}
       />
-    </div>
-  </div>
-)}
-        <ParentPrompt />
-      </div>
+      <ZoomControls />
+      <canvas
+        ref={canvasRef}
+        className={cn(
+          'absolute inset-0 bg-white',
+          isMoveTool ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'
+        )}
+        onMouseDown={handleDragStart}
+        onMouseUp={() => {
+          setIsDragging(false);
+          setIsResizing(false);
+          setResizeHandle(null);
+        }}
+        onMouseLeave={() => {
+          setIsDragging(false);
+          setIsResizing(false);
+          setResizeHandle(null);
+        }}
+        onMouseMove={(e) => {
+          if (!isDragging && !isResizing) return;
+          
+          if (isResizing && resizeHandle && selectedMediaId) {
+            const dx = e.movementX / scale;
+            const dy = e.movementY / scale;
+            resizeSelectedMedia(resizeHandle, dx, dy);
+          } else if (selectedMediaId && isDragging) {
+            const dx = e.movementX / scale;
+            const dy = e.movementY / scale;
+            moveSelectedMedia(dx, dy);
+          } else if (isMoveTool && isDragging) {
+            setOffset({
+              x: offset.x + e.movementX,
+              y: offset.y + e.movementY,
+            });
+          }
+        }}
+      />
     </div>
   );
 }

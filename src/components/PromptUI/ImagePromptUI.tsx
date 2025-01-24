@@ -113,7 +113,7 @@ const ImagePromptUI = () => {
             throw new Error("Image generation failed.");
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 60000));
+          await new Promise((resolve) => setTimeout(resolve, 90000));
         }
 
         if (downloadUrl) {
