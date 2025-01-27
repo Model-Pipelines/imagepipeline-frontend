@@ -1,64 +1,64 @@
-"use client"
+"use client";
 
-import { type ChangeEvent, useState, useRef } from "react"
-import axios from "axios"
-import { Button } from "../ui/button"
-import { Input } from "@/components/ui/input"
-import { VscSettings } from "react-icons/vsc"
-import { IoMdColorPalette } from "react-icons/io"
-import { FaLock, FaUpload } from "react-icons/fa"
-import { Paperclip, X } from "lucide-react"
-import { Switch } from "../ui/switch"
-import SettingsPanel from "./SettingsPanel"
-import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"
-import { useColorPaletteStore, useCanvasStore } from "@/lib/store"
-import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay"
+import { type ChangeEvent, useState, useRef } from "react";
+import { Button } from "../ui/button";
+import { Input } from "@/components/ui/input";
+import { VscSettings } from "react-icons/vsc";
+import { IoMdColorPalette } from "react-icons/io";
+import { FaLock, FaUpload } from "react-icons/fa";
+import { Paperclip, X } from "lucide-react";
+import { Switch } from "../ui/switch";
+import SettingsPanel from "./SettingsPanel";
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
+import { useColorPaletteStore, useCanvasStore } from "@/lib/store";
+import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
+import { generateImage } from "@/services/apiService";
 
 const ImagePromptUI = () => {
-  const [magicPrompt, setMagicPrompt] = useState(false)
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
-  const [inputText, setInputText] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [promptImages, setPromptImages] = useState<string[]>([])
-  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
-  const addMedia = useCanvasStore((state) => state.addMedia)
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  const [magicPrompt, setMagicPrompt] = useState(false);
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [promptImages, setPromptImages] = useState<string[]>([]);
+  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
+  const addMedia = useCanvasStore((state) => state.addMedia);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleMagicPromptToggle = () => {
-    setMagicPrompt((prev) => !prev)
-  }
+    setMagicPrompt((prev) => !prev);
+  };
 
   const toggleSettingsPanel = () => {
-    setIsSettingsPanelVisible((prev) => !prev)
-  }
+    setIsSettingsPanelVisible((prev) => !prev);
+  };
 
   const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev)
-  }
+    setIsColorPaletteVisible((prev) => !prev);
+  };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const reader = new FileReader()
+    const reader = new FileReader();
     reader.onload = async (event) => {
-      const dataUrl = event.target?.result as string
-      const element = new Image()
-      element.src = dataUrl
+      const dataUrl = event.target?.result as string;
+      const element = new Image();
+      element.src = dataUrl;
 
       await new Promise((resolve) => {
-        element.onload = resolve
-      })
+        element.onload = resolve;
+      });
 
       // Calculate size maintaining aspect ratio
-      const aspectRatio = element.width / element.height
-      let width = 200
-      let height = width / aspectRatio
+      const aspectRatio = element.width / element.height;
+      let width = 200;
+      let height = width / aspectRatio;
 
       if (height > 200) {
-        height = 200
-        width = height * aspectRatio
+        height = 200;
+        width = height * aspectRatio;
       }
 
       addMedia({
@@ -68,114 +68,87 @@ const ImagePromptUI = () => {
         position: { x: 800, y: 100 },
         size: { width, height },
         scale: 1,
-      })
-    }
-    reader.readAsDataURL(file)
-  }
+      });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleGenerateImage = async () => {
     if (!inputText && promptImages.length === 0) {
-      alert("Please enter a description or upload an image for reference.")
-      return
+      alert("Please enter a description or upload an image for reference.");
+      return;
     }
 
-    setLoading(true)
-
-    const postUrl = "https://api.imagepipeline.io/generate/v3"
-    const postData = {
-      prompt: inputText,
-      width: 1024,
-      height: 1024,
-    }
-
-    const headers = {
-      "API-Key": "",
-      "Content-Type": "application/json",
-    }
+    setLoading(true);
 
     try {
-      const postResponse = await axios.post(postUrl, postData, { headers })
+      const downloadUrl = await generateImage({
+        prompt: inputText,
+        num_inference_steps: 30,
+        samples: 1,
+        height: 1024,
+        width: 1024,
+        seed: -1,
+        enhance_prompt: magicPrompt,
+        palette: selectedPalette ? selectedPalette.colors : [],
+      });
 
-      if (postResponse.data && postResponse.data.id) {
-        const { id } = postResponse.data
-        const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`
+      if (downloadUrl) {
+        const element = new Image();
+        element.src = downloadUrl;
 
-        let status = "PENDING"
-        let downloadUrl = null
+        await new Promise((resolve) => {
+          element.onload = resolve;
+        });
 
-        while (status === "PENDING") {
-          const getResponse = await axios.get(getUrl, { headers })
-          status = getResponse.data.status
+        // Calculate size maintaining aspect ratio
+        const aspectRatio = element.width / element.height;
+        let width = 200;
+        let height = width / aspectRatio;
 
-          if (status === "SUCCESS") {
-            downloadUrl = getResponse.data.download_urls[0]
-            break
-          } else if (status === "FAILED") {
-            throw new Error("Image generation failed.")
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 90000))
+        if (height > 200) {
+          height = 200;
+          width = height * aspectRatio;
         }
 
-        if (downloadUrl) {
-          const element = new Image()
-          element.src = downloadUrl
-
-          await new Promise((resolve) => {
-            element.onload = resolve
-          })
-
-          // Calculate size maintaining aspect ratio
-          const aspectRatio = element.width / element.height
-          let width = 200
-          let height = width / aspectRatio
-
-          if (height > 200) {
-            height = 200
-            width = height * aspectRatio
-          }
-
-          addMedia({
-            id: crypto.randomUUID(),
-            type: "image",
-            element,
-            position: { x: 0, y: 0 },
-            size: { width, height },
-            scale: 1,
-          })
-        } else {
-          throw new Error("Failed to retrieve the image generation ID.")
-        }
+        addMedia({
+          id: crypto.randomUUID(),
+          type: "image",
+          element,
+          position: { x: 0, y: 0 },
+          size: { width, height },
+          scale: 1,
+        });
       }
     } catch (error: any) {
-      console.error("Error generating image:", error.message)
-      alert("Failed to generate the image. Please try again.")
+      console.error("Error generating image:", error.message);
+      alert("Failed to generate the image. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePaperclipClick = () => {
-    const fileInput = document.createElement("input")
-    fileInput.type = "file"
-    fileInput.accept = "image/*"
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
     fileInput.onchange = async (event: any) => {
-      const file = event.target.files?.[0]
-      if (!file) return
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string
-        setPromptImages([...promptImages, dataUrl])
-      }
-      reader.readAsDataURL(file)
-    }
-    fileInput.click()
-  }
+        const dataUrl = event.target?.result as string;
+        setPromptImages([...promptImages, dataUrl]);
+      };
+      reader.readAsDataURL(file);
+    };
+    fileInput.click();
+  };
 
   const handleImageDelete = (index: number) => {
-    setPromptImages(promptImages.filter((_, i) => i !== index))
-  }
+    setPromptImages(promptImages.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
@@ -190,9 +163,9 @@ const ImagePromptUI = () => {
               ref={textAreaRef}
               value={inputText}
               onChange={(e) => {
-                setInputText(e.target.value)
-                e.target.style.height = "auto"
-                e.target.style.height = `${e.target.scrollHeight}px`
+                setInputText(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
               }}
               placeholder="Describe what you want to see or Upload image"
               className="w-full text-black dark:text-white focus:outline-none bg-gray-100 dark:bg-gray-700 dark:border-gray-600 resize-none overflow-hidden pl-8 pr-2 rounded-lg p-2"
@@ -286,8 +259,7 @@ const ImagePromptUI = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ImagePromptUI
-
+export default ImagePromptUI;
