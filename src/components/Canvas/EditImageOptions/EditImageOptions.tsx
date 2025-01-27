@@ -20,10 +20,10 @@ import { CanvasEditor } from "./CanvasEditor"
 import { HumanEditor } from "./HumanEditor"
 import { ExtendImage } from "./ExtendImage"
 import { Upscale } from "./Upscale"
-import { type CanvasElement, useCanvasStore } from "@/lib/store"
+import { CanvasElement, useCanvasStore } from "@/lib/store"
 
 interface EditImageOptionsProps {
-  element: CanvasElement
+  element: CanvasElement;
   prompt: string
   magicPrompt: string
   images: string[]
@@ -33,7 +33,7 @@ interface EditImageOptionsProps {
   seed: string
   dateCreated: string
   onDelete?: () => void
-  onUpdate: (updatedElement: CanvasElement) => void
+  onUpdate: (updatedElement: CanvasElement) => void;
   onDownload?: () => void
   onClose?: () => void
 }
@@ -54,54 +54,52 @@ export default function EditImageOptions({
   onDownload,
   onClose,
 }: EditImageOptionsProps) {
-  const [currentAction, setCurrentAction] = useState<EditAction>(null)
-  const deleteElement = useCanvasStore((state) => state.deleteElement)
+  const [currentAction, setCurrentAction] = useState<EditAction>(null);
+  const deleteElement = useCanvasStore((state) => state.deleteElement);
 
+  
   const handleDelete = () => {
-    deleteElement(element.id)
-    if (onDelete) onDelete()
-  }
+    deleteElement(element.id);
+    if (onDelete) onDelete();
+  };
 
   const handleDownload = () => {
-    const link = document.createElement("a")
-    link.href = element.src || ""
-    link.download = "canvas-image.png"
-    link.click()
-    if (onDownload) onDownload()
-  }
+    const link = document.createElement("a");
+    link.href = element.src || "";
+    link.download = "canvas-image.png";
+    link.click();
+    if (onDownload) onDownload();
+  };
+
 
   return (
     <Card className="bg-white text-black w-full h-3/4 max-w-md">
-      <CardHeader className="space-y-2 pb-2 relative">
-        <div className="flex justify-between items-start">
-          <h2 className="text-lg font-semibold">Edit Image Options</h2>
-          <Button variant="ghost" size="icon" onClick={onClose} className="absolute top-2 right-2">
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
+      <CardHeader className="flex-row items-center justify-between space-y-0 pb-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("background")}>
             <ImageIcon className="h-4 w-4" />
             Change Background
           </Button>
+          {/* <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("canvas")}>
+            <Paintbrush className="h-4 w-4" />
+            Edit in Canvas
+          </Button> */}
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("human")}>
             <Human className="h-4 w-4" />
             Change Human
           </Button>
+          {/* <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("extend")}>
+            <ArrowsOut className="h-4 w-4" />
+            Extend Image
+          </Button> */}
           <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("upscale")}>
             <Maximize2 className="h-4 w-4" />
             Upscale
           </Button>
-          {/* Uncomment these buttons if you want to include them in the future */}
-          {/* <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("canvas")}>
-            <Paintbrush className="h-4 w-4" />
-            Edit in Canvas
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setCurrentAction("extend")}>
-            <ArrowsOut className="h-4 w-4" />
-            Extend Image
-          </Button> */}
         </div>
+        <Button variant="ghost" size="icon" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
       </CardHeader>
       <CardContent className="space-y-4">
         {currentAction && (
@@ -164,6 +162,5 @@ export default function EditImageOptions({
         </Button>
       </CardFooter>
     </Card>
-  )
+  );
 }
-
