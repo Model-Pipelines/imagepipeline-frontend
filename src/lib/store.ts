@@ -1,4 +1,4 @@
-"use client";
+
 
 import { create } from 'zustand';
 import { useCallback, useState } from 'react';

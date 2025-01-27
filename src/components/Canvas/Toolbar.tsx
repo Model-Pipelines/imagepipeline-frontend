@@ -25,7 +25,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
-      <Button
+      {/* <Button
         variant="outline"
         size="icon"
         onClick={undo}
@@ -43,7 +43,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
       >
         <Redo2 className="h-4 w-4" />
       </Button>
-      <div className="w-px h-6 bg-gray-200 my-auto mx-2" />
+      <div className="w-px h-6 bg-gray-200 my-auto mx-2" /> */}
       <Button
         variant="outline"
         size="icon"
