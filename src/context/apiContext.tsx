@@ -1,31 +1,46 @@
 import React, { createContext, ReactNode, useContext } from 'react';
 import {
   generateImage,
-  generateControlNetImage,
-  generateSDXLControlNetImage,
+  generateOutlineImage,
+  generateDepthImage,
+  generatePoseImage,
+  generateRenderSketch,
+  generateRecolorSketch,
+  generateInteriorDesign,
   generateLogo,
 } from '../services/apiService';
 
 interface ApiContextProps {
   generateImage: typeof generateImage;
-  generateControlNetImage: typeof generateControlNetImage;
-  generateSDXLControlNetImage: typeof generateSDXLControlNetImage;
+  generateOutlineImage: typeof generateOutlineImage;
+  generateDepthImage: typeof generateDepthImage;
+  generatePoseImage: typeof generatePoseImage;
+  generateRenderSketch: typeof generateRenderSketch;
+  generateRecolorSketch: typeof generateRecolorSketch;
+  generateInteriorDesign: typeof generateInteriorDesign;
   generateLogo: typeof generateLogo;
 }
 
-// Create context with a default value matching the interface
 const ApiContext = createContext<ApiContextProps>({
   generateImage,
-  generateControlNetImage,
-  generateSDXLControlNetImage,
+  generateOutlineImage,
+  generateDepthImage,
+  generatePoseImage,
+  generateRenderSketch,
+  generateRecolorSketch,
+  generateInteriorDesign,
   generateLogo,
 });
 
 export const ApiProvider = ({ children }: { children: ReactNode }) => {
   const value = {
     generateImage,
-    generateControlNetImage,
-    generateSDXLControlNetImage,
+    generateOutlineImage,
+    generateDepthImage,
+    generatePoseImage,
+    generateRenderSketch,
+    generateRecolorSketch,
+    generateInteriorDesign,
     generateLogo,
   };
 

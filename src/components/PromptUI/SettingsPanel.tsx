@@ -20,8 +20,22 @@ interface UploadedContent {
   message: string;
 }
 
-const SettingsPanel = () => {
-  const { generateControlNetImage, generateSDXLControlNetImage, generateLogo } = useApi();
+interface SettingsPanelProps {
+  onTypeChange: (type: string) => void;
+  paperclipImage: string | null; // Add paperclipImage prop
+}
+
+const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => {
+  const {
+    generateOutlineImage,
+    generateDepthImage,
+    generatePoseImage,
+    generateRenderSketch,
+    generateRecolorSketch,
+    generateInteriorDesign,
+    generateLogo,
+  } = useApi();
+
   const [type, setType] = useState("");
   const [aspectRatio, setAspectRatio] = useState("3:4");
   const [uploadedContent, setUploadedContent] = useState<UploadedContent | null>(null);
@@ -53,65 +67,65 @@ const SettingsPanel = () => {
   };
 
   const handleGenerate = async () => {
-    if (!type || !selectedImages["reference"]) {
+    if (!type || !paperclipImage) {
       alert("Please select a type and upload an image.");
       return;
     }
-
+  
     const prompt = "Your prompt here"; // Replace with actual prompt
-    const init_image = selectedImages["reference"]; // Replace with actual image URL
-
+    const init_image = paperclipImage; // Use paperclipImage
+  
     try {
       let response;
       switch (type) {
         case "Outline":
-          response = await generateControlNetImage({
+          response = await generateOutlineImage({
             controlnet: "canny",
             prompt,
             init_image,
           });
           break;
         case "Depth":
-          response = await generateControlNetImage({
-            controlnet: "depth",
+          response = await generateDepthImage({
+            controlnets: ["depth"],
             prompt,
             init_image,
           });
           break;
         case "Pose":
-          response = await generateControlNetImage({
-            controlnet: "openpose",
+          response = await generatePoseImage({
+            controlnets: ["openpose"],
             prompt,
             init_image,
           });
           break;
         case "Render Sketch":
-          response = await generateSDXLControlNetImage({
+          response = await generateRenderSketch({
             model_id: "sdxl",
             controlnets: ["scribble"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [init_image],
+            init_image,
             controlnet_weights: [1.0],
           });
           break;
         case "Recolor":
-          response = await generateSDXLControlNetImage({
-            model_id: "",
+          response = await generateRecolorSketch({
+            model_id: "sdxl",
             controlnets: ["reference-only"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [init_image],
+            init_image,
             controlnet_weights: [1.0],
           });
           break;
         case "Interior Design":
-          response = await generateSDXLControlNetImage({
-            model_id: "",
+          response = await generateInteriorDesign({
+            model_id: "sdxl",
             controlnets: ["mlsd"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [init_image],
+            init_image,
             controlnet_weights: [1.0],
           });
           break;
@@ -126,13 +140,18 @@ const SettingsPanel = () => {
           alert("Invalid type selected.");
           return;
       }
-
+  
       console.log("Generation response:", response);
       alert("Generation successful!");
     } catch (error) {
       console.error("Error generating content:", error);
       alert("Failed to generate content. Please try again.");
     }
+  };
+
+  const handleTypeChange = (value: string) => {
+    setType(value); // Update the local state
+    onTypeChange(value); // Call the onTypeChange prop
   };
 
   return (
@@ -211,7 +230,7 @@ const SettingsPanel = () => {
               </label>
               <Select
                 value={type}
-                onValueChange={(value) => setType(value)}
+                onValueChange={handleTypeChange} // Use handleTypeChange
               >
                 <SelectTrigger className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
                   <SelectValue placeholder="Select Type" />
