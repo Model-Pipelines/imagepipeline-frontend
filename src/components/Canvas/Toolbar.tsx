@@ -52,7 +52,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
         <Download className="h-4 w-4" />
       </Button>
       <label>
-        <Button
+        {/* <Button
           variant="outline"
           size="icon"
           className="cursor-pointer"
@@ -68,7 +68,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
               onChange={onUpload}
             />
           </div>
-        </Button>
+        </Button> */}
       </label>
       <Button
         variant={isMoveTool ? "secondary" : "outline"}

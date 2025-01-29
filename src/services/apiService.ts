@@ -1,3 +1,5 @@
+
+
 import axios from "axios";
 
 
@@ -74,6 +76,26 @@ interface LogoParams {
   logo_prompt: string;
   applied_prompt: string;
   image: string;
+}
+
+interface BackgroundChangeRequestByReference {
+  style_image?: string; 
+  init_image: string;   
+  prompt: string;       
+  samples?: number;     
+  negative_prompt?: string; 
+  seed?: number;        
+}
+
+interface HumanChangeRequestByReference {
+  input_image: string;  
+  input_face?: string;  
+  prompt: string;       
+  seed?: number;        
+}
+
+interface UpscaleRequestByReference {
+  input_image: string;  
 }
 
 const headers = {
@@ -201,89 +223,38 @@ export const generateLogo = async (params: LogoParams) => {
   return postRequest(postUrl, postData);
 }
 
+export const generateBackgroundChangeByReference = async (params: BackgroundChangeRequestByReference) => {
+  const postUrl = "https://api.imagepipeline.io/bgchanger/v1";
+  const postData = {
+    style_image: params.style_image,
+    init_image: params.init_image,
+    prompt: params.prompt,
+    samples: params.samples,
+    negative_prompt: params.negative_prompt,
+    seed: params.seed,
+  };
+  return postRequest(postUrl, postData);
+}
 
-// const handleGenerateImageByPrompt = async () =>{
-//     if (!inputText && promptImages.length === 0) {
-//       alert("Please enter a description or upload an image for reference.")
-//       return
-//     }
+export const generateHumanChangeByReference = async (params: HumanChangeRequestByReference) => {
+  const postUrl = "https://api.imagepipeline.io/modelswitch/v1";
+  const postData = {
+    input_image: params.input_image,
+    input_face: params.input_face,
+    prompt: params.prompt,
+    seed: params.seed,
+  };
+  return postRequest(postUrl, postData);
+}
 
-//     setLoading(true)
+export const upscaleImageByReference = async (params: UpscaleRequestByReference) => {
+  const postUrl = "https://api.imagepipeline.io/upscaler/v1";
+  const postData = {
+    input_image: params.input_image,
+  };
+   return postRequest(postUrl, postData);
+}
 
-//     const postUrl = "https://api.imagepipeline.io/generate/v3"
-//     const postData = {
-//       prompt: inputText,
-//       width: 1024,
-//       height: 1024,
-//     }
-
-//     const headers = {
-//       "API-Key": "",
-//       "Content-Type": "application/json",
-//     }
-
-//     try {
-//       const postResponse = await axios.post(postUrl, postData, { headers })
-
-//       if (postResponse.data && postResponse.data.id) {
-//         const { id } = postResponse.data
-//         const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`
-
-//         let status = "PENDING"
-//         let downloadUrl = null
-
-//         while (status === "PENDING") {
-//           const getResponse = await axios.get(getUrl, { headers })
-//           status = getResponse.data.status
-
-//           if (status === "SUCCESS") {
-//             downloadUrl = getResponse.data.download_urls[0]
-//             break
-//           } else if (status === "FAILED") {
-//             throw new Error("Image generation failed.")
-//           }
-
-//           await new Promise((resolve) => setTimeout(resolve, 90000))
-//         }
-
-//         if (downloadUrl) {
-//           const element = new Image()
-//           element.src = downloadUrl
-
-//           await new Promise((resolve) => {
-//             element.onload = resolve
-//           })
-
-//           // Calculate size maintaining aspect ratio
-//           const aspectRatio = element.width / element.height
-//           let width = 200
-//           let height = width / aspectRatio
-
-//           if (height > 200) {
-//             height = 200
-//             width = height * aspectRatio
-//           }
-
-//           addMedia({
-//             id: crypto.randomUUID(),
-//             type: "image",
-//             element,
-//             position: { x: 0, y: 0 },
-//             size: { width, height },
-//             scale: 1,
-//           })
-//         } else {
-//           throw new Error("Failed to retrieve the image generation ID.")
-//         }
-//       }
-//     } catch (error: any) {
-//       console.error("Error generating image:", error.message)
-//       alert("Failed to generate the image. Please try again.")
-//     } finally {
-//       setLoading(false)
-//     }
-//   }
-// }
 
 export const uploadFiles = async (userUploadedImage: File, maskImageUrl?: string) => {
   const formData = new FormData();
@@ -310,7 +281,7 @@ export const uploadFiles = async (userUploadedImage: File, maskImageUrl?: string
   }
 };
 
-const base64ToFile = (base64String: string, filename: string) => {
+export const base64ToFile = (base64String: string, filename: string) => {
   const arr = base64String.split(",");
   const mime = arr[0].match(/:(.*?);/)?.[1];
   const bstr = atob(arr[1]);
@@ -321,3 +292,5 @@ const base64ToFile = (base64String: string, filename: string) => {
   }
   return new File([u8arr], filename, { type: mime });
 };
+
+

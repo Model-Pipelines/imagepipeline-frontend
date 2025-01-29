@@ -317,7 +317,7 @@ export default function InfiniteCanvas() {
   };
 
   return (
-    <div className="relative w-full h-full flex ">
+    <div className="relative w-full h-full flex">
       <Sidebar />
       <div className="flex-1 relative">
         <Toolbar onUpload={handleUpload} onDownload={handleDownload} />
@@ -332,6 +332,7 @@ export default function InfiniteCanvas() {
                 : "cursor-grab"
               : "cursor-default"
           )}
+          style={{ zIndex: 0 }}
           onMouseDown={handleDragStart}
           onMouseUp={() => {
             setIsDragging(false);
@@ -376,7 +377,7 @@ export default function InfiniteCanvas() {
           </button>
         ))}
         {selectedElement && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end items-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end items-center z-[100]">
             <div className="bg-white p-4 rounded-lg  w-1/4 h-auto overflow-auto m-4">
               <EditImageOptions
                 element={selectedElement}

@@ -1,4 +1,4 @@
-
+"use client"
 
 import { create } from 'zustand';
 import { useCallback, useState } from 'react';
@@ -214,8 +214,10 @@ export const useCanvasStore = create<CanvasState>()(
         deleteElement: (elementId) =>
           set((state) => {
             const updatedElements = state.elements.filter((el) => el.id !== elementId);
+            const updatedMedia = state.media.filter((item) => item.id !== elementId);
             return {
               elements: updatedElements,
+              media: updatedMedia,
               selectedElement: null,
               history: [...state.history.slice(0, state.historyIndex + 1), updatedElements],
               historyIndex: state.historyIndex + 1,

@@ -1,20 +1,20 @@
-"use client";
+"use client"
 
-import { type ChangeEvent, useState, useRef } from "react";
-import axios from "axios";
-import { Button } from "../ui/button";
-import { Input } from "@/components/ui/input";
-import { VscSettings } from "react-icons/vsc";
-import { IoMdColorPalette } from "react-icons/io";
-import { FaLock, FaUpload } from "react-icons/fa";
-import { Paperclip, X } from "lucide-react";
-import { Switch } from "../ui/switch";
-import SettingsPanel from "./SettingsPanel";
-import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
-import { useColorPaletteStore, useCanvasStore } from "@/lib/store";
-import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
-import { useApi } from "@/context/apiContext";
-import { uploadFiles } from "@/services/apiService";
+import { type ChangeEvent, useState, useRef } from "react"
+import axios from "axios"
+import { Button } from "../ui/button"
+import { VscSettings } from "react-icons/vsc"
+import { IoMdColorPalette } from "react-icons/io"
+import { FaLock, FaUpload } from "react-icons/fa"
+import { Paperclip, X } from "lucide-react"
+import { Switch } from "../ui/switch"
+import SettingsPanel from "./SettingsPanel"
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"
+import { useColorPaletteStore, useCanvasStore } from "@/lib/store"
+import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay"
+import { useApi } from "@/context/apiContext"
+import { uploadFiles } from "@/services/apiService"
+import ImageUploadLoader from "./ImageUploadLoader"
 
 type GenerationType =
   | "default"
@@ -24,21 +24,24 @@ type GenerationType =
   | "renderSketch"
   | "recolorSketch"
   | "interiorDesign"
-  | "logo";
+  | "logo"
 
 const ImagePromptUI = () => {
-  const [magicPrompt, setMagicPrompt] = useState(false);
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
-  const [inputText, setInputText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [promptImages, setPromptImages] = useState<string[]>([]);
-  const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
-  const [generationType, setGenerationType] = useState<GenerationType>("default");
+  const [magicPrompt, setMagicPrompt] = useState(false)
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
+  const [inputText, setInputText] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [paperclipImage, setPaperclipImage] = useState<string | null>(null)
+  const [generationType, setGenerationType] = useState<GenerationType>("default")
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
-  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
-  const addMedia = useCanvasStore((state) => state.addMedia);
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  // const [promptImages, setPromptImages] = useState<string[]>([]);
+
+  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
+  const addMedia = useCanvasStore((state) => state.addMedia)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
   const {
     generateImage,
@@ -49,105 +52,105 @@ const ImagePromptUI = () => {
     generateRecolorSketch,
     generateInteriorDesign,
     generateLogo,
-  } = useApi();
+  } = useApi()
 
-  const addImageToCanvas = async (imageUrl: string, position = { x: 0, y: 0 }) => {
-    const element = new Image();
-    element.src = imageUrl;
+  const handleMagicPromptToggle = () => {
+    setMagicPrompt((prev) => !prev)
+  }
+
+  const toggleSettingsPanel = () => {
+    setIsSettingsPanelVisible((prev) => !prev)
+  }
+
+  const toggleColorPalette = () => {
+    setIsColorPaletteVisible((prev) => !prev)
+  }
+
+  const handlePaperclipClick = () => {
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "image/*"
+    input.onchange = (e) => handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>)
+    input.click()
+  }
+
+  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+  
+    try {
+      setIsUploading(true)
+      // Create a local preview immediately
+      const previewUrl = URL.createObjectURL(file)
+      setUploadPreview(previewUrl)
+  
+      // Upload to backend
+      const uploadedImageUrl = await uploadBackendFiles(file)
+  
+      if (uploadedImageUrl) {
+        setPaperclipImage(uploadedImageUrl)
+      } else {
+        throw new Error("Failed to upload image")
+      }
+    } catch (error) {
+      console.error("Error uploading file:", error)
+      alert("Failed to upload the image. Please try again.")
+    } finally {
+      setIsUploading(false)
+      setUploadPreview(null)
+    }
+  }
+
+  const uploadBackendFiles = async (file: File) => {
+    try {
+      const imageUrls = await uploadFiles(file)
+      if (imageUrls.length > 0) {
+        const initImage = imageUrls[0]
+        console.log("File uploaded to backend:", initImage)
+        return initImage
+      }
+    } catch (error) {
+      console.error("Error uploading file to backend:", error)
+      throw error
+    }
+    return null
+  }
+
+  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    const uploadedImageUrl = await uploadBackendFiles(file) // Store file in backend
+    if (!uploadedImageUrl) return
+
+    const element = new Image()
+    element.src = uploadedImageUrl
 
     await new Promise((resolve) => {
-      element.onload = resolve;
-    });
+      element.onload = resolve
+    })
 
-    const aspectRatio = element.width / element.height;
-    let width = 200;
-    let height = width / aspectRatio;
+    const aspectRatio = element.width / element.height
+    let width = 200
+    let height = width / aspectRatio
 
     if (height > 200) {
-      height = 200;
-      width = height * aspectRatio;
+      height = 200
+      width = height * aspectRatio
     }
 
     addMedia({
       id: crypto.randomUUID(),
       type: "image",
       element,
-      position,
+      position: { x: 800, y: 100 },
       size: { width, height },
       scale: 1,
-    });
-  };
-
-  const handleMagicPromptToggle = () => {
-    setMagicPrompt((prev) => !prev);
-  };
-
-  const toggleSettingsPanel = () => {
-    setIsSettingsPanelVisible((prev) => !prev);
-  };
-
-  const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev);
-  };
-
-  const handlePaperclipClick = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) => handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>);
-    input.click();
-  };
-
-
-  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const imageUrls = await uploadFiles(file);
-    if (imageUrls.length > 0) {
-      setPaperclipImage(imageUrls[0]);
-    }
-  };
-
-  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      setPromptImages((prev) => [...prev, dataUrl]);
-
-      const element = new Image();
-      element.src = dataUrl;
-
-      await new Promise((resolve) => {
-        element.onload = resolve;
-      });
-
-      const aspectRatio = element.width / element.height;
-      let width = 200;
-      let height = width / aspectRatio;
-
-      if (height > 200) {
-        height = 200;
-        width = height * aspectRatio;
-      }
-
-      addMedia({
-        id: crypto.randomUUID(),
-        type: "image",
-        element,
-        position: { x: 800, y: 100 },
-        size: { width, height },
-        scale: 1,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
+    })
+  }
 
   const handleGenerateImageByPrompt = async () => {
-    if (!inputText && promptImages.length === 0) {
+    if (!inputText && !paperclipImage) {
       alert("Please enter a description or upload an image for reference.")
       return
     }
@@ -230,20 +233,20 @@ const ImagePromptUI = () => {
 
   const handleGenerateImageByReference = async () => {
     if (!inputText && !paperclipImage) {
-      alert("Please enter a description or upload an image for reference.");
-      return;
+      alert("Please enter a description or upload an image for reference.")
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
 
     try {
-      let result;
+      let result
 
       switch (generationType) {
         case "outline":
           if (!paperclipImage) {
-            alert("Please upload an image for outline generation.");
-            return;
+            alert("Please upload an image for outline generation.")
+            return
           }
           result = await generateOutlineImage({
             controlnet: "canny",
@@ -251,13 +254,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
 
         case "depth":
           if (!paperclipImage) {
-            alert("Please upload an image for depth generation.");
-            return;
+            alert("Please upload an image for depth generation.")
+            return
           }
           result = await generateDepthImage({
             controlnets: ["depth"],
@@ -265,13 +268,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
 
         case "pose":
           if (!paperclipImage) {
-            alert("Please upload an image for pose generation.");
-            return;
+            alert("Please upload an image for pose generation.")
+            return
           }
           result = await generatePoseImage({
             controlnets: ["openpose"],
@@ -279,13 +282,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
 
         case "renderSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for render sketch generation.");
-            return;
+            alert("Please upload an image for render sketch generation.")
+            return
           }
           result = await generateRenderSketch({
             model_id: "sdxl",
@@ -296,13 +299,13 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
 
         case "recolorSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for recolor sketch generation.");
-            return;
+            alert("Please upload an image for recolor sketch generation.")
+            return
           }
           result = await generateRecolorSketch({
             model_id: "sdxl",
@@ -313,13 +316,13 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
 
         case "interiorDesign":
           if (!paperclipImage) {
-            alert("Please upload an image for interior design generation.");
-            return;
+            alert("Please upload an image for interior design generation.")
+            return
           }
           result = await generateInteriorDesign({
             model_id: "sdxl",
@@ -330,20 +333,20 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
 
         case "logo":
           if (!paperclipImage) {
-            alert("Please upload an image for logo generation.");
-            return;
+            alert("Please upload an image for logo generation.")
+            return
           }
           result = await generateLogo({
             logo_prompt: inputText,
             applied_prompt: inputText,
             image: paperclipImage,
-          });
-          break;
+          })
+          break
 
         default:
           result = await generateImage({
@@ -355,25 +358,25 @@ const ImagePromptUI = () => {
             seed: -1,
             enhance_prompt: magicPrompt,
             palette: selectedPalette ? selectedPalette.colors : [],
-          });
-          break;
+          })
+          break
       }
 
       if (result) {
-        const element = new Image();
-        element.src = result;
+        const element = new Image()
+        element.src = result
 
         await new Promise((resolve) => {
-          element.onload = resolve;
-        });
+          element.onload = resolve
+        })
 
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
+        const aspectRatio = element.width / element.height
+        let width = 200
+        let height = width / aspectRatio
 
         if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
+          height = 200
+          width = height * aspectRatio
         }
 
         addMedia({
@@ -383,19 +386,15 @@ const ImagePromptUI = () => {
           position: { x: 0, y: 0 },
           size: { width, height },
           scale: 1,
-        });
+        })
       }
     } catch (error) {
-      console.error("Error generating image:", error);
-      alert("Failed to generate the image. Please try again.");
+      console.error("Error generating image:", error)
+      alert("Failed to generate the image. Please try again.")
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const handleImageDelete = (index: number) => {
-    setPromptImages(promptImages.filter((_, i) => i !== index));
-  };
+  }
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
@@ -409,9 +408,9 @@ const ImagePromptUI = () => {
               ref={textAreaRef}
               value={inputText}
               onChange={(e) => {
-                setInputText(e.target.value);
-                e.target.style.height = "auto";
-                e.target.style.height = `${e.target.scrollHeight}px`;
+                setInputText(e.target.value)
+                e.target.style.height = "auto"
+                e.target.style.height = `${e.target.scrollHeight}px`
               }}
               placeholder="Describe what you want to see or Upload image"
               className="w-full text-black dark:text-white focus:outline-none bg-gray-100 dark:bg-gray-700 dark:border-gray-600 resize-none overflow-hidden pl-8 pr-2 rounded-lg p-2"
@@ -439,45 +438,24 @@ const ImagePromptUI = () => {
           </div>
         </div>
 
-        {promptImages.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {promptImages.map((image, index) => (
-              <div key={index} className="relative">
-                <img
-                  src={image || "/placeholder.svg"}
-                  alt={`Prompt image ${index + 1}`}
-                  className="w-24 h-24 object-cover rounded"
-                />
-                <button
-                  onClick={() => handleImageDelete(index)}
-                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
-                  aria-label="Delete image"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ))}
-          </div>
+        {(isUploading || uploadPreview || paperclipImage) && (
+  <div className="relative mt-4 z-[100]">
+    <div className="flex flex-wrap gap-2">
+      <div className="relative">
+        <ImageUploadLoader imagePreview={uploadPreview || paperclipImage} isUploading={isUploading} />
+        {!isUploading && paperclipImage && (
+          <button
+            onClick={() => setPaperclipImage(null)}
+            className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+            aria-label="Delete image"
+          >
+            <X size={16} />
+          </button>
         )}
-
-        {paperclipImage && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            <div className="relative">
-              <img
-                src={paperclipImage}
-                alt="Paperclip image"
-                className="w-24 h-24 object-cover rounded"
-              />
-              <button
-                onClick={() => setPaperclipImage(null)}
-                className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors"
-                aria-label="Delete image"
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </div>
-        )}
+      </div>
+    </div>
+  </div>
+)}
       </div>
 
       <div className="mt-6 flex items-center gap-6">
@@ -526,7 +504,8 @@ const ImagePromptUI = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default ImagePromptUI;
+export default ImagePromptUI
+

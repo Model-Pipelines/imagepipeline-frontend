@@ -1,4 +1,6 @@
-import React, { createContext, ReactNode, useContext } from "react";
+"use client";
+
+import React, { createContext, ReactNode, useContext } from 'react';
 import {
   generateImage,
   generateOutlineImage,
@@ -8,7 +10,10 @@ import {
   generateRecolorSketch,
   generateInteriorDesign,
   generateLogo,
-} from "../services/apiService";
+  generateBackgroundChangeByReference,
+  generateHumanChangeByReference,
+  upscaleImageByReference,
+} from '../services/apiService';
 
 interface ApiContextProps {
   generateImage: typeof generateImage;
@@ -19,6 +24,9 @@ interface ApiContextProps {
   generateRecolorSketch: typeof generateRecolorSketch;
   generateInteriorDesign: typeof generateInteriorDesign;
   generateLogo: typeof generateLogo;
+  generateBackgroundChangeByReference: typeof generateBackgroundChangeByReference;
+  generateHumanChangeByReference: typeof generateHumanChangeByReference;
+  upscaleImageByReference: typeof upscaleImageByReference;
 }
 
 const ApiContext = createContext<ApiContextProps>({
@@ -30,6 +38,9 @@ const ApiContext = createContext<ApiContextProps>({
   generateRecolorSketch,
   generateInteriorDesign,
   generateLogo,
+  generateBackgroundChangeByReference,
+  generateHumanChangeByReference,
+  upscaleImageByReference,
 });
 
 export const ApiProvider = ({ children }: { children: ReactNode }) => {
@@ -42,15 +53,22 @@ export const ApiProvider = ({ children }: { children: ReactNode }) => {
     generateRecolorSketch,
     generateInteriorDesign,
     generateLogo,
+    generateBackgroundChangeByReference,
+    generateHumanChangeByReference,
+    upscaleImageByReference,
   };
 
-  return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>;
+  return (
+    <ApiContext.Provider value={value}>
+      {children}
+    </ApiContext.Provider>
+  );
 };
 
 export const useApi = () => {
   const context = useContext(ApiContext);
   if (!context) {
-    throw new Error("useApi must be used within an ApiProvider");
+    throw new Error('useApi must be used within an ApiProvider');
   }
   return context;
 };

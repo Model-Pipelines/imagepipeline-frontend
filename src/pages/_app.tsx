@@ -1,3 +1,5 @@
+"use client"
+
 import { AppProps } from "next/app";
 import { ApiProvider } from "../context/apiContext";
 // import '../styles/globals.css';

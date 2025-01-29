@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useApi } from "@/context/apiContext";
+import { Toaster } from "../ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 
 interface UploadedContent {
   aspectRatio: string;
@@ -34,6 +36,9 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
     generateRecolorSketch,
     generateInteriorDesign,
     generateLogo,
+    generateBackgroundChangeByReference,
+    generateHumanChangeByReference,
+    upscaleImageByReference,
   } = useApi();
 
   const [type, setType] = useState("");
@@ -45,6 +50,9 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
   const aspectRatios = ["9:16", "3:4", "1:1", "4:3", "16:9", "21:9"];
 
   const handleUpload = (event: ChangeEvent<HTMLInputElement>, tabKey: string) => {
+
+    const { toast } = useToast();
+    
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -66,7 +74,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
     );
   };
 
-  const handleGenerate = async () => {
+  const handleGenerateImageByReference = async () => {
     if (!type || !paperclipImage) {
       alert("Please select a type and upload an image.");
       return;
@@ -147,7 +155,14 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
       console.error("Error generating content:", error);
       alert("Failed to generate content. Please try again.");
     }
+
+    toast({
+      title: "Image Generated",
+      description: "Your image has been successfully generated.",
+    });
   };
+
+ 
 
   const handleTypeChange = (value: string) => {
     setType(value); // Update the local state
@@ -249,12 +264,13 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
 
             <div className="flex justify-center mb-4">
               <Button
-                onClick={handleGenerate}
+                onClick={handleGenerateImageByReference}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
               >
                 <FaUpload />
                 Generate
               </Button>
+              <Toaster />
             </div>
           </div>
         </TabsContent>
@@ -271,7 +287,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
 
           <div className="flex justify-center">
             <Button
-              onClick={handleGenerate}
+              onClick={handleGenerateImageByReference}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
             >
               <FaUpload />
@@ -320,7 +336,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
           </div>
           <div className="flex justify-center">
             <Button
-              onClick={handleGenerate}
+              onClick={handleGenerateImageByReference}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
             >
               <FaUpload />

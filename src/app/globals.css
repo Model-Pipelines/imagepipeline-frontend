@@ -48,3 +48,8 @@ body {
     transparent 5px
   );
 }
+
+
+canvas {
+  isolation: auto !important;
+}
