@@ -1,10 +1,9 @@
+"use client";
 
-'use client';
-
-import { Upload, Undo2, Redo2, Download, Move, Grid } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useCanvasStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
+import { Upload, Undo2, Redo2, Download, Move, Grid } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCanvasStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface ToolbarProps {
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -72,23 +71,18 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
         </Button>
       </label>
       <Button
-        variant={isMoveTool ? 'secondary' : 'outline'}
+        variant={isMoveTool ? "secondary" : "outline"}
         size="icon"
-        className={cn(
-          'cursor-grab',
-          isMoveTool && 'ring-2 ring-primary'
-        )}
+        className={cn("cursor-grab", isMoveTool && "ring-2 ring-primary")}
         onClick={() => setIsMoveTool(!isMoveTool)}
         title="Move Tool"
       >
         <Move className="h-4 w-4" />
       </Button>
       <Button
-        variant={showGrid ? 'secondary' : 'outline'}
+        variant={showGrid ? "secondary" : "outline"}
         size="icon"
-        className={cn(
-          showGrid && 'ring-2 ring-primary'
-        )}
+        className={cn(showGrid && "ring-2 ring-primary")}
         onClick={() => setShowGrid(!showGrid)}
         title="Toggle Grid"
       >

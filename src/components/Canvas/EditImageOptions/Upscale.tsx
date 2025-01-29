@@ -1,30 +1,30 @@
-"use client"
+"use client";
 
-import { useState, useRef } from "react"
-import Image from "next/image"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Upload } from "lucide-react"
+import { useState, useRef } from "react";
+import Image from "next/image";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Upload } from "lucide-react";
 
 export function Upscale() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        setSelectedImage(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const triggerFileInput = () => {
-    fileInputRef.current?.click()
-  }
+    fileInputRef.current?.click();
+  };
 
   return (
     <Card className="w-full">
@@ -58,7 +58,9 @@ export function Upscale() {
             ) : (
               <div className="flex flex-col items-center">
                 <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                <p className="text-sm text-gray-500">Click to upload or drag and drop</p>
+                <p className="text-sm text-gray-500">
+                  Click to upload or drag and drop
+                </p>
               </div>
             )}
           </div>
@@ -68,5 +70,5 @@ export function Upscale() {
         </Button>
       </CardContent>
     </Card>
-  )
+  );
 }

@@ -86,7 +86,7 @@ interface CanvasState {
   scale: number;
 
   selectedElement: CanvasElement | null;
-  
+
   position: Point;
   offset: Point;
   history: CanvasElement[][];
@@ -111,7 +111,7 @@ interface CanvasState {
   updateElement: (updatedElement: CanvasElement) => void;
   setSelectedElement: (element: CanvasElement | null) => void;
   deleteElement: (elementId: string) => void; //delete button function
-  
+
   toggleEditPanel: () => void; //toggle edit button function  
   undo: () => void;
   redo: () => void;
@@ -141,20 +141,20 @@ interface CanvasState {
 //   if (!dataUrl.startsWith('data:image')) {
 //     return dataUrl;
 //   }
-  
+
 //   // Basic compression by reducing quality
 //   const img = new Image();
 //   img.src = dataUrl;
-  
+
 //   const canvas = document.createElement('canvas');
 //   const ctx = canvas.getContext('2d');
 //   if (!ctx) return dataUrl;
-  
+
 //   canvas.width = img.width;
 //   canvas.height = img.height;
-  
+
 //   ctx.drawImage(img, 0, 0);
-  
+
 //   // Compress with reduced quality
 //   return canvas.toDataURL('image/jpeg', 0.5);
 // };
@@ -300,9 +300,9 @@ export const useCanvasStore = create<CanvasState>()(
           const newMedia = media.map((item) =>
             item.id === selectedMediaId
               ? {
-                  ...item,
-                  position: { x: item.position.x + dx, y: item.position.y + dy },
-                }
+                ...item,
+                position: { x: item.position.x + dx, y: item.position.y + dy },
+              }
               : item
           );
           set({ media: newMedia });
@@ -354,10 +354,10 @@ export const useCanvasStore = create<CanvasState>()(
           const newMedia = media.map((item) =>
             item.id === selectedMediaId
               ? {
-                  ...item,
-                  position: { x: newX, y: newY },
-                  size: { width: newWidth, height: newHeight },
-                }
+                ...item,
+                position: { x: newX, y: newY },
+                size: { width: newWidth, height: newHeight },
+              }
               : item
           );
           set({ media: newMedia });

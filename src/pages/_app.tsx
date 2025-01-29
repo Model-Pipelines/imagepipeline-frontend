@@ -1,5 +1,5 @@
-import { AppProps } from 'next/app';
-import { ApiProvider } from '../context/apiContext';
+import { AppProps } from "next/app";
+import { ApiProvider } from "../context/apiContext";
 // import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }: AppProps) {

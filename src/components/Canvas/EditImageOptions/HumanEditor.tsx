@@ -10,7 +10,10 @@ export function HumanEditor() {
   const [targetFace, setTargetFace] = useState<string | null>(null);
   const [targetBody, setTargetBody] = useState<string | null>(null);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, setImage: (image: string | null) => void) => {
+  const handleFileUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+    setImage: (image: string | null) => void
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -34,7 +37,12 @@ export function HumanEditor() {
         <Button className="w-full">Update Person</Button>
         <div className="space-y-2">
           <Label htmlFor="target-face">Upload Target Face</Label>
-          <Input id="target-face" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTargetFace)} />
+          <Input
+            id="target-face"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileUpload(e, setTargetFace)}
+          />
           {targetFace && (
             <div className="mt-4">
               <img src={targetFace} alt="Target Face" className="w-20 h-20" />
@@ -43,7 +51,12 @@ export function HumanEditor() {
         </div>
         <div className="space-y-2">
           <Label htmlFor="target-body">Upload Target Body</Label>
-          <Input id="target-body" type="file" accept="image/*" onChange={(e) => handleFileUpload(e, setTargetBody)} />
+          <Input
+            id="target-body"
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleFileUpload(e, setTargetBody)}
+          />
           {targetBody && (
             <div className="mt-4">
               <img src={targetBody} alt="Target Body" className="w-20 h-20" />

@@ -31,10 +31,19 @@ export function BackgroundEditor() {
         <Button className="w-full">Generate New Background</Button>
         <div className="space-y-2">
           <Label htmlFor="upload">Upload Background Image</Label>
-          <Input id="upload" type="file" accept="image/*" onChange={handleFileUpload} />
+          <Input
+            id="upload"
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+          />
           {uploadedImage && (
             <div className="mt-4">
-              <img src={uploadedImage} alt="Uploaded Background" className="w-28 h-28" />
+              <img
+                src={uploadedImage}
+                alt="Uploaded Background"
+                className="w-28 h-28"
+              />
             </div>
           )}
         </div>

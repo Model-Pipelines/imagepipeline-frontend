@@ -1,4 +1,4 @@
-import React, { createContext, ReactNode, useContext } from 'react';
+import React, { createContext, ReactNode, useContext } from "react";
 import {
   generateImage,
   generateOutlineImage,
@@ -8,7 +8,7 @@ import {
   generateRecolorSketch,
   generateInteriorDesign,
   generateLogo,
-} from '../services/apiService';
+} from "../services/apiService";
 
 interface ApiContextProps {
   generateImage: typeof generateImage;
@@ -44,17 +44,13 @@ export const ApiProvider = ({ children }: { children: ReactNode }) => {
     generateLogo,
   };
 
-  return (
-    <ApiContext.Provider value={value}>
-      {children}
-    </ApiContext.Provider>
-  );
+  return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>;
 };
 
 export const useApi = () => {
   const context = useContext(ApiContext);
   if (!context) {
-    throw new Error('useApi must be used within an ApiProvider');
+    throw new Error("useApi must be used within an ApiProvider");
   }
   return context;
 };
