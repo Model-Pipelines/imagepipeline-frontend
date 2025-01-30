@@ -255,6 +255,7 @@ export const upscaleImageByReference = async (params: UpscaleRequestByReference)
    return postRequest(postUrl, postData);
 }
 
+//uploading all files as style_images
 
 export const uploadFiles = async (userUploadedImage: File, maskImageUrl?: string) => {
   const formData = new FormData();
@@ -268,7 +269,7 @@ export const uploadFiles = async (userUploadedImage: File, maskImageUrl?: string
   const response = await fetch("https://api.imagepipeline.io/upload_images", {
     method: "POST",
     headers: {
-      "API-Key": "o6DTC1yjaL02wkSfKlYMW4btv6gRz61Mbw3dgje55ieYxq9JM8Y5yzZfSl500Wwz",
+      "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
     },
     body: formData,
   });
@@ -294,3 +295,24 @@ export const base64ToFile = (base64String: string, filename: string) => {
 };
 
 
+//uploading all files as style_images
+
+export const uploadBackendFiles = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append("image_files", file);
+
+  const response = await fetch("https://api.imagepipeline.io/upload_images", {
+    method: "POST",
+    headers: {
+      "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
+    },
+    body: formData,
+  });
+
+  if (response.ok) {
+    const { image_urls } = await response.json();
+    return image_urls[0];
+  } else {
+    throw new Error("Image upload failed");
+  }
+};

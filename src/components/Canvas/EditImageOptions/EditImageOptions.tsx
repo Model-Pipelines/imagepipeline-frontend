@@ -22,7 +22,7 @@ import { ExtendImage } from "./ExtendImage";
 import { Upscale } from "./Upscale";
 import { CanvasElement, useCanvasStore } from "@/lib/store";
 import { useApi } from "@/context/apiContext";
-import { uploadFiles } from "@/services/apiService";
+import { uploadBackendFiles, uploadFiles } from "@/services/apiService";
 
 interface EditImageOptionsProps {
   element: CanvasElement;
@@ -40,9 +40,8 @@ interface EditImageOptionsProps {
   onClose?: () => void;
 }
 
-
-
 type EditAction = "background" | "canvas" | "human" | "extend" | "upscale" | null;
+
 
 export default function EditImageOptions({
   element,
@@ -62,70 +61,96 @@ export default function EditImageOptions({
   const [currentAction, setCurrentAction] = useState<EditAction>(null);
   const deleteElement = useCanvasStore((state) => state.deleteElement);
   const [styleImageFile, setStyleImageFile] = useState<File | null>(null);
-  const [initImageUrl, setInitImageUrl] = useState("");
-  const [styleImageUrl, setStyleImageUrl] = useState("");
+  const [initImageFile, setInitImageFile] = useState<File | null>(null);
+  const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
 
   const { generateBackgroundChangeByReference, generateHumanChangeByReference, upscaleImageByReference } = useApi();
 
-   // Handle style image upload from BackgroundEditor
-   const handleStyleImageUpload = (file: File) => {
+  const handleStyleImageUpload = (file: File) => {
     setStyleImageFile(file);
   };
 
-  const base64ToFile = (base64String: string, filename: string) => {
-    const arr = base64String.split(",");
-    const mime = arr[0].match(/:(.*?);/)?.[1];
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-    return new File([u8arr], filename, { type: mime });
+  const handleInitImageUpload = (file: File) => {
+    setInitImageFile(file);
   };
 
-   const prepareImages = async () => {
-    try {
-      // Upload init image (canvas image)
-      const initFile = base64ToFile(element.src, "canvas_image.png");
-      const initUrls = await uploadFiles(initFile);
-      setInitImageUrl(initUrls[0]);
+  const handlePromptChange = (prompt: string) => {
+    setBackgroundPrompt(prompt);
+  };
 
-      // Upload style image if exists
-      if (styleImageFile) {
-        const styleUrls = await uploadFiles(styleImageFile);
-        setStyleImageUrl(styleUrls[0]);
+  const prepareImages = async () => {
+    try {
+      let initUrl = "";
+      let styleUrl = "";
+  
+      if (initImageFile) {
+        const initUrls = await uploadFiles(initImageFile); // Returns an array
+        initUrl = initUrls[0]; // Take the first URL from the array
       }
+  
+      if (styleImageFile) {
+        styleUrl = await uploadBackendFiles(styleImageFile); // Already returns a single string
+      }
+  
+      return { initUrl, styleUrl };
     } catch (error) {
       console.error("Error preparing images:", error);
+      throw error;
     }
   };
 
   const handleGenerateImageByEditOptions = async () => {
     try {
-      await prepareImages();
-  
-      if (!initImageUrl) throw new Error("Canvas image not uploaded");
-  
+      const { initUrl, styleUrl } = await prepareImages();
+      if (!initUrl) throw new Error("Canvas image not uploaded");
+      console.log("Button clicked, generating image...");
       const result = await generateBackgroundChangeByReference({
-        style_image: styleImageUrl || undefined, // Optional
-        init_image: initImageUrl, // Required
-        prompt,
+        style_image: styleUrl || undefined,
+        init_image: initUrl,
+        prompt: backgroundPrompt,
         samples: 1,
         negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-        seed: parseInt(seed),
+        seed: -1,
       });
-  
-      if (result) {
-        const updatedElement = { ...element, src: result.download_urls[0] };
-        onUpdate(updatedElement);
+
+      if (result?.id) {
+        const finalResult = await pollTaskStatus(result.id);
+        if (finalResult?.download_urls?.length > 0) {
+          onUpdate({ ...element, src: finalResult.download_urls[0] });
+        }
       }
     } catch (error) {
       console.error("Error generating image:", error);
       alert("Failed to generate the image. Please try again.");
     }
   };
-  
+
+  const pollTaskStatus = async (taskId: string): Promise<any> => {
+    const statusUrl = `https://api.imagepipeline.io/bgchanger/v1/status/${taskId}`;
+    let delay = 2000; // Start with 2s delay
+
+    for (let attempts = 0; attempts < 10; attempts++) {
+      try {
+        const response = await fetch(statusUrl, {
+          method: "GET",
+          headers: { "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn" },
+        });
+
+        if (response.ok) {
+          const statusResult = await response.json();
+          if (statusResult.status === "COMPLETED") return statusResult;
+          if (statusResult.status === "FAILED") throw new Error("Task failed");
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 90000));
+      } catch (error) {
+        console.error("Error polling task status:", error);
+        throw error;
+      }
+    }
+
+    throw new Error("Task polling timed out");
+  };
 
   const handleDelete = () => {
     deleteElement(element.id);
@@ -165,16 +190,16 @@ export default function EditImageOptions({
       <CardContent className="space-y-4">
         {currentAction && (
           <>
-             {currentAction === "background" && (
-  <div>
-    <BackgroundEditor 
-      onStyleImageUpload={handleStyleImageUpload} // Properly typed prop
-    />
-    <Button onClick={handleGenerateImageByEditOptions} className="mt-4">
-      Generate Background
-    </Button>
-  </div>
-)}
+            {currentAction === "background" && (
+              <div>
+                <BackgroundEditor
+                  onStyleImageUpload={handleStyleImageUpload}
+                  onInitImageUpload={handleInitImageUpload}
+                  onPromptChange={handlePromptChange}
+                  onGenerate={handleGenerateImageByEditOptions}
+                />
+              </div>
+            )}
             {currentAction === "canvas" && <CanvasEditor />}
             {currentAction === "human" && <HumanEditor />}
             {currentAction === "extend" && <ExtendImage />}

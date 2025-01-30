@@ -1,30 +1,44 @@
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { uploadFiles } from "@/services/apiService";
-
+import { generateBackgroundChangeByReference, uploadBackendFiles, uploadFiles } from "@/services/apiService";
 
 interface BackgroundEditorProps {
   onStyleImageUpload: (file: File) => void;
+  onInitImageUpload: (file: File) => void;
+  onPromptChange: (prompt: string) => void;
+  onGenerate: () => void;
 }
 
-export function BackgroundEditor({ onStyleImageUpload }: BackgroundEditorProps) {
+export function BackgroundEditor({ onStyleImageUpload, onInitImageUpload, onPromptChange, onGenerate }: BackgroundEditorProps) {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [prompt, setPrompt] = useState<string>("");
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleStyleFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      try {
-        const imageUrls = await uploadFiles(file); // Upload image
-        if (imageUrls.length > 0) {
-          setUploadedImage(imageUrls[0]); // Store URL instead of base64
-        }
-      } catch (error) {
-        console.error("Error uploading background image:", error);
-      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setUploadedImage(e.target?.result as string);
+        onStyleImageUpload(file); // Use uploadBackendFiles for style_image
+      };
+      reader.readAsDataURL(file);
     }
+  };
+
+  const handleInitFileUpload = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      onInitImageUpload(file); // Use uploadFiles for init_image
+    }
+  };
+
+  const handlePromptChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const newPrompt = event.target.value;
+    setPrompt(newPrompt);
+    onPromptChange(newPrompt);
   };
 
   return (
@@ -35,18 +49,24 @@ export function BackgroundEditor({ onStyleImageUpload }: BackgroundEditorProps) 
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="prompt">Background Prompt</Label>
-          <Input id="prompt" placeholder="Describe the new background..." />
+          <Input id="prompt" placeholder="Describe the new background..." onChange={handlePromptChange} />
         </div>
-        <Button className="w-full">Generate New Background</Button>
         <div className="space-y-2">
-          <Label htmlFor="upload">Upload Background Image</Label>
-          <Input id="upload" type="file" accept="image/*" onChange={handleFileUpload} />
+          <Label htmlFor="upload-style">Upload Style Image</Label>
+          <Input id="upload-style" type="file" accept="image/*" onChange={handleStyleFileUpload} />
           {uploadedImage && (
             <div className="mt-4">
-              <img src={uploadedImage} alt="Uploaded Background" className="w-28 h-28" />
+              <img src={uploadedImage} alt="Uploaded Style" className="w-28 h-28" />
             </div>
           )}
         </div>
+        <div className="space-y-2">
+          <Label htmlFor="upload-init">Upload Init Image</Label>
+          <Input id="upload-init" type="file" accept="image/*" onChange={handleInitFileUpload} />
+        </div>
+        <Button onClick={onGenerate} className="mt-4">
+          Generate Background
+        </Button>
       </CardContent>
     </Card>
   );
