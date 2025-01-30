@@ -1,5 +1,3 @@
-
-
 import axios from "axios";
 
 
@@ -44,7 +42,7 @@ interface RenderSketchParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_image: string;
+  init_images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -55,7 +53,7 @@ interface RecolorSketchParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_image: string;
+  init_images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -66,7 +64,7 @@ interface InteriorDesignParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_image: string;
+  init_images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -130,6 +128,7 @@ export const generateImage = async (params: GenerateImageParams) => {
   return postRequest(postUrl, postData);
 }
 
+//outline image generation
 export const generateOutlineImage = async (params: OutlineParams) => {
   const postUrl = "https://api.imagepipeline.io/control/v3";
   const postData = {
@@ -142,6 +141,7 @@ export const generateOutlineImage = async (params: OutlineParams) => {
   return postRequest(postUrl, postData);
 }
 
+//depth image generation
 export const generateDepthImage = async (params: DepthParams) => {
   const postUrl = "https://api.imagepipeline.io/control/v3";
   const postData = {
@@ -154,7 +154,7 @@ export const generateDepthImage = async (params: DepthParams) => {
   return postRequest(postUrl, postData);
 };
 
-
+//pose image generation
 export const generatePoseImage = async (params: PoseParams) => {
   const postUrl = "https://api.imagepipeline.io/control/v3";
   const postData = {
@@ -167,6 +167,7 @@ export const generatePoseImage = async (params: PoseParams) => {
   return postRequest(postUrl, postData);
 }
 
+//render sketch image generation 
 export const generateRenderSketch = async (params: RenderSketchParams) => {
   const postUrl = "https://api.imagepipeline.io/sdxl/controlnet/v1"
   const postData = {
@@ -174,7 +175,7 @@ export const generateRenderSketch = async (params: RenderSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_image,
+    init_image: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -182,7 +183,7 @@ export const generateRenderSketch = async (params: RenderSketchParams) => {
   return postRequest(postUrl, postData);
 };
 
-
+//recolor image generation
 export const generateRecolorSketch = async (params: RecolorSketchParams) => {
   const postUrl = "https://api.imagepipeline.io/sdxl/controlnet/v1";
   const postData = {
@@ -190,7 +191,7 @@ export const generateRecolorSketch = async (params: RecolorSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_image,
+    init_image: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -198,6 +199,7 @@ export const generateRecolorSketch = async (params: RecolorSketchParams) => {
   return postRequest(postUrl, postData);
 }
 
+//interior design generation
 export const generateInteriorDesign = async (params: InteriorDesignParams) => {
   const postUrl = "https://api.imagepipeline.io/sdxl/controlnet/v1";
   const postData = {
@@ -205,7 +207,7 @@ export const generateInteriorDesign = async (params: InteriorDesignParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_image,
+    init_image: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -213,6 +215,7 @@ export const generateInteriorDesign = async (params: InteriorDesignParams) => {
   return postRequest(postUrl, postData);
 }
 
+//logo generation
 export const generateLogo = async (params: LogoParams) => {
   const postUrl = "https://api.imagepipeline.io/logo/v1";
   const postData = {
@@ -222,6 +225,7 @@ export const generateLogo = async (params: LogoParams) => {
   }
   return postRequest(postUrl, postData);
 }
+
 
 export const generateBackgroundChangeByReference = async (params: BackgroundChangeRequestByReference) => {
   const postUrl = "https://api.imagepipeline.io/bgchanger/v1";

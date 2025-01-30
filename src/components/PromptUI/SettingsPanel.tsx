@@ -113,7 +113,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["scribble"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image,
+            init_images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
@@ -123,7 +123,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["reference-only"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image,
+            init_images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
@@ -133,7 +133,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["mlsd"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image,
+            init_images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
