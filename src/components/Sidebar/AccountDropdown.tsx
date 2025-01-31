@@ -8,20 +8,17 @@ import {
   Trash2,
   LogOut,
 } from "lucide-react";
-import { FaDiscord } from "react-icons/fa";
-import { IoMdMail } from "react-icons/io";
+
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
+
 } from "@/components/ui/card";
 import { Separator } from "../ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { ProfileSection } from "./ProfileSection";
+import { ProfileFooter } from "./ProfileFooter";
 
 export default function AccountDropdown() {
   const [isOpen, setIsOpen] = useState(false);
@@ -89,36 +86,8 @@ export default function AccountDropdown() {
               <ThemeSwitcher />
 
               {/* Footer Links */}
-              <CardFooter className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                <div className="flex gap-4">
-                  <a
-                    href="#"
-                    className="hover:text-yellow-600 dark:hover:text-yellow-400"
-                  >
-                    Terms
-                  </a>
-                  <a
-                    href="#"
-                    className="hover:text-yellow-600 dark:hover:text-yellow-400"
-                  >
-                    Privacy
-                  </a>
-                </div>
-                <div className="flex gap-2">
-                  <a
-                    href="#"
-                    className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300"
-                  >
-                    <IoMdMail size={20} />
-                  </a>
-                  <a
-                    href="#"
-                    className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300"
-                  >
-                    <FaDiscord size={20} />
-                  </a>
-                </div>
-              </CardFooter>
+              <ProfileFooter />
+
             </Card>
           </motion.div>
         )}

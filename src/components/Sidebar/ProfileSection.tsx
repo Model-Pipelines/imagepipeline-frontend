@@ -11,7 +11,7 @@ import { Zap } from "lucide-react";
 
 export function ProfileSection() {
   return (
-    <Card className="w-full max-w-sm border-none shadow-md dark:bg-gray-800">
+    <Card className="w-full max-w-sm border-none  dark:bg-gray-800">
       {/* Profile Section */}
       <CardHeader className="pb-2">
         <div className="flex items-center gap-3">
