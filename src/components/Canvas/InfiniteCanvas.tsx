@@ -193,11 +193,26 @@ export default function InfiniteCanvas() {
   const handleDownload = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const link = document.createElement("a");
-    link.download = "canvas.png";
-    link.href = canvas.toDataURL();
-    link.click();
+  
+    try {
+      const link = document.createElement("a");
+      link.download = "canvas.png";
+      
+      // Add quality parameter (0-1) for better PNG compression
+      link.href = canvas.toDataURL("image/png", 1.0);
+      
+      // Add temporary click handler to catch errors
+      link.onclick = () => {
+        setTimeout(() => URL.revokeObjectURL(link.href), 30);
+      };
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error("Export failed:", error);
+      alert("Could not export canvas. Please check all images are properly loaded.");
+    }
   }, []);
 
   useEffect(() => {

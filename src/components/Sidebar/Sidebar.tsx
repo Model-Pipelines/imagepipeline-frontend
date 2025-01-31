@@ -63,13 +63,6 @@ const Sidebar: FC = () => {
 
       <div className="flex flex-col items-center space-y-10">
         <div
-          className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-full text-black dark:text-white cursor-pointer"
-          aria-label="Settings"
-        >
-          <FaUserCircle size={25} />
-        </div>
-
-        <div
           className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer"
         >
           <AccountDropdown />

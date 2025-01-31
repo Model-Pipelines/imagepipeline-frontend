@@ -1,20 +1,20 @@
-"use client"
+"use client";
 
-import { type ChangeEvent, useState, useRef } from "react"
-import axios from "axios"
-import { Button } from "../ui/button"
-import { VscSettings } from "react-icons/vsc"
-import { IoMdColorPalette } from "react-icons/io"
-import { FaLock, FaUpload } from "react-icons/fa"
-import { Paperclip, X } from "lucide-react"
-import { Switch } from "../ui/switch"
-import SettingsPanel from "./SettingsPanel"
-import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"
-import { useColorPaletteStore, useCanvasStore } from "@/lib/store"
-import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay"
-import { useApi } from "@/context/apiContext"
-import { uploadFiles } from "@/services/apiService"
-import ImageUploadLoader from "./ImageUploadLoader"
+import { type ChangeEvent, useState, useRef } from "react";
+import axios from "axios";
+import { Button } from "../ui/button";
+import { VscSettings } from "react-icons/vsc";
+import { IoMdColorPalette } from "react-icons/io";
+import { FaLock, FaUpload } from "react-icons/fa";
+import { Paperclip, X } from "lucide-react";
+import { Switch } from "../ui/switch";
+import SettingsPanel from "./SettingsPanel";
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
+import { useColorPaletteStore, useCanvasStore } from "@/lib/store";
+import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
+import { useApi } from "@/context/apiContext";
+import { uploadFiles } from "@/services/apiService";
+import ImageUploadLoader from "./ImageUploadLoader";
 
 type GenerationType =
   | "default"
@@ -24,24 +24,27 @@ type GenerationType =
   | "renderSketch"
   | "recolorSketch"
   | "interiorDesign"
-  | "logo"
+  | "logo";
 
 const ImagePromptUI = () => {
-  const [magicPrompt, setMagicPrompt] = useState(false)
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
-  const [inputText, setInputText] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [paperclipImage, setPaperclipImage] = useState<string | null>(null)
-  const [generationType, setGenerationType] = useState<GenerationType>("default")
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
-
-  // const [promptImages, setPromptImages] = useState<string[]>([]);
-
-  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
-  const addMedia = useCanvasStore((state) => state.addMedia)
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+  const [magicPrompt, setMagicPrompt] = useState(false);
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [inputText, setInputText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
+  const [generationType, setGenerationType] =
+    useState<GenerationType>("default");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [logoPrompt, setLogoPrompt] = useState("");
+  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
+  
+  const selectedPalette = useColorPaletteStore(
+    (state) => state.selectedPalette
+  );
+  const addMedia = useCanvasStore((state) => state.addMedia);
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
   const {
     generateImage,
@@ -52,91 +55,92 @@ const ImagePromptUI = () => {
     generateRecolorSketch,
     generateInteriorDesign,
     generateLogo,
-  } = useApi()
+  } = useApi();
 
   const handleMagicPromptToggle = () => {
-    setMagicPrompt((prev) => !prev)
-  }
+    setMagicPrompt((prev) => !prev);
+  };
 
   const toggleSettingsPanel = () => {
-    setIsSettingsPanelVisible((prev) => !prev)
-  }
+    setIsSettingsPanelVisible((prev) => !prev);
+  };
 
   const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev)
-  }
+    setIsColorPaletteVisible((prev) => !prev);
+  };
 
   const handlePaperclipClick = () => {
-    const input = document.createElement("input")
-    input.type = "file"
-    input.accept = "image/*"
-    input.onchange = (e) => handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>)
-    input.click()
-  }
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) =>
+      handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>);
+    input.click();
+  };
 
-  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-  
+  const handlePaperclipFileUpload = async (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
     try {
-      setIsUploading(true)
-      // Create a local preview immediately
-      const previewUrl = URL.createObjectURL(file)
-      setUploadPreview(previewUrl)
-  
-      // Upload to backend
-      const uploadedImageUrl = await uploadBackendFiles(file)
-  
+      setIsUploading(true);
+      const previewUrl = URL.createObjectURL(file);
+      setUploadPreview(previewUrl);
+
+      const uploadedImageUrl = await uploadBackendFiles(file);
+
       if (uploadedImageUrl) {
-        setPaperclipImage(uploadedImageUrl)
+        setPaperclipImage(uploadedImageUrl);
       } else {
-        throw new Error("Failed to upload image")
+        throw new Error("Failed to upload image");
       }
     } catch (error) {
-      console.error("Error uploading file:", error)
-      alert("Failed to upload the image. Please try again.")
+      console.error("Error uploading file:", error);
+      alert("Failed to upload the image. Please try again.");
     } finally {
-      setIsUploading(false)
-      setUploadPreview(null)
+      setIsUploading(false);
+      setUploadPreview(null);
     }
-  }
+  };
 
   const uploadBackendFiles = async (file: File) => {
     try {
-      const imageUrls = await uploadFiles(file)
+      const imageUrls = await uploadFiles(file);
       if (imageUrls.length > 0) {
-        const initImage = imageUrls[0]
-        console.log("File uploaded to backend:", initImage)
-        return initImage
+        const initImage = imageUrls[0];
+        console.log("File uploaded to backend:", initImage);
+        return initImage;
       }
     } catch (error) {
-      console.error("Error uploading file to backend:", error)
-      throw error
+      console.error("Error uploading file to backend:", error);
+      throw error;
     }
-    return null
-  }
+    return null;
+  };
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-    const uploadedImageUrl = await uploadBackendFiles(file) // Store file in backend
-    if (!uploadedImageUrl) return
+    const uploadedImageUrl = await uploadBackendFiles(file);
+    if (!uploadedImageUrl) return;
 
-    const element = new Image()
-    element.src = uploadedImageUrl
+    const element = new Image();
+    element.src = uploadedImageUrl;
 
     await new Promise((resolve) => {
-      element.onload = resolve
-    })
+      element.onload = resolve;
+    });
 
-    const aspectRatio = element.width / element.height
-    let width = 200
-    let height = width / aspectRatio
+    const aspectRatio = element.width / element.height;
+    let width = 200;
+    let height = width / aspectRatio;
 
     if (height > 200) {
-      height = 200
-      width = height * aspectRatio
+      height = 200;
+      width = height * aspectRatio;
     }
 
     addMedia({
@@ -146,69 +150,69 @@ const ImagePromptUI = () => {
       position: { x: 800, y: 100 },
       size: { width, height },
       scale: 1,
-    })
-  }
+    });
+  };
 
   const handleGenerateImageByPrompt = async () => {
     if (!inputText && !paperclipImage) {
-      alert("Please enter a description or upload an image for reference.")
-      return
+      alert("Please enter a description or upload an image for reference.");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
-    const postUrl = "https://api.imagepipeline.io/generate/v3"
+    const postUrl = "https://api.imagepipeline.io/generate/v3";
     const postData = {
       prompt: inputText,
       width: 1024,
       height: 1024,
-    }
+    };
 
     const headers = {
-      "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
+      "API-Key":
+        "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
       "Content-Type": "application/json",
-    }
+    };
 
     try {
-      const postResponse = await axios.post(postUrl, postData, { headers })
+      const postResponse = await axios.post(postUrl, postData, { headers });
 
       if (postResponse.data && postResponse.data.id) {
-        const { id } = postResponse.data
-        const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`
+        const { id } = postResponse.data;
+        const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`;
 
-        let status = "PENDING"
-        let downloadUrl = null
+        let status = "PENDING";
+        let downloadUrl = null;
 
         while (status === "PENDING") {
-          const getResponse = await axios.get(getUrl, { headers })
-          status = getResponse.data.status
+          const getResponse = await axios.get(getUrl, { headers });
+          status = getResponse.data.status;
 
           if (status === "SUCCESS") {
-            downloadUrl = getResponse.data.download_urls[0]
-            break
+            downloadUrl = getResponse.data.download_urls[0];
+            break;
           } else if (status === "FAILED") {
-            throw new Error("Image generation failed.")
+            throw new Error("Image generation failed.");
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 90000))
+          await new Promise((resolve) => setTimeout(resolve, 90000));
         }
 
         if (downloadUrl) {
-          const element = new Image()
-          element.src = downloadUrl
+          const element = new Image();
+          element.src = downloadUrl;
 
           await new Promise((resolve) => {
-            element.onload = resolve
-          })
+            element.onload = resolve;
+          });
 
-          // Calculate size maintaining aspect ratio
-          const aspectRatio = element.width / element.height
-          let width = 200
-          let height = width / aspectRatio
+          const aspectRatio = element.width / element.height;
+          let width = 200;
+          let height = width / aspectRatio;
 
           if (height > 200) {
-            height = 200
-            width = height * aspectRatio
+            height = 200;
+            width = height * aspectRatio;
           }
 
           addMedia({
@@ -218,35 +222,35 @@ const ImagePromptUI = () => {
             position: { x: 0, y: 0 },
             size: { width, height },
             scale: 1,
-          })
+          });
         } else {
-          throw new Error("Failed to retrieve the image generation ID.")
+          throw new Error("Failed to retrieve the image generation ID.");
         }
       }
     } catch (error: any) {
-      console.error("Error generating image:", error.message)
-      alert("Failed to generate the image. Please try again.")
+      console.error("Error generating image:", error.message);
+      alert("Failed to generate the image. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleGenerateImageByReference = async () => {
     if (!inputText && !paperclipImage) {
-      alert("Please enter a description or upload an image for reference.")
-      return
+      alert("Please enter a description or upload an image for reference.");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      let result
+      let result;
 
       switch (generationType) {
         case "outline":
           if (!paperclipImage) {
-            alert("Please upload an image for outline generation.")
-            return
+            alert("Please upload an image for outline generation.");
+            return;
           }
           result = await generateOutlineImage({
             controlnet: "canny",
@@ -254,13 +258,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          })
-          break
+          });
+          break;
 
         case "depth":
           if (!paperclipImage) {
-            alert("Please upload an image for depth generation.")
-            return
+            alert("Please upload an image for depth generation.");
+            return;
           }
           result = await generateDepthImage({
             controlnets: "depth",
@@ -268,13 +272,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          })
-          break
+          });
+          break;
 
         case "pose":
           if (!paperclipImage) {
-            alert("Please upload an image for pose generation.")
-            return
+            alert("Please upload an image for pose generation.");
+            return;
           }
           result = await generatePoseImage({
             controlnets: "openpose",
@@ -282,13 +286,13 @@ const ImagePromptUI = () => {
             init_image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          })
-          break
+          });
+          break;
 
         case "renderSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for render sketch generation.")
-            return
+            alert("Please upload an image for render sketch generation.");
+            return;
           }
           result = await generateRenderSketch({
             model_id: "sdxl",
@@ -299,13 +303,13 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          })
-          break
+          });
+          break;
 
         case "recolorSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for recolor sketch generation.")
-            return
+            alert("Please upload an image for recolor sketch generation.");
+            return;
           }
           result = await generateRecolorSketch({
             model_id: "sdxl",
@@ -316,13 +320,13 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          })
-          break
+          });
+          break;
 
         case "interiorDesign":
           if (!paperclipImage) {
-            alert("Please upload an image for interior design generation.")
-            return
+            alert("Please upload an image for interior design generation.");
+            return;
           }
           result = await generateInteriorDesign({
             model_id: "sdxl",
@@ -333,20 +337,20 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          })
-          break
+          });
+          break;
 
         case "logo":
           if (!paperclipImage) {
-            alert("Please upload an image for logo generation.")
-            return
+            alert("Please upload an image for logo generation.");
+            return;
           }
           result = await generateLogo({
             logo_prompt: inputText,
             applied_prompt: inputText,
             image: paperclipImage,
-          })
-          break
+          });
+          break;
 
         default:
           result = await generateImage({
@@ -358,25 +362,25 @@ const ImagePromptUI = () => {
             seed: -1,
             enhance_prompt: magicPrompt,
             palette: selectedPalette ? selectedPalette.colors : [],
-          })
-          break
+          });
+          break;
       }
 
       if (result) {
-        const element = new Image()
-        element.src = result
+        const element = new Image();
+        element.src = result;
 
         await new Promise((resolve) => {
-          element.onload = resolve
-        })
+          element.onload = resolve;
+        });
 
-        const aspectRatio = element.width / element.height
-        let width = 200
-        let height = width / aspectRatio
+        const aspectRatio = element.width / element.height;
+        let width = 200;
+        let height = width / aspectRatio;
 
         if (height > 200) {
-          height = 200
-          width = height * aspectRatio
+          height = 200;
+          width = height * aspectRatio;
         }
 
         addMedia({
@@ -386,31 +390,34 @@ const ImagePromptUI = () => {
           position: { x: 0, y: 0 },
           size: { width, height },
           scale: 1,
-        })
+        });
       }
     } catch (error) {
-      console.error("Error generating image:", error)
-      alert("Failed to generate the image. Please try again.")
+      console.error("Error generating image:", error);
+      alert("Failed to generate the image. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-4">
           <div className="relative flex-grow">
-            <button className="absolute left-2 top-2 p-1" onClick={handlePaperclipClick}>
+            <button
+              className="absolute left-2 top-2 p-1"
+              onClick={handlePaperclipClick}
+            >
               <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
             <textarea
               ref={textAreaRef}
               value={inputText}
               onChange={(e) => {
-                setInputText(e.target.value)
-                e.target.style.height = "auto"
-                e.target.style.height = `${e.target.scrollHeight}px`
+                setInputText(e.target.value);
+                e.target.style.height = "auto";
+                e.target.style.height = `${e.target.scrollHeight}px`;
               }}
               placeholder="Describe what you want to see or Upload image"
               className="w-full text-black dark:text-white focus:outline-none bg-gray-100 dark:bg-gray-700 dark:border-gray-600 resize-none overflow-hidden pl-8 pr-2 rounded-lg p-2"
@@ -425,48 +432,45 @@ const ImagePromptUI = () => {
           >
             {loading ? "Generating..." : "Generate"}
           </Button>
-          <label className="cursor-pointer">
-            <Button className="bg-gray-300 hover:bg-gray-400" size="icon" asChild>
-              <span>
-                <FaUpload className="h-4 w-4 text-white" />
-                <input type="file" className="hidden" accept="image/*" onChange={handleFileUpload} multiple />
-              </span>
-            </Button>
-          </label>
-          <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
-            <VscSettings size={20} className="text-white cursor-pointer" onClick={toggleSettingsPanel} />
-          </div>
         </div>
 
         {(isUploading || uploadPreview || paperclipImage) && (
-  <div className="relative mt-4 z-[100]">
-    <div className="flex flex-wrap gap-2">
-      <div className="relative">
-        <ImageUploadLoader imagePreview={uploadPreview || paperclipImage} isUploading={isUploading} />
-        {!isUploading && paperclipImage && (
-          <button
-            onClick={() => setPaperclipImage(null)}
-            className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
-            aria-label="Delete image"
-          >
-            <X size={16} />
-          </button>
+          <div className="relative mt-4 z-[100]">
+            <div className="flex flex-wrap gap-2">
+              <div className="relative">
+                <ImageUploadLoader
+                  imagePreview={uploadPreview || paperclipImage}
+                  isUploading={isUploading}
+                />
+                {!isUploading && paperclipImage && (
+                  <button
+                    onClick={() => setPaperclipImage(null)}
+                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                    aria-label="Delete image"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
-      </div>
-    </div>
-  </div>
-)}
       </div>
 
       <div className="mt-6 flex items-center gap-6">
         <div className="flex flex-row items-center gap-2">
           <Switch />
-          <span className="text-gray-400 dark:text-gray-400 font-semibold">Public</span>
+          <span className="text-gray-400 dark:text-gray-400 font-semibold">
+            Public
+          </span>
           <FaLock className="text-gray-400 dark:text-gray-400" size={10} />
         </div>
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <Switch checked={magicPrompt} onCheckedChange={handleMagicPromptToggle} />
+            <Switch
+              checked={magicPrompt}
+              onCheckedChange={handleMagicPromptToggle}
+            />
             <span className="accent text-gray-400 dark:text-gray-200 font-medium">
               Magic Prompt {magicPrompt ? "On" : "Off"}
             </span>
@@ -477,13 +481,22 @@ const ImagePromptUI = () => {
           <div className="flex items-center gap-2">
             <IoMdColorPalette
               size={25}
-              className={`cursor-pointer ${isColorPaletteVisible ? "text-blue-500" : "text-gray-400"} hover:text-gray-500 dark:text-white`}
+              className={`cursor-pointer ${
+                isColorPaletteVisible ? "text-blue-500" : "text-gray-400"
+              } hover:text-gray-500 dark:text-white`}
               onClick={toggleColorPalette}
             />
             <span className="text-gray-400 dark:text-gray-200">
               Color
-              <span className="font-bold">{selectedPalette ? ` ${selectedPalette.name}` : " Auto"}</span>
+              <span className="font-bold">
+                {selectedPalette ? ` ${selectedPalette.name}` : " Auto"}
+              </span>
             </span>
+          </div>
+          <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
+            <button className="text-white" onClick={toggleSettingsPanel}>
+              Advance
+            </button>
           </div>
           {selectedPalette && <SelectedPaletteDisplay />}
         </div>
@@ -494,6 +507,7 @@ const ImagePromptUI = () => {
           <SettingsPanel
             onTypeChange={(type: GenerationType) => setGenerationType(type)}
             paperclipImage={paperclipImage}
+            inputText={inputText} // Pass inputText to SettingsPanel
           />
         </div>
       )}
@@ -504,8 +518,7 @@ const ImagePromptUI = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ImagePromptUI
-
+export default ImagePromptUI;

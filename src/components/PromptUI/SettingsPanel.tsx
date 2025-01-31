@@ -24,10 +24,11 @@ interface UploadedContent {
 
 interface SettingsPanelProps {
   onTypeChange: (type: string) => void;
-  paperclipImage: string | null; // Add paperclipImage prop
+  paperclipImage: string | null;
+  inputText: string;
 }
 
-const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => {
+const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPanelProps) => {
   const {
     generateOutlineImage,
     generateDepthImage,
@@ -46,11 +47,11 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
   const [uploadedContent, setUploadedContent] = useState<UploadedContent | null>(null);
   const [selectedImages, setSelectedImages] = useState<{ [key: string]: string }>({});
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
-
+  const [logoPrompt, setLogoPrompt] = useState("");
+  
   const aspectRatios = ["9:16", "3:4", "1:1", "4:3", "16:9", "21:9"];
 
   const handleUpload = (event: ChangeEvent<HTMLInputElement>, tabKey: string) => {
-
     const { toast } = useToast();
     
     const file = event.target.files?.[0];
@@ -79,10 +80,10 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
       alert("Please select a type and upload an image.");
       return;
     }
-  
-    const prompt = "Your prompt here"; // Replace with actual prompt
-    const init_image = paperclipImage; // Use paperclipImage
-  
+
+    const prompt = inputText; // Use inputText from props
+    const init_image = paperclipImage;
+
     try {
       let response;
       switch (type) {
@@ -90,21 +91,21 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
           response = await generateOutlineImage({
             controlnet: "canny",
             prompt,
-            init_image,
+            image,
           });
           break;
         case "Depth":
           response = await generateDepthImage({
             controlnets: "depth",
             prompt,
-            init_image,
+            image,
           });
           break;
         case "Pose":
           response = await generatePoseImage({
             controlnets: "openpose",
             prompt,
-            init_image,
+            image,
           });
           break;
         case "Render Sketch":
@@ -113,7 +114,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["scribble"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [paperclipImage],
+            images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
@@ -123,7 +124,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["reference-only"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [paperclipImage],
+            images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
@@ -133,14 +134,14 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
             controlnets: ["mlsd"],
             prompt,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_images: [paperclipImage],
+            images: [paperclipImage],
             controlnet_weights: [1.0],
           });
           break;
         case "Logo":
           response = await generateLogo({
-            logo_prompt: "Your logo prompt here", // Replace with actual logo prompt
-            applied_prompt: prompt,
+            logo_prompt: inputText, // Use inputText for logo_prompt
+            prompt: inputText, // Use inputText for applied_prompt
             image: init_image,
           });
           break;
@@ -148,7 +149,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
           alert("Invalid type selected.");
           return;
       }
-  
+
       console.log("Generation response:", response);
       alert("Generation successful!");
     } catch (error) {
@@ -162,11 +163,9 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
     });
   };
 
- 
-
   const handleTypeChange = (value: string) => {
-    setType(value); // Update the local state
-    onTypeChange(value); // Call the onTypeChange prop
+    setType(value);
+    onTypeChange(value);
   };
 
   return (
@@ -181,7 +180,6 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
 
         <TabsContent value="Aspect-Ratio">
           <div>
-            {/* Aspect Ratio Buttons */}
             <div className="grid grid-cols-6 gap-2 mb-4">
               {aspectRatios.map((ratio) => (
                 <Button
@@ -195,7 +193,6 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
               ))}
             </div>
 
-            {/* Custom Ratio Inputs */}
             <div className="dark:bg-gray-800 p-4">
               <div className="flex items-center justify-between space-x-4">
                 <div className="flex flex-col items-start w-1/2">
@@ -245,7 +242,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
               </label>
               <Select
                 value={type}
-                onValueChange={handleTypeChange} // Use handleTypeChange
+                onValueChange={handleTypeChange}
               >
                 <SelectTrigger className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
                   <SelectValue placeholder="Select Type" />
@@ -368,7 +365,6 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
         </TabsContent>
       </Tabs>
 
-      {/* Uploaded Content Card */}
       {uploadedContent && uploadedContent.message && (
         <div className="p-4 bg-white text-black rounded-lg shadow-md mt-4">
           <h4 className="font-medium text-lg mb-2">Uploaded Content</h4>

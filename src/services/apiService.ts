@@ -15,7 +15,7 @@ interface GenerateImageParams {
 interface OutlineParams {
   controlnet: string;
   prompt: string;
-  init_image: string;
+  image: string;
   num_inference_steps?: number;
   samples?: number;
 }
@@ -23,7 +23,7 @@ interface OutlineParams {
 interface DepthParams {
   controlnets: string;
   prompt: string;
-  init_image: string; // Changed from string[] to string
+  image: string; // Changed from string[] to string
   num_inference_steps?: number;
   samples?: number;
 }
@@ -32,7 +32,7 @@ interface DepthParams {
 interface PoseParams {
   controlnets: string;
   prompt: string;
-  init_image: string; // Changed from string[] to string
+  image: string; // Changed from string[] to string
   num_inference_steps?: number;
   samples?: number;
 }
@@ -42,7 +42,7 @@ interface RenderSketchParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_images: string[];
+  images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -53,7 +53,7 @@ interface RecolorSketchParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_images: string[];
+  images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -64,7 +64,7 @@ interface InteriorDesignParams {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_images: string[];
+  images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -72,7 +72,7 @@ interface InteriorDesignParams {
 
 interface LogoParams {
   logo_prompt: string;
-  applied_prompt: string;
+  prompt: string;
   image: string;
 }
 
@@ -130,11 +130,11 @@ export const generateImage = async (params: GenerateImageParams) => {
 
 //outline image generation
 export const generateOutlineImage = async (params: OutlineParams) => {
-  const postUrl = "https://api.imagepipeline.io/control/v3";
+  const postUrl = "https://api.imagepipeline.io/control/v1";
   const postData = {
     controlnet: params.controlnet,
     prompt: params.prompt,
-    init_image: params.init_image,
+    image: params.image,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
   };
@@ -143,11 +143,11 @@ export const generateOutlineImage = async (params: OutlineParams) => {
 
 //depth image generation
 export const generateDepthImage = async (params: DepthParams) => {
-  const postUrl = "https://api.imagepipeline.io/control/v3";
+  const postUrl = "https://api.imagepipeline.io/control/v1";
   const postData = {
     controlnets: params.controlnets,
     prompt: params.prompt,
-    init_image: params.init_image,
+    image: params.image,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
   };
@@ -156,11 +156,11 @@ export const generateDepthImage = async (params: DepthParams) => {
 
 //pose image generation
 export const generatePoseImage = async (params: PoseParams) => {
-  const postUrl = "https://api.imagepipeline.io/control/v3";
+  const postUrl = "https://api.imagepipeline.io/control/v1";
   const postData = {
     controlnets: params.controlnets,
     prompt: params.prompt,
-    init_image: params.init_image,
+    image: params.image,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
   };
@@ -175,7 +175,7 @@ export const generateRenderSketch = async (params: RenderSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_images: params.init_images,
+    images: params.images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -191,7 +191,7 @@ export const generateRecolorSketch = async (params: RecolorSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_images: params.init_images,
+    images: params.images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -207,7 +207,7 @@ export const generateInteriorDesign = async (params: InteriorDesignParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_images: params.init_images,
+    images: params.images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -220,7 +220,7 @@ export const generateLogo = async (params: LogoParams) => {
   const postUrl = "https://api.imagepipeline.io/logo/v1";
   const postData = {
     logo_prompt: params.logo_prompt,
-    applied_prompt: params.applied_prompt,
+    prompt: params.prompt,
     image: params.image,
   }
   return postRequest(postUrl, postData);
