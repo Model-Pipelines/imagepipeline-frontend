@@ -7,7 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload } from "lucide-react";
 
-export function Upscale() {
+interface UpscaleProps {
+  onImageUpload: (file: File) => void;
+  onGenerate: () => void;
+}
+
+
+export function Upscale({ onImageUpload, onGenerate }: UpscaleProps) {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -17,6 +23,7 @@ export function Upscale() {
       const reader = new FileReader();
       reader.onload = (e) => {
         setSelectedImage(e.target?.result as string);
+        onImageUpload(file);
       };
       reader.readAsDataURL(file);
     }
@@ -65,9 +72,13 @@ export function Upscale() {
             )}
           </div>
         </div>
-        <Button className="w-full" disabled={!selectedImage}>
-          Upscale Image
-        </Button>
+          <Button 
+        className="w-full" 
+        disabled={!selectedImage}
+        onClick={onGenerate}
+      >
+        Upscale Image
+      </Button>
       </CardContent>
     </Card>
   );

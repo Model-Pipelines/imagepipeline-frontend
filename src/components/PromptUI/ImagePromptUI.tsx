@@ -263,7 +263,7 @@ const ImagePromptUI = () => {
             return
           }
           result = await generateDepthImage({
-            controlnets: ["depth"],
+            controlnets: "depth",
             prompt: inputText,
             init_image: paperclipImage,
             num_inference_steps: 30,
@@ -277,7 +277,7 @@ const ImagePromptUI = () => {
             return
           }
           result = await generatePoseImage({
-            controlnets: ["openpose"],
+            controlnets: "openpose",
             prompt: inputText,
             init_image: paperclipImage,
             num_inference_steps: 30,
@@ -295,7 +295,7 @@ const ImagePromptUI = () => {
             controlnets: ["scribble"],
             prompt: inputText,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image: paperclipImage,
+            init_images: [paperclipImage],
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
@@ -312,7 +312,7 @@ const ImagePromptUI = () => {
             controlnets: ["reference-only"],
             prompt: inputText,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image: paperclipImage,
+            init_images: [paperclipImage],
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
@@ -329,7 +329,7 @@ const ImagePromptUI = () => {
             controlnets: ["mlsd"],
             prompt: inputText,
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            init_image: paperclipImage,
+            init_images: [paperclipImage],
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],

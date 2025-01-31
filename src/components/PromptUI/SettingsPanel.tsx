@@ -95,14 +95,14 @@ const SettingsPanel = ({ onTypeChange, paperclipImage }: SettingsPanelProps) => 
           break;
         case "Depth":
           response = await generateDepthImage({
-            controlnets: ["depth"],
+            controlnets: "depth",
             prompt,
             init_image,
           });
           break;
         case "Pose":
           response = await generatePoseImage({
-            controlnets: ["openpose"],
+            controlnets: "openpose",
             prompt,
             init_image,
           });

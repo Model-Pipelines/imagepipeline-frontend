@@ -64,6 +64,11 @@ export default function EditImageOptions({
   const [initImageFile, setInitImageFile] = useState<File | null>(null);
   const [backgroundPrompt, setBackgroundPrompt] = useState<string>("");
 
+  const [faceImageFile, setFaceImageFile] = useState<File | null>(null);
+const [upscaleImageFile, setUpscaleImageFile] = useState<File | null>(null);
+const [humanPrompt, setHumanPrompt] = useState<string>("");
+
+
   const { generateBackgroundChangeByReference, generateHumanChangeByReference, upscaleImageByReference } = useApi();
 
   const handleStyleImageUpload = (file: File) => {
@@ -99,6 +104,50 @@ export default function EditImageOptions({
     }
   };
 
+  const handleGenerateHuman = async () => {
+    try {
+      const faceUrl = faceImageFile ? await uploadBackendFiles(faceImageFile) : undefined;
+      const result = await generateHumanChangeByReference({
+        input_image: element.src,
+        input_face: faceUrl,
+        prompt: humanPrompt,
+        seed: -1,
+      });
+  
+      if (result?.id) {
+        const finalResult = await pollTaskStatus(result.id);
+        if (finalResult?.download_urls?.length > 0) {
+          onUpdate({ ...element, src: finalResult.download_urls[0] });
+        }
+      }
+    } catch (error) {
+      console.error("Error generating human:", error);
+      alert("Failed to update human. Please try again.");
+    }
+  };
+  
+  // Add Upscale generation handler
+const handleGenerateUpscale = async () => {
+  try {
+    if (!upscaleImageFile) throw new Error("No image uploaded");
+    const imageUrl = await uploadBackendFiles(upscaleImageFile);
+    const result = await upscaleImageByReference({
+      input_image: imageUrl,
+    });
+
+    if (result?.id) {
+      const finalResult = await pollTaskStatus(result.id);
+      if (finalResult?.download_urls?.length > 0) {
+        onUpdate({ ...element, src: finalResult.download_urls[0] });
+      }
+    }
+  } catch (error) {
+    console.error("Error upscaling image:", error);
+    alert("Failed to upscale image. Please try again.");
+  }
+};
+
+
   const handleGenerateImageByEditOptions = async () => {
     try {
       const { initUrl, styleUrl } = await prepareImages();
@@ -125,33 +174,42 @@ export default function EditImageOptions({
     }
   };
 
-  const pollTaskStatus = async (taskId: string): Promise<any> => {
+  const API_KEY = "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn";
+  const MAX_ATTEMPTS = 10;
+  const BASE_DELAY = 2000; // 2 seconds
+  
+  const pollTaskStatus = (taskId: string, attempt = 1): Promise<any> => {
     const statusUrl = `https://api.imagepipeline.io/bgchanger/v1/status/${taskId}`;
-    let delay = 2000; // Start with 2s delay
-
-    for (let attempts = 0; attempts < 10; attempts++) {
-      try {
-        const response = await fetch(statusUrl, {
-          method: "GET",
-          headers: { "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn" },
-        });
-
-        if (response.ok) {
-          const statusResult = await response.json();
-          if (statusResult.status === "COMPLETED") return statusResult;
-          if (statusResult.status === "FAILED") throw new Error("Task failed");
+  
+    return fetch(statusUrl, {
+      method: "GET",
+      headers: { "API-Key": API_KEY },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          return response.json().then((error) => {
+            throw new Error(error.message || `API request failed: ${response.statusText}`);
+          });
         }
-
-        await new Promise((resolve) => setTimeout(resolve, 90000));
-      } catch (error) {
+        return response.json();
+      })
+      .then((statusResult) => {
+        if (statusResult.status === "COMPLETED") return statusResult;
+        if (statusResult.status === "FAILED") throw new Error("Task failed");
+  
+        if (attempt >= MAX_ATTEMPTS) throw new Error("Task polling timed out");
+  
+        const nextDelay = Math.min(BASE_DELAY * Math.pow(2, attempt - 1), 30000); // Exponential backoff (max 30s)
+        
+        return new Promise((resolve) => 
+          setTimeout(() => resolve(pollTaskStatus(taskId, attempt + 1)), nextDelay)
+        );
+      })
+      .catch((error) => {
         console.error("Error polling task status:", error);
         throw error;
-      }
-    }
-
-    throw new Error("Task polling timed out");
+      });
   };
-
   const handleDelete = () => {
     deleteElement(element.id);
     if (onDelete) onDelete();
@@ -201,9 +259,16 @@ export default function EditImageOptions({
               </div>
             )}
             {currentAction === "canvas" && <CanvasEditor />}
-            {currentAction === "human" && <HumanEditor />}
+            {currentAction === "human" && <HumanEditor 
+            onFaceUpload={setFaceImageFile}
+            onPromptChange={setHumanPrompt}
+            onGenerate={handleGenerateHuman}
+            />}
             {currentAction === "extend" && <ExtendImage />}
-            {currentAction === "upscale" && <Upscale />}
+            {currentAction === "upscale" && <Upscale 
+            onImageUpload={setUpscaleImageFile}
+            onGenerate={handleGenerateUpscale}
+            />}
             <Separator />
           </>
         )}

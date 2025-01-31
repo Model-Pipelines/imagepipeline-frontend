@@ -92,13 +92,13 @@ interface CanvasState {
   history: CanvasElement[][];
   historyIndex: number;
   gridEnabled: boolean;
-  movementEnabled: boolean;
+  movementEnabled: true;
   showEditPanel: boolean;
 
   isDragging: boolean;
   isResizing: boolean;
   resizeHandle: string | null;
-  isMoveTool: boolean;
+  isMoveTool: true;
   showGrid: boolean;
   selectedMediaId: string | null;
   media: CanvasMedia[];
@@ -116,7 +116,7 @@ interface CanvasState {
   undo: () => void;
   redo: () => void;
   toggleGrid: () => void;
-  toggleMovement: () => void;
+  // toggleMovement: () => void;t
   resetCanvas: () => void;
   setOffset: (offset: Point) => void;
   clearElements: () => void;
@@ -176,7 +176,7 @@ export const useCanvasStore = create<CanvasState>()(
         isDragging: false,
         isResizing: false,
         resizeHandle: null,
-        isMoveTool: false,
+        isMoveTool: true,
         showGrid: false,
         selectedMediaId: null,
         media: [],
@@ -256,10 +256,10 @@ export const useCanvasStore = create<CanvasState>()(
             gridEnabled: !state.gridEnabled,
           })),
 
-        toggleMovement: () =>
-          set((state) => ({
-            movementEnabled: !state.movementEnabled,
-          })),
+        // toggleMovement: () =>
+        //   set((state) => ({
+        //     movementEnabled: !state.movementEnabled,
+        //   })),
 
         resetCanvas: () =>
           set({

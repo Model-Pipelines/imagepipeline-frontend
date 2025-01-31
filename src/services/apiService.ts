@@ -21,7 +21,7 @@ interface OutlineParams {
 }
 
 interface DepthParams {
-  controlnets: string[];
+  controlnets: string;
   prompt: string;
   init_image: string; // Changed from string[] to string
   num_inference_steps?: number;
@@ -30,7 +30,7 @@ interface DepthParams {
 
 
 interface PoseParams {
-  controlnets: string[];
+  controlnets: string;
   prompt: string;
   init_image: string; // Changed from string[] to string
   num_inference_steps?: number;
@@ -175,7 +175,7 @@ export const generateRenderSketch = async (params: RenderSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_images,
+    init_images: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -191,7 +191,7 @@ export const generateRecolorSketch = async (params: RecolorSketchParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_images,
+    init_images: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
@@ -207,7 +207,7 @@ export const generateInteriorDesign = async (params: InteriorDesignParams) => {
     controlnets: params.controlnets,
     prompt: params.prompt,
     negative_prompt: params.negative_prompt,
-    init_image: params.init_images,
+    init_images: params.init_images,
     num_inference_steps: params.num_inference_steps || 30,
     samples: params.samples || 1,
     controlnet_weights: params.controlnet_weights,
