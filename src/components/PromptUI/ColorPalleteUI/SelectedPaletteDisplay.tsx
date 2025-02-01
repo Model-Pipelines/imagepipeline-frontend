@@ -5,7 +5,7 @@ import { useColorPaletteStore } from '@/lib/store'
 
 const SelectedPaletteDisplay = () => {
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
-
+  
   if (!selectedPalette) return null
 
   return (

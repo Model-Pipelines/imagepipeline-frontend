@@ -30,19 +30,19 @@ const ImagePromptUI = () => {
   const [magicPrompt, setMagicPrompt] = useState(false);
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
   const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
-  const [generationType, setGenerationType] =
-    useState<GenerationType>("default");
+  const [generationType, setGenerationType] = useState<GenerationType>("default");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [logoPrompt, setLogoPrompt] = useState("");
   const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
-  
-  const selectedPalette = useColorPaletteStore(
-    (state) => state.selectedPalette
-  );
+
+  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
+  const setSelectedPalette = useColorPaletteStore((state) => state.setSelectedPalette);
+
   const addMedia = useCanvasStore((state) => state.addMedia);
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -67,6 +67,7 @@ const ImagePromptUI = () => {
 
   const toggleColorPalette = () => {
     setIsColorPaletteVisible((prev) => !prev);
+    setIsPaletteOpen((prev) => !prev);
   };
 
   const handlePaperclipClick = () => {
@@ -78,9 +79,7 @@ const ImagePromptUI = () => {
     input.click();
   };
 
-  const handlePaperclipFileUpload = async (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
+  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -255,7 +254,7 @@ const ImagePromptUI = () => {
           result = await generateOutlineImage({
             controlnet: "canny",
             prompt: inputText,
-            init_image: paperclipImage,
+            image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
           });
@@ -269,7 +268,7 @@ const ImagePromptUI = () => {
           result = await generateDepthImage({
             controlnets: "depth",
             prompt: inputText,
-            init_image: paperclipImage,
+            image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
           });
@@ -283,7 +282,7 @@ const ImagePromptUI = () => {
           result = await generatePoseImage({
             controlnets: "openpose",
             prompt: inputText,
-            init_image: paperclipImage,
+            image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
           });
@@ -347,7 +346,7 @@ const ImagePromptUI = () => {
           }
           result = await generateLogo({
             logo_prompt: inputText,
-            applied_prompt: inputText,
+            prompt: inputText,
             image: paperclipImage,
           });
           break;
@@ -479,23 +478,16 @@ const ImagePromptUI = () => {
 
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <IoMdColorPalette
-              size={25}
-              className={`cursor-pointer ${
-                isColorPaletteVisible ? "text-blue-500" : "text-gray-400"
-              } hover:text-gray-500 dark:text-white`}
+            <Button
               onClick={toggleColorPalette}
-            />
-            <span className="text-gray-400 dark:text-gray-200">
-              Color
-              <span className="font-bold">
-                {selectedPalette ? ` ${selectedPalette.name}` : " Auto"}
-              </span>
-            </span>
+              className={isPaletteOpen ? "bg-blue-500" : "bg-gray-500"}
+            >
+              Color: {selectedPalette ? selectedPalette.name : "Auto"}
+            </Button>
           </div>
           <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
             <button className="text-white" onClick={toggleSettingsPanel}>
-              Advance
+              Setting
             </button>
           </div>
           {selectedPalette && <SelectedPaletteDisplay />}
@@ -507,7 +499,7 @@ const ImagePromptUI = () => {
           <SettingsPanel
             onTypeChange={(type: GenerationType) => setGenerationType(type)}
             paperclipImage={paperclipImage}
-            inputText={inputText} // Pass inputText to SettingsPanel
+            inputText={inputText}
           />
         </div>
       )}
