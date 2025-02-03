@@ -64,7 +64,6 @@ export interface CanvasElement {
   size: Size;
   rotation: number;
   zIndex: number;
-  // style?: Record<string, string>;
 }
 
 

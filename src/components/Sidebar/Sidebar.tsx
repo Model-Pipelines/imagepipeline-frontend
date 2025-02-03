@@ -6,6 +6,7 @@ import { usePromptUIStore } from "@/lib/store";
 import { MdOutlinePhotoSizeSelectActual, MdVideoLibrary, MdHeadset } from "react-icons/md";
 import AccountDropdown from "./AccountDropdown";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import MobileAccountDropdown from "./MobileAccountDropdown";
 
 const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
@@ -81,8 +82,16 @@ const Sidebar: FC = () => {
 
       {/* AccountDropdown on the right */}
       <div className="p-2 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-neutral-700">
+      {/* Render MobileAccountDropdown on screens smaller than md (768px) */}
+      <div className="md:hidden">
+        <MobileAccountDropdown />
+      </div>
+
+      {/* Render AccountDropdown on screens larger than or equal to md (768px) */}
+      <div className="hidden md:block">
         <AccountDropdown />
       </div>
+    </div>
     </div>
   );
 
