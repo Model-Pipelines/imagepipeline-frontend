@@ -12,6 +12,7 @@ const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
   const [activeIcon, setActiveIcon] = useState<string | null>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
+  const isTablet = useMediaQuery("(max-width: 1024px)"); 
 
   const handleIconClick = (type: string) => {
     setActiveIcon((prev) => (prev === type ? null : type));
@@ -97,7 +98,7 @@ const Sidebar: FC = () => {
 
   return (
     <>
-      {isMobile ? (
+      {isMobile || isTablet? (
         renderMobileDock()
       ) : (
         <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">

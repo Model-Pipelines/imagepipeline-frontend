@@ -1,38 +1,36 @@
-"use client";
+"use client"
 
-import { type ChangeEvent, useState, useRef } from "react";
-import axios from "axios";
-import { useMutation } from "@tanstack/react-query";
-import { Button } from "../ui/button";
-import { Paperclip, X } from "lucide-react";
-import { Switch } from "../ui/switch";
-import SettingsPanel from "./SettingsPanel";
-import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete";
-import { useColorPaletteStore, useCanvasStore } from "@/lib/store";
-import SelectedPaletteDisplay from "./ColorPalleteUI/SelectedPaletteDisplay";
-import { useApi } from "@/context/apiContext";
-import { uploadFiles } from "@/services/apiService";
-import ImageUploadLoader from "./ImageUploadLoader";
-import { Textarea } from "@/components/ui/textarea";
+import { type ChangeEvent, useState, useRef } from "react"
+import axios from "axios"
+import { useMutation } from "@tanstack/react-query"
+import { Button } from "../ui/button"
+import { Paperclip, X, Globe, Zap, Settings, Palette } from "lucide-react"
+import SettingsPanel from "./SettingsPanel"
+import CustomColorPalette from "@/components/PromptUI/ColorPalleteUI/CustomColorPallete"
+import { useColorPaletteStore, useCanvasStore } from "@/lib/store"
+import { useApi } from "@/context/apiContext"
+import { uploadFiles } from "@/services/apiService"
+import ImageUploadLoader from "./ImageUploadLoader"
+import { Textarea } from "@/components/ui/textarea"
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Global image store (stores all images as objects with id and url)
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { create } from "zustand";
-import PreviewDualActionButton from "./ToggleVisibilityButton";
+import { create } from "zustand"
+
 
 export type ImageItem = {
-  id: string;
-  url: string;
-};
+  id: string
+  url: string
+}
 
 type ImageStore = {
-  images: ImageItem[];
-  addImage: (image: ImageItem) => void;
-  removeImage: (id: string) => void;
-  clearImages: () => void;
-};
+  images: ImageItem[]
+  addImage: (image: ImageItem) => void
+  removeImage: (id: string) => void
+  clearImages: () => void
+}
 
 export const useImageStore = create<ImageStore>((set) => ({
   images: [],
@@ -42,69 +40,60 @@ export const useImageStore = create<ImageStore>((set) => ({
       images: state.images.filter((img) => img.id !== id),
     })),
   clearImages: () => set({ images: [] }),
-}));
+}))
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Single image store (for the currently selected image)
 // ─────────────────────────────────────────────────────────────────────────────
 
-type SelectedImage = ImageItem | null;
+type SelectedImage = ImageItem | null
 
 type SingleImageStore = {
-  selectedImage: SelectedImage;
-  setSelectedImage: (image: SelectedImage) => void;
-  clearSelectedImage: () => void;
-};
+  selectedImage: SelectedImage
+  setSelectedImage: (image: SelectedImage) => void
+  clearSelectedImage: () => void
+}
 
 export const useSingleImageStore = create<SingleImageStore>((set) => ({
   selectedImage: null,
   setSelectedImage: (image) => set({ selectedImage: image }),
   clearSelectedImage: () => set({ selectedImage: null }),
-}));
+}))
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
-const OFFSET_MULTIPLIER = 20; // Offset new images by 20px (both x & y)
+const OFFSET_MULTIPLIER = 20 // Offset new images by 20px (both x & y)
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ImagePromptUI = () => {
+const ImagePromptUI2 = () => {
   // Local state variables
-  const [magicPrompt, setMagicPrompt] = useState(false);
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
-  const [inputText, setInputText] = useState("");
-  const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
+  const [magicPrompt, setMagicPrompt] = useState(false)
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false)
+  const [inputText, setInputText] = useState("")
+  const [paperclipImage, setPaperclipImage] = useState<string | null>(null)
   const [generationType, setGenerationType] = useState<
-    | "default"
-    | "outline"
-    | "depth"
-    | "pose"
-    | "renderSketch"
-    | "recolorSketch"
-    | "interiorDesign"
-    | "logo"
-  >("default");
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
-  const [logoPrompt, setLogoPrompt] = useState("");
-  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
+    "default" | "outline" | "depth" | "pose" | "renderSketch" | "recolorSketch" | "interiorDesign" | "logo"
+  >("default")
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null)
+  const [logoPrompt, setLogoPrompt] = useState("")
+  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false)
 
   // External stores & refs
-  const selectedPalette = useColorPaletteStore(
-    (state) => state.selectedPalette
-  );
-  const addMedia = useCanvasStore((state) => state.addMedia);
-  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
+  const addMedia = useCanvasStore((state) => state.addMedia)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
 
   // Global image store actions and state (for canvas placement, we use the count)
-  const addImageGlobal = useImageStore((state) => state.addImage);
-  const globalImages = useImageStore((state) => state.images);
+  const addImageGlobal = useImageStore((state) => state.addImage)
+  const globalImages = useImageStore((state) => state.images)
 
   // API functions from your context
   const {
@@ -116,7 +105,7 @@ const ImagePromptUI = () => {
     generateRecolorSketch,
     generateInteriorDesign,
     generateLogo,
-  } = useApi();
+  } = useApi()
 
   // ───────────────────────────────────────────────────────────────────────────
   //  TanStack Query Mutation for prompt-based image generation
@@ -124,83 +113,82 @@ const ImagePromptUI = () => {
 
   const generateImageMutation = useMutation({
     mutationFn: async (prompt: string) => {
-      const postUrl = "https://api.imagepipeline.io/generate/v3";
+      const postUrl = "https://api.imagepipeline.io/generate/v3"
       const postData = {
         prompt,
         width: 1024,
         height: 1024,
-      };
-
-      const headers = {
-        "API-Key":
-          "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
-        "Content-Type": "application/json",
-      };
-
-      // Start generation request
-      const postResponse = await axios.post(postUrl, postData, { headers });
-      if (!(postResponse.data && postResponse.data.id)) {
-        throw new Error("Failed to generate image. No ID received.");
       }
 
-      const { id } = postResponse.data;
-      const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`;
+      const headers = {
+        "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
+        "Content-Type": "application/json",
+      }
 
-      let status = "PENDING";
-      let downloadUrl: string | null = null;
+      // Start generation request
+      const postResponse = await axios.post(postUrl, postData, { headers })
+      if (!(postResponse.data && postResponse.data.id)) {
+        throw new Error("Failed to generate image. No ID received.")
+      }
+
+      const { id } = postResponse.data
+      const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`
+
+      let status = "PENDING"
+      let downloadUrl: string | null = null
 
       // Poll until success or failure
       while (status === "PENDING") {
-        const getResponse = await axios.get(getUrl, { headers });
-        status = getResponse.data.status;
+        const getResponse = await axios.get(getUrl, { headers })
+        status = getResponse.data.status
 
         if (status === "SUCCESS") {
-          downloadUrl = getResponse.data.download_urls[0];
-          break;
+          downloadUrl = getResponse.data.download_urls[0]
+          break
         } else if (status === "FAILED") {
-          throw new Error("Image generation failed.");
+          throw new Error("Image generation failed.")
         }
         // Wait 90 seconds before polling again
-        await new Promise((resolve) => setTimeout(resolve, 90000));
+        await new Promise((resolve) => setTimeout(resolve, 90000))
       }
 
       if (!downloadUrl) {
-        throw new Error("Failed to retrieve download URL.");
+        throw new Error("Failed to retrieve download URL.")
       }
 
       // Preload the image so we know its dimensions
       await new Promise((resolve, reject) => {
-        const img = new Image();
-        img.src = downloadUrl as string;
-        img.onload = resolve;
-        img.onerror = reject;
-      });
+        const img = new Image()
+        img.src = downloadUrl as string
+        img.onload = resolve
+        img.onerror = reject
+      })
 
-      return downloadUrl;
+      return downloadUrl
     },
     onSuccess: (downloadUrl: string) => {
       // Create a new image item with a unique ID
       const newImage: ImageItem = {
         id: crypto.randomUUID(),
         url: downloadUrl,
-      };
+      }
 
       // Save to global image store
-      addImageGlobal(newImage);
+      addImageGlobal(newImage)
 
       // Create an image element and add it to the canvas with an offset
-      const element = new Image();
-      element.src = downloadUrl;
+      const element = new Image()
+      element.src = downloadUrl
       element.onload = () => {
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
+        const aspectRatio = element.width / element.height
+        let width = 200
+        let height = width / aspectRatio
         if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
+          height = 200
+          width = height * aspectRatio
         }
         // Calculate offset based on the current number of images
-        const offset = globalImages.length * OFFSET_MULTIPLIER;
+        const offset = globalImages.length * OFFSET_MULTIPLIER
         addMedia({
           id: crypto.randomUUID(),
           type: "image",
@@ -208,109 +196,106 @@ const ImagePromptUI = () => {
           position: { x: offset, y: offset },
           size: { width, height },
           scale: 1,
-        });
-      };
+        })
+      }
     },
     onError: (error: any) => {
-      console.error("Error generating image:", error.message);
-      alert("Failed to generate the image. Please try again.");
+      console.error("Error generating image:", error.message)
+      alert("Failed to generate the image. Please try again.")
     },
-  });
+  })
 
   // ───────────────────────────────────────────────────────────────────────────
   //  Handlers & Helpers
   // ───────────────────────────────────────────────────────────────────────────
 
   const handleMagicPromptToggle = () => {
-    setMagicPrompt((prev) => !prev);
-  };
+    setMagicPrompt((prev) => !prev)
+  }
 
   const toggleSettingsPanel = () => {
-    setIsSettingsPanelVisible((prev) => !prev);
-  };
+    setIsSettingsPanelVisible((prev) => !prev)
+  }
 
   const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev);
-    setIsPaletteOpen((prev) => !prev);
-  };
+    setIsColorPaletteVisible((prev) => !prev)
+    setIsPaletteOpen((prev) => !prev)
+  }
 
   const handlePaperclipClick = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) =>
-      handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>);
-    input.click();
-  };
+    const input = document.createElement("input")
+    input.type = "file"
+    input.accept = "image/*"
+    input.onchange = (e) => handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>)
+    input.click()
+  }
 
-  const handlePaperclipFileUpload = async (
-    event: ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
 
     try {
-      setIsUploading(true);
-      const previewUrl = URL.createObjectURL(file);
-      setUploadPreview(previewUrl);
+      setIsUploading(true)
+      const previewUrl = URL.createObjectURL(file)
+      setUploadPreview(previewUrl)
 
-      const uploadedImageUrl = await uploadBackendFiles(file);
+      const uploadedImageUrl = await uploadBackendFiles(file)
       if (uploadedImageUrl) {
-        setPaperclipImage(uploadedImageUrl);
+        setPaperclipImage(uploadedImageUrl)
       } else {
-        throw new Error("Failed to upload image");
+        throw new Error("Failed to upload image")
       }
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to upload the image. Please try again.");
+      console.error("Error uploading file:", error)
+      alert("Failed to upload the image. Please try again.")
     } finally {
-      setIsUploading(false);
-      setUploadPreview(null);
+      setIsUploading(false)
+      setUploadPreview(null)
     }
-  };
+  }
 
   const uploadBackendFiles = async (file: File) => {
     try {
-      const imageUrls = await uploadFiles(file);
+      const imageUrls = await uploadFiles(file)
       if (imageUrls.length > 0) {
-        const initImage = imageUrls[0];
-        console.log("File uploaded to backend:", initImage);
-        return initImage;
+        const initImage = imageUrls[0]
+        console.log("File uploaded to backend:", initImage)
+        return initImage
       }
     } catch (error) {
-      console.error("Error uploading file to backend:", error);
-      throw error;
+      console.error("Error uploading file to backend:", error)
+      throw error
     }
-    return null;
-  };
+    return null
+  }
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const file = event.target.files?.[0]
+    if (!file) return
 
-    const uploadedImageUrl = await uploadBackendFiles(file);
-    if (!uploadedImageUrl) return;
+    const uploadedImageUrl = await uploadBackendFiles(file)
+    if (!uploadedImageUrl) return
 
-    const element = new Image();
-    element.src = uploadedImageUrl;
+    const element = new Image()
+    element.src = uploadedImageUrl
     await new Promise((resolve) => {
-      element.onload = resolve;
-    });
+      element.onload = resolve
+    })
 
-    const aspectRatio = element.width / element.height;
-    let width = 200;
-    let height = width / aspectRatio;
+    const aspectRatio = element.width / element.height
+    let width = 200
+    let height = width / aspectRatio
     if (height > 200) {
-      height = 200;
-      width = height * aspectRatio;
+      height = 200
+      width = height * aspectRatio
     }
-    const offset = globalImages.length * OFFSET_MULTIPLIER;
+    const offset = globalImages.length * OFFSET_MULTIPLIER
     // Create a new image item with a unique id and add it to the global store
     const newImage: ImageItem = {
       id: crypto.randomUUID(),
       url: uploadedImageUrl,
-    };
-    addImageGlobal(newImage);
+    }
+    addImageGlobal(newImage)
     addMedia({
       id: crypto.randomUUID(),
       type: "image",
@@ -318,30 +303,30 @@ const ImagePromptUI = () => {
       position: { x: offset, y: offset },
       size: { width, height },
       scale: 1,
-    });
-  };
+    })
+  }
 
   const handleGenerateImageByPrompt = () => {
     if (!inputText && !paperclipImage) {
-      alert("Please enter a description or upload an image for reference.");
-      return;
+      alert("Please enter a description or upload an image for reference.")
+      return
     }
-    generateImageMutation.mutate(inputText);
-  };
+    generateImageMutation.mutate(inputText)
+  }
 
   const handleGenerateImageByReference = async () => {
     if (!inputText && !paperclipImage) {
-      alert("Please enter a description or upload an image for reference.");
-      return;
+      alert("Please enter a description or upload an image for reference.")
+      return
     }
 
     try {
-      let result: string | undefined;
+      let result: string | undefined
       switch (generationType) {
         case "outline":
           if (!paperclipImage) {
-            alert("Please upload an image for outline generation.");
-            return;
+            alert("Please upload an image for outline generation.")
+            return
           }
           result = await generateOutlineImage({
             controlnet: "canny",
@@ -349,12 +334,12 @@ const ImagePromptUI = () => {
             image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
         case "depth":
           if (!paperclipImage) {
-            alert("Please upload an image for depth generation.");
-            return;
+            alert("Please upload an image for depth generation.")
+            return
           }
           result = await generateDepthImage({
             controlnets: "depth",
@@ -362,12 +347,12 @@ const ImagePromptUI = () => {
             image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
         case "pose":
           if (!paperclipImage) {
-            alert("Please upload an image for pose generation.");
-            return;
+            alert("Please upload an image for pose generation.")
+            return
           }
           result = await generatePoseImage({
             controlnets: "openpose",
@@ -375,12 +360,12 @@ const ImagePromptUI = () => {
             image: paperclipImage,
             num_inference_steps: 30,
             samples: 1,
-          });
-          break;
+          })
+          break
         case "renderSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for render sketch generation.");
-            return;
+            alert("Please upload an image for render sketch generation.")
+            return
           }
           result = await generateRenderSketch({
             model_id: "sdxl",
@@ -391,12 +376,12 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
         case "recolorSketch":
           if (!paperclipImage) {
-            alert("Please upload an image for recolor sketch generation.");
-            return;
+            alert("Please upload an image for recolor sketch generation.")
+            return
           }
           result = await generateRecolorSketch({
             model_id: "sdxl",
@@ -407,12 +392,12 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
         case "interiorDesign":
           if (!paperclipImage) {
-            alert("Please upload an image for interior design generation.");
-            return;
+            alert("Please upload an image for interior design generation.")
+            return
           }
           result = await generateInteriorDesign({
             model_id: "sdxl",
@@ -423,19 +408,19 @@ const ImagePromptUI = () => {
             num_inference_steps: 30,
             samples: 1,
             controlnet_weights: [1.0],
-          });
-          break;
+          })
+          break
         case "logo":
           if (!paperclipImage) {
-            alert("Please upload an image for logo generation.");
-            return;
+            alert("Please upload an image for logo generation.")
+            return
           }
           result = await generateLogo({
             logo_prompt: inputText,
             prompt: inputText,
             image: paperclipImage,
-          });
-          break;
+          })
+          break
         default:
           result = await generateImage({
             prompt: inputText,
@@ -446,8 +431,8 @@ const ImagePromptUI = () => {
             seed: -1,
             enhance_prompt: magicPrompt,
             palette: selectedPalette ? selectedPalette.colors : [],
-          });
-          break;
+          })
+          break
       }
 
       if (result) {
@@ -455,23 +440,23 @@ const ImagePromptUI = () => {
         const newImage: ImageItem = {
           id: crypto.randomUUID(),
           url: result,
-        };
-        addImageGlobal(newImage);
-
-        const element = new Image();
-        element.src = result;
-        await new Promise((resolve) => {
-          element.onload = resolve;
-        });
-
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
-        if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
         }
-        const offset = globalImages.length * OFFSET_MULTIPLIER;
+        addImageGlobal(newImage)
+
+        const element = new Image()
+        element.src = result
+        await new Promise((resolve) => {
+          element.onload = resolve
+        })
+
+        const aspectRatio = element.width / element.height
+        let width = 200
+        let height = width / aspectRatio
+        if (height > 200) {
+          height = 200
+          width = height * aspectRatio
+        }
+        const offset = globalImages.length * OFFSET_MULTIPLIER
         addMedia({
           id: crypto.randomUUID(),
           type: "image",
@@ -479,29 +464,26 @@ const ImagePromptUI = () => {
           position: { x: offset, y: offset },
           size: { width, height },
           scale: 1,
-        });
+        })
       }
     } catch (error) {
-      console.error("Error generating image:", error);
-      alert("Failed to generate the image. Please try again.");
+      console.error("Error generating image:", error)
+      alert("Failed to generate the image. Please try again.")
     }
-  };
+  }
 
   // ───────────────────────────────────────────────────────────────────────────
   //  Render
   // ───────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-4xl mx-auto relative">
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto relative">
       <div className="flex flex-col gap-4">
         {(isUploading || uploadPreview || paperclipImage) && (
           <div className="relative mt-4 z-[100]">
             <div className="flex flex-wrap gap-2">
-              <div className="relative ">
-                <ImageUploadLoader
-                  imagePreview={uploadPreview || paperclipImage}
-                  isUploading={isUploading}
-                />
+              <div className="relative">
+                <ImageUploadLoader imagePreview={uploadPreview || paperclipImage} isUploading={isUploading} />
 
                 {!isUploading && paperclipImage && (
                   <button
@@ -517,62 +499,74 @@ const ImagePromptUI = () => {
           </div>
         )}
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <div className="relative flex-grow">
-            <button
-              className="absolute left-2 top-2 p-1"
-              onClick={handlePaperclipClick}
-            >
+            <button className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1" onClick={handlePaperclipClick}>
               <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
-
             <Textarea
               ref={textAreaRef}
               value={inputText}
-              onChange={(e) => {
-                setInputText(e.target.value);
-              }}
+              onChange={(e) => setInputText(e.target.value)}
               placeholder="Describe what you want to see or Upload image"
-              className="w-full h-10 p-10 text-black dark:text-white focus:outline-none bg-slate-50 border-none dark:bg-gray-700 dark:border-gray-600 resize-none  pr-2 rounded-lg "
-              // style={{ minHeight: "25px" }}
+              className="w-full h-10 pl-10 pr-2 text-black dark:text-white focus:outline-none bg-slate-50 border-none dark:bg-gray-700 dark:border-gray-600 resize-none rounded-lg"
               aria-label="Image description input"
             />
           </div>
           <Button
             onClick={handleGenerateImageByPrompt}
-            className="font-bold bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center"
             disabled={generateImageMutation.isLoading}
+            aria-label="Generate"
           >
-            {generateImageMutation.isLoading ? "Generating..." : "Generate"}
+            {generateImageMutation.isLoading ? <span className="animate-spin">⌛</span> : <span>➜</span>}
           </Button>
         </div>
-      </div>
 
-      <div className="mt-6 flex items-center gap-6 justify-between">
-        <div className="flex flex-row items-center gap-2">
-          <PreviewDualActionButton />
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="flex items-center ">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <Button
-              onClick={toggleColorPalette}
-              className={isPaletteOpen ? "bg-blue-500" : "bg-gray-500"}
+              onClick={() => {
+                /* Toggle public/private */
+              }}
+              className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+              aria-label="Toggle public/private"
             >
-              Color: {selectedPalette ? selectedPalette.name : "Auto"}
+              <Globe className="h-5 w-5 text-gray-700" />
+            </Button>
+            <Button
+              onClick={handleMagicPromptToggle}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                magicPrompt ? "bg-yellow-400 hover:bg-yellow-500" : "bg-gray-200 hover:bg-gray-300"
+              }`}
+              aria-label="Toggle AI enhancement"
+            >
+              <Zap className={`h-5 w-5 ${magicPrompt ? "text-white" : "text-gray-700"}`} />
             </Button>
           </div>
-          <div className="bg-gray-300 hover:bg-gray-400 p-2 rounded-md">
-            <button className="text-white" onClick={toggleSettingsPanel}>
-              Setting
-            </button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={toggleColorPalette}
+              className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                isPaletteOpen ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+              }`}
+              aria-label="Toggle color palette"
+            >
+              <Palette className={`h-5 w-5 ${isPaletteOpen ? "text-white" : "text-gray-700"}`} />
+            </Button>
+            <Button
+              onClick={toggleSettingsPanel}
+              className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
+              aria-label="Toggle settings"
+            >
+              <Settings className="h-5 w-5 text-gray-700" />
+            </Button>
           </div>
-          {selectedPalette && <SelectedPaletteDisplay />}
         </div>
       </div>
 
       {isSettingsPanelVisible && (
-        <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+        <div className="absolute z-50 top-full left-0 right-0 mt-2">
           <SettingsPanel
             onTypeChange={(type: any) => setGenerationType(type)}
             paperclipImage={paperclipImage}
@@ -582,7 +576,7 @@ const ImagePromptUI = () => {
       )}
 
       {isColorPaletteVisible && (
-        <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-[600px] -translate-y-[650px]">
+        <div className="absolute z-50 top-full left-0 right-0 mt-2">
           <CustomColorPalette />
         </div>
       )}
@@ -593,73 +587,63 @@ const ImagePromptUI = () => {
       {/* ── Selected Image Editor: Shows UID and an Edit button ── */}
       <SelectedImageEditor />
     </div>
-  );
-};
+  )
+}
 
-export default ImagePromptUI;
+export default ImagePromptUI2
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Gallery Component (lists all global images)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ImageGallery = () => {
-  const images = useImageStore((state) => state.images);
-  const setSelectedImage = useSingleImageStore(
-    (state) => state.setSelectedImage
-  );
+  const images = useImageStore((state) => state.images)
+  const setSelectedImage = useSingleImageStore((state) => state.setSelectedImage)
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-4">
       {images.map((img) => (
         <div
           key={img.id}
-          className="cursor-pointer border rounded p-2 hover:shadow-lg"
+          className="cursor-pointer border rounded p-1 hover:shadow-lg"
           onClick={() => setSelectedImage(img)}
         >
-          <img
-            src={img.url}
-            alt={`Image ${img.id}`}
-            className="w-32 h-32 object-cover"
-          />
+          <img src={img.url || "/placeholder.svg"} alt={`Image ${img.id}`} className="w-full h-24 object-cover" />
         </div>
       ))}
     </div>
-  );
-};
+  )
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  Selected Image Editor Component
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SelectedImageEditor = () => {
-  const { selectedImage, clearSelectedImage } = useSingleImageStore();
+  const { selectedImage, clearSelectedImage } = useSingleImageStore()
 
-  if (!selectedImage) return null;
+  if (!selectedImage) return null
 
   return (
-    <div className="p-4 border rounded mt-4">
-      <div className="flex items-center justify-between">
-        <span className="font-bold">Editing Image UID: {selectedImage.id}</span>
+    <div className="p-2 border rounded mt-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-bold truncate">UID: {selectedImage.id}</span>
         <div>
-          <button
-            className="bg-blue-500 text-white px-3 py-1 rounded"
+          <Button
+            className="bg-blue-500 text-white px-2 py-1 text-xs rounded mr-2"
             onClick={() => alert(`Edit image with UID: ${selectedImage.id}`)}
           >
             Edit
-          </button>
-          <button
-            className="bg-red-500 text-white px-3 py-1 rounded ml-2"
-            onClick={clearSelectedImage}
-          >
-            Clear Selection
-          </button>
+          </Button>
+          <Button className="bg-red-500 text-white px-2 py-1 text-xs rounded" onClick={clearSelectedImage}>
+            Clear
+          </Button>
         </div>
       </div>
-      <img
-        src={selectedImage.url}
-        alt="Selected"
-        className="mt-2 max-w-full h-auto"
-      />
+      <img src={selectedImage.url || "/placeholder.svg"} alt="Selected" className="w-full h-auto" />
+
+     
     </div>
-  );
-};
+  )
+}
+

@@ -4,16 +4,15 @@ import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function MagicPromptToggle() {
-  const [aiMode, setAiMode] = useState<"on" | "off">("off"); // 'on' or 'off'
-  const [loading, setLoading] = useState(false); // Loading state
+  const [aiMode, setAiMode] = useState<"on" | "off">("off"); 
+  const [loading, setLoading] = useState(false); 
 
   const handleToggle = () => {
-    setLoading(true); // Activate loader
-    // Simulate an async operation (e.g., API call)
+    setLoading(true); 
     setTimeout(() => {
       setAiMode((prev) => (prev === "on" ? "off" : "on"));
-      setLoading(false); // Deactivate loader
-    }, 2000); // 2-second delay
+      setLoading(false); 
+    }, 2000); 
   };
 
   return (

@@ -73,7 +73,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
       >
         <Download className="h-4 w-4" color="white" />
       </Button>
-      <label></label>
+      
     </div>
   );
 }
