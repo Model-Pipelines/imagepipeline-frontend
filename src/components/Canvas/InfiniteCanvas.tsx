@@ -1,5 +1,4 @@
 "use client";
-
 import { useRef, useEffect, useCallback, useState } from "react";
 import { useCanvasStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -7,9 +6,12 @@ import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import Sidebar from "../Sidebar/Sidebar";
 import ParentPrompt from "../PromptUI/ParentPrompt";
-
 import { Edit } from "lucide-react";
-import EditImageOptions from "./EditImageOptions/EditImageOptions";
+import { EditImageCard } from "./ImageEditor/EditImageCard";
+import { Dialog, DialogClose, DialogContent, DialogTrigger } from "../ui/dialog";
+import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore"; // Import the single image store
+import { Button } from "../ui/button";
+import { DialogTitle } from "@radix-ui/react-dialog";
 
 interface CanvasElement {
   id: string;
@@ -20,18 +22,12 @@ interface CanvasElement {
   scale: number;
 }
 
-interface CanvasMedia extends CanvasElement {
-  element: HTMLImageElement | HTMLVideoElement;
-}
-
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200; // Initial size for uploaded images
 
 export default function InfiniteCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(
-    null
-  );
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(null);
 
   const {
     scale,
@@ -54,6 +50,9 @@ export default function InfiniteCanvas() {
     addMedia,
   } = useCanvasStore();
 
+  const { setImage } = useSingleImageStore(); // Zustand single image store hook
+
+  // Handle wheel events for zooming and panning
   const handleWheel = useCallback(
     (e: WheelEvent) => {
       e.preventDefault();
@@ -71,31 +70,10 @@ export default function InfiniteCanvas() {
     [scale, offset, setScale, setOffset]
   );
 
-  const getResizeHandle = (x: number, y: number, item: (typeof media)[0]) => {
-    const handles = [
-      { id: "top-left", x: 0, y: 0 },
-      { id: "top-right", x: item.size.width, y: 0 },
-      { id: "bottom-left", x: 0, y: item.size.height },
-      { id: "bottom-right", x: item.size.width, y: item.size.height },
-    ];
-
-    for (const handle of handles) {
-      const handleX = item.position.x + handle.x;
-      const handleY = item.position.y + handle.y;
-      const distance = Math.sqrt(
-        Math.pow(x - handleX, 2) + Math.pow(y - handleY, 2)
-      );
-      if (distance < HANDLE_SIZE) {
-        return handle.id;
-      }
-    }
-    return null;
-  };
-
+  // Handle drag start for moving or resizing elements
   const handleDragStart = useCallback(
     (e: React.MouseEvent) => {
       if (!isMoveTool) return;
-
       const rect = canvasRef.current?.getBoundingClientRect();
       if (!rect) return;
 
@@ -123,12 +101,7 @@ export default function InfiniteCanvas() {
           top: item.position.y,
           bottom: item.position.y + item.size.height,
         };
-        return (
-          x >= bounds.left &&
-          x <= bounds.right &&
-          y >= bounds.top &&
-          y <= bounds.bottom
-        );
+        return x >= bounds.left && x <= bounds.right && y >= bounds.top && y <= bounds.bottom;
       });
 
       setIsDragging(true);
@@ -138,19 +111,10 @@ export default function InfiniteCanvas() {
         setSelectedMediaId(null);
       }
     },
-    [
-      isMoveTool,
-      offset,
-      scale,
-      media,
-      selectedMediaId,
-      setIsDragging,
-      setIsResizing,
-      setResizeHandle,
-      setSelectedMediaId,
-    ]
+    [media, selectedMediaId, scale, offset, isMoveTool]
   );
 
+  // Handle file uploads
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -170,7 +134,6 @@ export default function InfiniteCanvas() {
         const aspectRatio = element.width / element.height;
         let width = INITIAL_IMAGE_SIZE;
         let height = width / aspectRatio;
-
         if (height > INITIAL_IMAGE_SIZE) {
           height = INITIAL_IMAGE_SIZE;
           width = height * aspectRatio;
@@ -185,46 +148,50 @@ export default function InfiniteCanvas() {
           scale: 1,
         });
       };
+
       reader.readAsDataURL(file);
     },
     [addMedia]
   );
 
-  const handleDownload = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-  
-    try {
-      const link = document.createElement("a");
-      link.download = "canvas.png";
-      
-      // Add quality parameter (0-1) for better PNG compression
-      link.href = canvas.toDataURL("image/png", 1.0);
-      
-      // Add temporary click handler to catch errors
-      link.onclick = () => {
-        setTimeout(() => URL.revokeObjectURL(link.href), 30);
-      };
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error("Export failed:", error);
-      alert("Could not export canvas. Please check all images are properly loaded.");
-    }
-  }, []);
+  // Handle edit icon click
+  const handleEditClick = useCallback(
+    (item: CanvasElement) => {
+      // Set the image URL in the single image store
+      if (item.element instanceof HTMLImageElement) {
+        setImage({
+          id: item.id,
+          url: item.element.src
+        });
+      }
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+      // Set the selected element
+      setSelectedElement(item);
+    },
+    [setImage]
+  );
 
-    canvas.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      canvas.removeEventListener("wheel", handleWheel);
-    };
-  }, [handleWheel]);
+  // Render resize handles for selected elements
+  const renderResizeHandles = (ctx: CanvasRenderingContext2D, item: CanvasElement) => {
+    const handles = [
+      { x: 0, y: 0 },
+      { x: item.size.width, y: 0 },
+      { x: 0, y: item.size.height },
+      { x: item.size.width, y: item.size.height },
+    ];
 
+    handles.forEach(({ x, y }) => {
+      ctx.fillStyle = "#ffffff";
+      ctx.strokeStyle = "#0066ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, HANDLE_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    });
+  };
+
+  // Main render loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -232,55 +199,13 @@ export default function InfiniteCanvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const drawGrid = () => {
-      const gridSize = 20;
-      const dotSize = 2;
-
-      for (
-        let x = offset.x % (gridSize * scale);
-        x < canvas.width;
-        x += gridSize * scale
-      ) {
-        for (
-          let y = offset.y % (gridSize * scale);
-          y < canvas.height;
-          y += gridSize * scale
-        ) {
-          ctx.beginPath();
-          ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-          ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
-          ctx.fill();
-        }
-      }
-    };
-
-    const drawResizeHandles = (item: (typeof media)[0]) => {
-      const handles = [
-        { x: 0, y: 0 },
-        { x: item.size.width, y: 0 },
-        { x: 0, y: item.size.height },
-        { x: item.size.width, y: item.size.height },
-      ];
-
-      handles.forEach(({ x, y }) => {
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = "#0066ff";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(x, y, HANDLE_SIZE / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-      });
-    };
-
     const render = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (showGrid) {
-        drawGrid();
+        drawGrid(ctx);
       }
 
       ctx.save();
@@ -292,10 +217,7 @@ export default function InfiniteCanvas() {
         ctx.translate(item.position.x, item.position.y);
 
         // Draw the image
-        if (
-          item.element instanceof HTMLImageElement ||
-          item.element instanceof HTMLVideoElement
-        ) {
+        if (item.element instanceof HTMLImageElement || item.element instanceof HTMLVideoElement) {
           ctx.drawImage(item.element, 0, 0, item.size.width, item.size.height);
         }
 
@@ -303,13 +225,8 @@ export default function InfiniteCanvas() {
         if (item.id === selectedMediaId) {
           ctx.strokeStyle = "#ddd";
           ctx.lineWidth = 2 / scale;
-          ctx.strokeRect(
-            -2 / scale,
-            -2 / scale,
-            item.size.width + 4 / scale,
-            item.size.height + 4 / scale
-          );
-          drawResizeHandles(item);
+          ctx.strokeRect(2 / scale, 2 / scale, item.size.width + 4 / scale, item.size.height + 4 / scale);
+          renderResizeHandles(ctx, item);
         }
 
         ctx.restore();
@@ -322,102 +239,128 @@ export default function InfiniteCanvas() {
     render();
   }, [scale, offset, media, showGrid, selectedMediaId]);
 
-  const handleEditClick = (e: React.MouseEvent, item: CanvasElement) => {
-    e.stopPropagation();
-    setSelectedElement(item);
-  };
+  // Attach wheel event listener
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  const handleCloseModal = () => {
-    setSelectedElement(null);
-  };
+    canvas.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      canvas.removeEventListener("wheel", handleWheel);
+    };
+  }, [handleWheel]);
 
   return (
-    <div className="relative w-full h-full flex">
-      <Sidebar />
-      <div className="flex-1 relative">
-        <Toolbar onUpload={handleUpload} onDownload={handleDownload} />
-        <ZoomControls />
-        <canvas
-          ref={canvasRef}
-          className={cn(
-            "absolute inset-0 bg-white dark:bg-[#181603]",
-            isMoveTool
-              ? isDragging
-                ? "cursor-grabbing"
-                : "cursor-grab"
-              : "cursor-default"
-          )}
-          style={{ zIndex: 0 }}
-          onMouseDown={handleDragStart}
-          onMouseUp={() => {
-            setIsDragging(false);
-            setIsResizing(false);
-            setResizeHandle(null);
-          }}
-          onMouseLeave={() => {
-            setIsDragging(false);
-            setIsResizing(false);
-            setResizeHandle(null);
-          }}
-          onMouseMove={(e) => {
-            if (!isDragging && !isResizing) return;
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0"
+        onMouseDown={handleDragStart}
+        onMouseUp={() => {
+          setIsDragging(false);
+          setIsResizing(false);
+          setResizeHandle(null);
+        }}
+        onMouseLeave={() => {
+          setIsDragging(false);
+          setIsResizing(false);
+          setResizeHandle(null);
+        }}
+        onMouseMove={(e) => {
+          if (!isDragging && !isResizing) return;
 
-            if (isResizing && resizeHandle && selectedMediaId) {
-              const dx = e.movementX / scale;
-              const dy = e.movementY / scale;
-              resizeSelectedMedia(resizeHandle, dx, dy);
-            } else if (selectedMediaId && isDragging) {
-              const dx = e.movementX / scale;
-              const dy = e.movementY / scale;
-              moveSelectedMedia(dx, dy);
-            } else if (isMoveTool && isDragging) {
-              setOffset({
-                x: offset.x + e.movementX,
-                y: offset.y + e.movementY,
-              });
-            }
+          if (isResizing && resizeHandle && selectedMediaId) {
+            const dx = e.movementX / scale;
+            const dy = e.movementY / scale;
+            resizeSelectedMedia(resizeHandle, dx, dy);
+          } else if (selectedMediaId && isDragging) {
+            const dx = e.movementX / scale;
+            const dy = e.movementY / scale;
+            moveSelectedMedia(dx, dy);
+          } else if (isMoveTool && isDragging) {
+            setOffset({
+              x: offset.x + e.movementX,
+              y: offset.y + e.movementY,
+            });
+          }
+        }}
+      />
+
+      {/* Render media elements */}
+      {media.map((item) => (
+        <div
+          key={item.id}
+          style={{
+            position: "absolute",
+            left: item.position.x * scale + offset.x,
+            top: item.position.y * scale + offset.y,
+            width: item.size.width * scale,
+            height: item.size.height * scale,
+            transform: `scale(${item.scale})`,
           }}
-        />
-        {media.map((item) => (
-          <button
-            key={item.id}
-            className="absolute"
-            style={{
-              top: item.position.y * scale + offset.y - 20,
-              left: item.position.x * scale + offset.x - 20,
-            }}
-            onClick={(e) => handleEditClick(e, item)}
-          >
-            <Edit className="text-white bg-black rounded-full p-1" size={20} />
-          </button>
-        ))}
-        {selectedElement && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end items-center z-[100]">
-            <div className="bg-white p-4 rounded-lg  w-1/4 h-auto overflow-auto m-4">
-              <EditImageOptions
-                element={selectedElement}
-                prompt=""
-                magicPrompt=""
-                images={[]}
-                model=""
-                style=""
-                resolution=""
-                seed=""
-                dateCreated=""
-                onUpdate={(updatedElement) => {
-                  // Update the element in the store
-                  const updatedMedia = media.map((item) =>
-                    item.id === updatedElement.id ? updatedElement : item
-                  );
-                  setSelectedElement(updatedElement);
-                }}
-                onClose={handleCloseModal}
+        >
+          <Dialog>
+            <DialogTrigger>
+              <Edit
+                className="text-white  rounded-full p-1 absolute top-0 -left-4 bg-slate-800 "
+
+
+                onClick={() => handleEditClick(item)}
               />
-            </div>
-          </div>
-        )}
-        <ParentPrompt />
-      </div>
+            </DialogTrigger>
+            <DialogTitle suppressContentEditableWarning></DialogTitle>
+
+            <DialogContent>
+
+
+              {selectedElement && <EditImageCard imageUrl={selectedElement.element.src} />}
+            </DialogContent>
+            <DialogClose />
+          </Dialog>
+        </div>
+      ))}
+      <ParentPrompt />
+
+      {/* Toolbar and other UI components */}
+      <Toolbar onUpload={handleUpload} />
+      <ZoomControls />
+      <Sidebar />
     </div>
   );
+}
+
+// Helper function to calculate resize handles
+function getResizeHandle(x: number, y: number, item: CanvasElement) {
+  const handles = [
+    { id: "top-left", x: 0, y: 0 },
+    { id: "top-right", x: item.size.width, y: 0 },
+    { id: "bottom-left", x: 0, y: item.size.height },
+    { id: "bottom-right", x: item.size.width, y: item.size.height },
+  ];
+
+  for (const handle of handles) {
+    const handleX = item.position.x + handle.x;
+    const handleY = item.position.y + handle.y;
+    const distance = Math.sqrt(Math.pow(x - handleX, 2) + Math.pow(y - handleY, 2));
+    if (distance < HANDLE_SIZE) {
+      return handle.id;
+    }
+  }
+
+  return null;
+}
+
+// Helper function to draw grid
+function drawGrid(ctx: CanvasRenderingContext2D) {
+  const gridSize = 20;
+  const dotSize = 2;
+
+  for (let x = 0; x < window.innerWidth; x += gridSize) {
+    for (let y = 0; y < window.innerHeight; y += gridSize) {
+      ctx.beginPath();
+      ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+      ctx.fill();
+    }
+  }
 }
