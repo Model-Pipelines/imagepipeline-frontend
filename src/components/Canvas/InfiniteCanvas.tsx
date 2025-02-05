@@ -7,9 +7,10 @@ import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import Sidebar from "../Sidebar/Sidebar";
 import ParentPrompt from "../PromptUI/ParentPrompt";
-
 import { Edit } from "lucide-react";
-import EditImageOptions from "./EditImageOptions/EditImageOptions";
+import { EditImageCard } from "./ImageEditor/EditImageCard";
+import { Dialog, DialogTrigger, DialogContent, DialogClose } from "../ui/dialog";
+import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore"; // Import the single image store
 
 interface CanvasElement {
   id: string;
@@ -20,18 +21,12 @@ interface CanvasElement {
   scale: number;
 }
 
-interface CanvasMedia extends CanvasElement {
-  element: HTMLImageElement | HTMLVideoElement;
-}
-
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200; // Initial size for uploaded images
 
 export default function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(
-    null
-  );
+  const [selectedElement, setSelectedElement] = useState<CanvasElement | null>(null);
 
   const {
     scale,
@@ -53,6 +48,8 @@ export default function InfiniteCanvas() {
     resizeSelectedMedia,
     addMedia,
   } = useCanvasStore();
+
+  const { setImage } = useSingleImageStore(); // Zustand single image store hook
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -322,8 +319,16 @@ export default function InfiniteCanvas() {
     render();
   }, [scale, offset, media, showGrid, selectedMediaId]);
 
-  const handleEditClick = (e: React.MouseEvent, item: CanvasElement) => {
-    e.stopPropagation();
+  const handleEditClick = (item: CanvasElement) => {
+    // Set the image URL in the single image store
+    if (item.element instanceof HTMLImageElement) {
+      setImage({
+        id: item.id,
+        url: item.element.src
+      });
+    }
+
+    // Set the selected element
     setSelectedElement(item);
   };
 
@@ -379,43 +384,25 @@ export default function InfiniteCanvas() {
           }}
         />
         {media.map((item) => (
-          <button
-            key={item.id}
-            className="absolute"
-            style={{
-              top: item.position.y * scale + offset.y - 20,
-              left: item.position.x * scale + offset.x - 20,
-            }}
-            onClick={(e) => handleEditClick(e, item)}
-          >
-            <Edit className="text-white bg-black rounded-full p-1" size={20} />
-          </button>
-        ))}
-        {selectedElement && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-end items-center z-[100]">
-            <div className="bg-white p-4 rounded-lg  w-1/4 h-auto overflow-auto m-4">
-              <EditImageOptions
-                element={selectedElement}
-                prompt=""
-                magicPrompt=""
-                images={[]}
-                model=""
-                style=""
-                resolution=""
-                seed=""
-                dateCreated=""
-                onUpdate={(updatedElement) => {
-                  // Update the element in the store
-                  const updatedMedia = media.map((item) =>
-                    item.id === updatedElement.id ? updatedElement : item
-                  );
-                  setSelectedElement(updatedElement);
+          <Dialog key={item.id}>
+            <DialogTrigger>
+              <button
+                className="absolute"
+                style={{
+                  top: item.position.y * scale + offset.y - 20,
+                  left: item.position.x * scale + offset.x - 20,
                 }}
-                onClose={handleCloseModal}
-              />
-            </div>
-          </div>
-        )}
+                onClick={() => handleEditClick(item)}
+              >
+                <Edit className="text-white bg-black rounded-full p-1" size={20} />
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              {selectedElement && <EditImageCard imageUrl={selectedElement.element.src} />}
+            </DialogContent>
+            <DialogClose />
+          </Dialog>
+        ))}
         <ParentPrompt />
       </div>
     </div>

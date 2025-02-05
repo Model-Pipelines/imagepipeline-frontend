@@ -4,6 +4,6 @@ export const apiClient: AxiosInstance = axios.create({
   baseURL: 'https://api.imagepipeline.io',
   headers: {
     'Content-Type': 'application/json',
-    'API-Key': 'pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn', // Replace with your actual API key
+    'API-Key': 'pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn', 
   },
 });

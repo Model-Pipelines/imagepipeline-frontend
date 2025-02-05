@@ -2,14 +2,14 @@
 
 // Generate Image Payload
 export interface GenerateImagePayload {
-  prompt: string; // Required
+  prompt: string;
   num_inference_steps?: number;
   samples?: number;
-  enhance_prompt?: boolean;
-  palette?: string[]; // Array of hex color codes
-  height?: number; // Aspect Ratio
-  width?: number; // Aspect Ratio
+  height?: number;
+  width?: number;
   seed?: number;
+  enhance_prompt?: boolean;
+  palette?: string[];
 }
 
 // Describe Image Payload
@@ -20,34 +20,35 @@ export interface DescribeImagePayload {
 // ControlNet Payload (Outline, Depth, Pose)
 export interface ControlNetPayload {
   controlnet: "canny" | "depth" | "openpose"; // Required
-  prompt: string; // Required
-  image: string; // Required
+  prompt: string;
+  image: string;
   num_inference_steps?: number;
   samples?: number;
 }
+ 
 
 // Render Sketch Payload
 export interface RenderSketchPayload {
-  model_id: string; // Required
-  controlnets: string[]; // Required
-  prompt: string; // Required
-  negative_prompt?: string;
-  init_images: string[]; // Required (public URLs for images)
+  model_id: string;
+  controlnets: string[];
+  prompt: string;
+  negative_prompt: string;
+  images: string[];
   num_inference_steps?: number;
   samples?: number;
-  controlnet_weights: number[]; // Required
+  controlnet_weights: number[];
 }
 
 // Recolor Payload
 export interface RecolorImagePayload {
-  model_id: string; // Required
-  controlnets: string[]; // Required
-  prompt: string; // Required
-  negative_prompt?: string;
-  init_images: string[]; // Required (public URLs for images)
+  model_id: string;
+  controlnets: string[];
+  prompt: string;
+  negative_prompt: string;
+  images: string[];
   num_inference_steps?: number;
   samples?: number;
-  controlnet_weights: number[]; // Required
+  controlnet_weights: number[];
 }
 
 // Interior Design Payload
