@@ -72,7 +72,7 @@ export default function MobileAccountDropdown() {
                 <ThemeSwitcher />
 
                 {/* Footer Links */}
-                {/* <ProfileFooter /> */}
+                <ProfileFooter />
               </div>
             </Card>
           </motion.div>
