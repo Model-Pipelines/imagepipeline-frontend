@@ -16,7 +16,9 @@ export default function ZoomControls() {
   };
 
   return (
-    <div className="absolute bottom-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+    <div className="zoomcontrol absolute bottom-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2 md:flex hidden">
+
+
       <Button
         variant="outline"
         size="icon"

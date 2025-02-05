@@ -53,3 +53,25 @@ body {
 canvas {
   isolation: auto !important;
 }
+
+
+@media (max-width: 1024px) { /* Tablet Screens */
+  .toolbar {
+    bottom: 238px !important; /* Move it upwards */
+  }
+  .zoomcontrol {
+    bottom: 238px !important;
+    right: 15px !important;
+    display: flex !important; /* Ensure it's visible on tablet */
+  }
+}
+
+@media (max-width: 768px) { /* Mobile Screens */
+  .toolbar {
+    bottom: 238px !important; /* Move it even more upwards */
+    right: -32px !important; /* Adjust right position if needed */
+  }
+  .zoomcontrol {
+    display: none !important; /* Hide it on mobile */
+  }
+}

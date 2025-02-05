@@ -1,5 +1,6 @@
 "use client";
 
+import { v4 as uuidv4 } from "uuid"; // Import UUID library
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCanvasStore } from "@/lib/store";
@@ -38,7 +39,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
     }
 
     addMedia({
-      id: crypto.randomUUID(),
+      id: uuidv4(), // Use uuid instead of crypto.randomUUID()
       type: "image",
       element,
       position: { x: 800, y: 100 },
@@ -48,7 +49,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
   };
 
   return (
-    <div className="absolute bottom-4 right-44 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+    <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
       <label className="cursor-pointer">
         <Button className="bg-gray-300 hover:bg-gray-400" size="icon" title="Upload Image" asChild>
           <span>
@@ -73,7 +74,6 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
       >
         <Download className="h-4 w-4" color="white" />
       </Button>
-      
     </div>
   );
 }

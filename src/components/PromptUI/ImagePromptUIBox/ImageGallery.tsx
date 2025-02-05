@@ -86,7 +86,7 @@ const ImageGallery = () => {
   };
 
   return (
-    <div className=" dark:bg-gray-800 p-6 rounded-xl w-full max-w-4xl mx-auto">
+    <div className=" dark:bg-gray-800 rounded-xl w-full max-w-4xl mx-auto">
       <div className="flex flex-col gap-4">
 
         {/* Image Gallery */}
