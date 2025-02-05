@@ -1,8 +1,6 @@
 "use client"
 
 import { create } from 'zustand';
-import { useCallback, useState } from 'react';
-import { Button } from "@/components/ui/button";
 import { devtools, persist } from 'zustand/middleware';
 
 
@@ -111,7 +109,7 @@ interface CanvasState {
   setSelectedElement: (element: CanvasElement | null) => void;
   deleteElement: (elementId: string) => void; //delete button function
 
-  toggleEditPanel: () => void; //toggle edit button function  
+  toggleEditPanel: () => void; //toggle edit button function
   undo: () => void;
   redo: () => void;
   toggleGrid: () => void;
