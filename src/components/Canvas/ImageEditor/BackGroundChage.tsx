@@ -125,7 +125,7 @@ export default function BackGroundChange() {
       prompt,
       style_image: backgroundImage || "", // Use the uploaded background image if available
       samples: 1,
-      negative_prompt: "",
+      negative_prompt: "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
       seed: -1,
     };
 
