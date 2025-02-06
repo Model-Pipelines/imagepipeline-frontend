@@ -55,6 +55,7 @@ export const uploadFiles = async (
     throw error;
   }
 };
+
 // GenerativeApi.ts
 export const uploadBackendFiles = async (file: File): Promise<string> => {
   const formData = new FormData();
@@ -122,15 +123,12 @@ export const faceControl = async (data: FaceControlPayload): Promise<any> => {
 };
 
 // Change Background
-export const changeBackground = async (
-  data: ChangeBackgroundPayload
-): Promise<any> => {
-  return apiClient.post("/bgchanger/v1", data);
+export const changeBackground = async (data: ChangeBackgroundPayload): Promise<any> => {
+  return apiClient.post('/bgchanger/v1', data);
 };
 
-export const getBackgroundTaskStatus = async (
-  taskId: string
-): Promise<any> => {
+//GET request for change background 
+export const getChangeBackground = async (taskId: string) => {
   return apiClient.get(`/bgchanger/v1/status/${taskId}`);
 };
 
@@ -139,7 +137,18 @@ export const changeHuman = async (data: ChangeHumanPayload): Promise<any> => {
   return apiClient.post('/modelswitch/v1', data);
 };
 
+//GET request for change human 
+export const getChangeHuman = async (taskId: string) => {
+  return apiClient.get(`/modelswitch/v1/status/${taskId}`); 
+}
+
 // Upscale Image
 export const upscaleImage = async (data: UpscaleImagePayload): Promise<any> => {
   return apiClient.post('/upscaler/v1', data);
 };
+
+//GET request for the upscaler human 
+
+export const getUpscaleHuman = async (taskId: string) =>{
+  return apiClient.get(`/upscaler/v1/status/${taskId}`);
+}

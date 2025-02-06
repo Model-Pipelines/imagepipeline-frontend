@@ -349,6 +349,57 @@ export const useBackgroundTaskStatus = (taskId?: string) => {
   });
 };
 
+//human face task query 
+
+export const useHumanTaskStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["humanTaskStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      const res = await getHumanTaskStatus(taskId);
+      return res.data; // Return the actual data from the response
+    },
+    enabled: !!taskId,
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false;
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the task status response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Human task completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to process human task.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch human task status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching human task status:", error);
+    },
+  });
+};
+
 
 
 // Change Human Mutation
@@ -375,6 +426,8 @@ export const useChangeHuman = () => {
     },
   });
 };
+
+
 
 // Upscale Image Mutation
 export const useUpscaleImage = () => {
