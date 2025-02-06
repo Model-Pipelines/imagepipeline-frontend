@@ -15,6 +15,7 @@ import {
   uploadFiles,
   uploadBackendFiles,
   getBackgroundTaskStatus,
+  getChangeHuman,
 } from "@/AxiosApi/GenerativeApi";
 
 import { ChangeBackgroundPayload, ChangeHumanPayload, ControlNetPayload, FaceControlPayload, GenerateImagePayload, GenerateLogoPayload, InteriorDesignPayload, RecolorImagePayload, RenderSketchPayload, UploadFilesPayload, UpscaleImagePayload } from './types';
@@ -358,7 +359,7 @@ export const useHumanTaskStatus = (taskId?: string) => {
     queryKey: ["humanTaskStatus", taskId],
     queryFn: async () => {
       if (!taskId) throw new Error("No task ID provided");
-      const res = await getHumanTaskStatus(taskId);
+      const res = await getChangeHuman(taskId);
       return res.data; // Return the actual data from the response
     },
     enabled: !!taskId,
