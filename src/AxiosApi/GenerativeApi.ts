@@ -122,8 +122,16 @@ export const faceControl = async (data: FaceControlPayload): Promise<any> => {
 };
 
 // Change Background
-export const changeBackground = async (data: ChangeBackgroundPayload): Promise<any> => {
-  return apiClient.post('/bgchanger/v1', data);
+export const changeBackground = async (
+  data: ChangeBackgroundPayload
+): Promise<any> => {
+  return apiClient.post("/bgchanger/v1", data);
+};
+
+export const getBackgroundTaskStatus = async (
+  taskId: string
+): Promise<any> => {
+  return apiClient.get(`/bgchanger/v1/status/${taskId}`);
 };
 
 // Change Human
