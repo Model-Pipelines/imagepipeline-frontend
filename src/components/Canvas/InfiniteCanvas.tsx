@@ -176,14 +176,46 @@ export default function InfiniteCanvas() {
       let newWidth = img.size.width;
       let newHeight = img.size.height;
 
-      if (resizeHandle === "se") {
-        newWidth = Math.max(50, img.size.width + dx);
-        newHeight = Math.max(50, img.size.height + dy);
+      switch (resizeHandle) {
+        case "nw":
+          newWidth = Math.max(50, img.size.width - dx);
+          newHeight = Math.max(50, img.size.height - dy);
+          updateImage(selectedImageId, {
+            position: {
+              x: img.position.x + dx,
+              y: img.position.y + dy,
+            },
+            size: { width: newWidth, height: newHeight },
+          });
+          break;
+        case "ne":
+          newWidth = Math.max(50, img.size.width + dx);
+          newHeight = Math.max(50, img.size.height - dy);
+          updateImage(selectedImageId, {
+            position: {
+              y: img.position.y + dy,
+            },
+            size: { width: newWidth, height: newHeight },
+          });
+          break;
+        case "sw":
+          newWidth = Math.max(50, img.size.width - dx);
+          newHeight = Math.max(50, img.size.height + dy);
+          updateImage(selectedImageId, {
+            position: {
+              x: img.position.x + dx,
+            },
+            size: { width: newWidth, height: newHeight },
+          });
+          break;
+        case "se":
+          newWidth = Math.max(50, img.size.width + dx);
+          newHeight = Math.max(50, img.size.height + dy);
+          updateImage(selectedImageId, {
+            size: { width: newWidth, height: newHeight },
+          });
+          break;
       }
-
-      updateImage(selectedImageId, {
-        size: { width: newWidth, height: newHeight },
-      });
 
       setActionStart(canvasPos);
     }
@@ -207,6 +239,24 @@ export default function InfiniteCanvas() {
   // Resize handle detection
   const getResizeHandle = (img: any, pos: { x: number; y: number }) => {
     const handles = [
+      {
+        id: "nw",
+        x: img.position.x,
+        y: img.position.y,
+        region: HANDLE_SIZE / scale,
+      },
+      {
+        id: "ne",
+        x: img.position.x + img.size.width,
+        y: img.position.y,
+        region: HANDLE_SIZE / scale,
+      },
+      {
+        id: "sw",
+        x: img.position.x,
+        y: img.position.y + img.size.height,
+        region: HANDLE_SIZE / scale,
+      },
       {
         id: "se",
         x: img.position.x + img.size.width,
@@ -245,7 +295,7 @@ export default function InfiniteCanvas() {
         // Draw image
         ctx.drawImage(img.element!, img.position.x, img.position.y, img.size.width, img.size.height);
 
-        // Draw selection border and resize handle if the image is selected
+        // Draw selection border and resize handles if the image is selected
         if (img.id === selectedImageId) {
           ctx.strokeStyle = "#3b82f6";
           ctx.lineWidth = 2 / scale;
@@ -256,14 +306,23 @@ export default function InfiniteCanvas() {
             img.size.height + 4 / scale
           );
 
-          // Resize handle
+          // Draw resize handles
           ctx.fillStyle = "#3b82f6";
-          ctx.fillRect(
-            img.position.x + img.size.width - HANDLE_SIZE / (2 * scale),
-            img.position.y + img.size.height - HANDLE_SIZE / (2 * scale),
-            HANDLE_SIZE / scale,
-            HANDLE_SIZE / scale
-          );
+          const handles = [
+            { x: img.position.x, y: img.position.y }, // NW
+            { x: img.position.x + img.size.width, y: img.position.y }, // NE
+            { x: img.position.x, y: img.position.y + img.size.height }, // SW
+            { x: img.position.x + img.size.width, y: img.position.y + img.size.height }, // SE
+          ];
+
+          handles.forEach((handle) => {
+            ctx.fillRect(
+              handle.x - HANDLE_SIZE / (2 * scale),
+              handle.y - HANDLE_SIZE / (2 * scale),
+              HANDLE_SIZE / scale,
+              HANDLE_SIZE / scale
+            );
+          });
         }
       });
 
@@ -308,31 +367,28 @@ export default function InfiniteCanvas() {
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         />
-        {images.map((img) => {
-          return (
-            <Dialog key={img.id}>
-              <DialogTitle />
-              <DialogTrigger asChild>
-                <button
-                  className="absolute"
-                  style={{
-                    transform: `translate(
-                    ${img.position.x * scale + offset.x}px,
-                    ${img.position.y * scale + offset.y}px
+        {images.map((img) => (
+          <Dialog key={img.id}>
+            <DialogTrigger asChild>
+              <button
+                className="absolute"
+                style={{
+                  transform: `translate(
+                    ${(img.position.x + img.size.width) * scale + offset.x + 10}px,
+                    ${img.position.y * scale + offset.y - 10}px
                   )`,
-                  }}
-                  onClick={() => setSelectedImageId(img.id)}
-                >
-                  <Edit className="text-white bg-black rounded-full p-1" size={20} />
-                </button>
-              </DialogTrigger>
-              <DialogContent>
-                {img.id === selectedImageId && <EditImageCard />}
-              </DialogContent>
-              <DialogClose />
-            </Dialog>
-          );
-        })}
+                  zIndex: 1000,
+                }}
+                onClick={() => setSelectedImageId(img.id)}
+              >
+                <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
+              </button>
+            </DialogTrigger>
+            <DialogContent>
+              {img.id === selectedImageId && <EditImageCard />}
+            </DialogContent>
+          </Dialog>
+        ))}
       </div>
       <ParentPrompt />
     </div>

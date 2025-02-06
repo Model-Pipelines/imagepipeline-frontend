@@ -72,6 +72,7 @@ export interface CanvasElement {
   size: Size;
   rotation: number;
   zIndex: number;
+  aspectRatio?: number; // Add aspect ratio to maintain proportions
 }
 
 // Define the CanvasState interface.
@@ -142,7 +143,11 @@ export const useCanvasStore = create<CanvasState>()(
 
         addElement: (element) =>
           set((state) => {
-            const newElements = [...state.elements, element];
+            const newElement = {
+              ...element,
+              aspectRatio: element.size.width / element.size.height,
+            };
+            const newElements = [...state.elements, newElement];
             return {
               elements: newElements,
               history: [
