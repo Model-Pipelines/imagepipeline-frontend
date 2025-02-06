@@ -1,58 +1,171 @@
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle, // Added missing import
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { X } from "lucide-react";
-
-import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import { useUploadBackendFiles, useChangeHuman, useHumanTaskStatus } from "@/AxiosApi/TanstackQuery";
 import { v4 as uuidv4 } from "uuid";
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
+import { useToast } from "@/hooks/use-toast";
 
-// Define interface before component
-interface HumanEditorProps {
-  onFaceUpload: (file: File) => void;
-  onPromptChange: (prompt: string) => void;
-  onGenerate: () => void;
-}
+const FileInput = ({ onChange }) => (
+  <input
+    type="file"
+    accept="image/*"
+    onChange={onChange}
+    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+  />
+);
 
-export function HumanEditorImage({
-  onFaceUpload,
-  onPromptChange,
-  onGenerate,
-}: HumanEditorProps) {
-  const [targetFace, setTargetFace] = useState<string | null>(null);
+export function HumanEditorImage() {
+  const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
-  const { image } = useSingleImageStore();
+  const [imageHumanId, setImageHumanId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTargetFace(reader.result as string);
-        onFaceUpload(file);
+  const { selectedImageId, images, addImage } = useImageStore();
+  const { mutate: changeHumanImage } = useChangeHuman();
+  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
+  const { toast } = useToast();
+
+  const selectedImage = useMemo(
+    () => images.find((img) => img.id === selectedImageId),
+    [images, selectedImageId]
+  );
+
+  const { data: taskStatus } = useHumanTaskStatus(imageHumanId || "");
+
+  useEffect(() => {
+    if (taskStatus?.status === "SUCCESS") {
+      const processImage = async () => {
+        const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
+        if (!imageUrl) {
+          toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
+          return;
+        }
+
+        try {
+          const img = new Image();
+          img.src = imageUrl;
+          await new Promise((resolve, reject) => {
+            img.onload = resolve;
+            img.onerror = reject;
+          });
+
+          if (images.some((img) => img.url === imageUrl)) {
+            setIsGenerating(false);
+            return;
+          }
+
+          const lastImage = images[images.length - 1];
+          const newPosition = lastImage
+            ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+            : { x: 50, y: 60 };
+
+          addImage({
+            id: uuidv4(),
+            url: imageUrl,
+            position: newPosition,
+            size: { width: 100, height: 100 },
+            element: img,
+          });
+
+          setIsGenerating(false);
+          toast({ title: "Success", description: "Human image changed!" }); // Updated message
+        } catch (error) {
+          setIsGenerating(false);
+          toast({ title: "Error", description: "Failed to load image", variant: "destructive" });
+        }
       };
-      reader.readAsDataURL(file);
+      processImage();
+    } else if (taskStatus?.status === "FAILURE") {
+      setIsGenerating(false);
+      toast({ title: "Error", description: "Failed to generate image.", variant: "destructive" });
     }
-  };
+  }, [taskStatus, images, addImage, toast]);
 
-  const handleHumanImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setHumanImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const handleSubmit = useCallback(() => {
+    if (!selectedImage) {
+      toast({
+        title: "Error",
+        description: "No image selected. Please select an image first.",
+        variant: "destructive",
+      });
+      return;
     }
-  };
+    if (!prompt) {
+      toast({
+        title: "Error",
+        description: "Please provide a prompt for the new human.",
+        variant: "destructive", // Updated message
+      });
+      return;
+    }
 
-  const handleDeleteHumanImage = () => {
-    setHumanImage(null);
-  };
+    setIsGenerating(true);
+    const payload = {
+      input_image: selectedImage.url,
+      prompt,
+      input_face: humanImage || "",
+      seed: -1,
+    };
+
+    changeHumanImage(payload, {
+      onSuccess: (response) => {
+        if (!response.data?.id) {
+          setIsGenerating(false);
+          toast({
+            title: "Error",
+            description: "Invalid response structure: Missing task ID.",
+            variant: "destructive",
+          });
+          return;
+        }
+        setImageHumanId(response.data.id);
+        toast({
+          title: "Success",
+          description: "Human modification task started!",
+        });
+      },
+      onError: (error) => {
+        setIsGenerating(false);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to modify human.",
+          variant: "destructive",
+        });
+      },
+    });
+  }, [selectedImage, prompt, humanImage, changeHumanImage, toast]);
+
+  const handleHumanImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        try {
+          const response = await uploadBackendFiles(file);
+          setHumanImage(response);
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to upload reference image.",
+            variant: "destructive",
+          });
+        }
+      }
+    },
+    [uploadBackendFiles, toast]
+  );
 
   return (
     <Card className="w-full">
@@ -60,56 +173,35 @@ export function HumanEditorImage({
         <CardTitle>Change Human</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Prompt Input Section */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-gray-700">
-            Person Description
-          </Label>
+          <Label htmlFor="description">Person Description</Label>
           <Input
             id="description"
             placeholder="Describe the person..."
-            onChange={(e) => onPromptChange(e.target.value)}
+            onChange={(e) => setPrompt(e.target.value)} // Fixed onChange handler
           />
         </div>
 
-        {/* Image Row */}
         <div className="flex flex-col md:flex-row gap-6">
-          {/* Current Image Section */}
           <div className="flex-1 space-y-2">
-            <Label className="text-gray-700">Current Image</Label>
-            {image ? (
-              <img
-                src={image.url}
-                alt={image.name || "Current Image"}
-                className="w-full h-auto rounded-md border border-gray-200"
-              />
+            <Label>Current Image</Label>
+            {selectedImage ? (
+              <img src={selectedImage.url} alt="Selected" className="w-full h-auto rounded-md border" />
             ) : (
-              <p className="text-gray-500">
-                No image available in the store. Please upload an image first.
-              </p>
+              <p className="text-gray-500">No image selected.</p>
             )}
           </div>
 
-          {/* Target Face Upload Section */}
           <div className="flex-1 space-y-2">
-            <Label className="text-gray-700">Upload Target Face</Label>
+            <Label>Upload Reference Image</Label>
             <div className="flex flex-col gap-4">
               {!humanImage ? (
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleHumanImageUpload}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
+                <FileInput onChange={handleHumanImageUpload} />
               ) : (
                 <div className="relative">
-                  <img
-                    src={humanImage}
-                    alt="Uploaded Target Face"
-                    className="w-full h-auto rounded-md border border-gray-200"
-                  />
+                  <img src={humanImage} alt="Uploaded" className="w-full h-auto rounded-md border" />
                   <button
-                    onClick={handleDeleteHumanImage}
+                    onClick={() => setHumanImage(null)}
                     className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <X className="w-4 h-4 text-gray-700" />
@@ -122,10 +214,17 @@ export function HumanEditorImage({
       </CardContent>
       <CardFooter>
         <Button
-          onClick={onGenerate}
+          onClick={handleSubmit}
+          disabled={isGenerating}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
-          Update Person
+          {isGenerating ? (
+            <TextShimmerWave className="text-white font-bold" duration={1}>
+              Generating Image...
+            </TextShimmerWave>
+          ) : (
+            "Modify Human"
+          )}
         </Button>
       </CardFooter>
     </Card>

@@ -1,10 +1,8 @@
-"use client";
-
-import { v4 as uuidv4 } from "uuid"; // Import UUID library
+import { v4 as uuidv4 } from "uuid";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCanvasStore } from "@/lib/store";
-import { uploadBackendFiles } from "@/services/apiService";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 import { ChangeEvent } from "react";
 
 interface ToolbarProps {
@@ -13,45 +11,65 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
-  const addMedia = useCanvasStore((state) => state.addMedia);
+  const addImage = useImageStore((state) => state.addImage); // ✅ Use addImage
+  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles(); // ✅ Use mutateAsync
+  const images = useImageStore((state) => state.images); // Get the list of images
 
+  // Handle file upload
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const uploadedImageUrl = await uploadBackendFiles(file); // Store file in backend
-    if (!uploadedImageUrl) return;
+    try {
+      // Upload the file to the backend and get the URL
+      const uploadedImageUrl = await uploadBackendFiles(file);
 
-    const element = new Image();
-    element.src = uploadedImageUrl;
+      // Create an image element and load the uploaded image
+      const element = new Image();
+      element.src = uploadedImageUrl;
+      await new Promise((resolve) => {
+        element.onload = resolve;
+      });
 
-    await new Promise((resolve) => {
-      element.onload = resolve;
-    });
+      // Calculate size maintaining aspect ratio
+      const aspectRatio = element.width / element.height;
+      let width = 200;
+      let height = width / aspectRatio;
+      if (height > 200) {
+        height = 200;
+        width = height * aspectRatio;
+      }
 
-    const aspectRatio = element.width / element.height;
-    let width = 200;
-    let height = width / aspectRatio;
+      // Calculate dynamic position based on the number of images
+      const offsetX = 20; // Offset for x-axis
+      const offsetY = 20; // Offset for y-axis
+      const position = {
+        x: 800 + images.length * offsetX, // Start at 800 and increment by offsetX
+        y: 100 + images.length * offsetY, // Start at 100 and increment by offsetY
+      };
 
-    if (height > 200) {
-      height = 200;
-      width = height * aspectRatio;
+      // Add the new image to the store
+      addImage({
+        id: uuidv4(), // Use uuid instead of crypto.randomUUID()
+        url: uploadedImageUrl,
+        element, // ✅ Store reference to the image element
+        position, // Use the calculated position
+        size: { width, height },
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
     }
-
-    addMedia({
-      id: uuidv4(), // Use uuid instead of crypto.randomUUID()
-      type: "image",
-      element,
-      position: { x: 800, y: 100 },
-      size: { width, height },
-      scale: 1,
-    });
   };
 
   return (
     <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
       <label className="cursor-pointer">
-        <Button className="bg-gray-300 hover:bg-gray-400" size="icon" title="Upload Image" asChild>
+        <Button
+          className="bg-gray-300 hover:bg-gray-400"
+          size="icon"
+          title="Upload Image"
+          asChild
+        >
           <span>
             <Upload className="h-4 w-4 text-white" />
             <input
@@ -64,7 +82,6 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
           </span>
         </Button>
       </label>
-
       <Button
         variant="outline"
         size="icon"

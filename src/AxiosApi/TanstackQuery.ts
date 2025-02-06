@@ -14,7 +14,8 @@ import {
   upscaleImage,
   uploadFiles,
   uploadBackendFiles,
-  getChangeBackground,
+  getBackgroundTaskStatus,
+  getChangeHuman,
 } from "@/AxiosApi/GenerativeApi";
 
 import { ChangeBackgroundPayload, ChangeHumanPayload, ControlNetPayload, FaceControlPayload, GenerateImagePayload, GenerateLogoPayload, InteriorDesignPayload, RecolorImagePayload, RenderSketchPayload, UploadFilesPayload, UpscaleImagePayload } from './types';
@@ -262,7 +263,7 @@ export const useFaceControl = () => {
         title: "Success",
         description: "Face control applied successfully!",
       });
-      return response.data.image_url; // Return URL for external handling
+      return response.task_id; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -280,34 +281,123 @@ export const useChangeBackground = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationKey: ['changeBackground'],
     mutationFn: (data: ChangeBackgroundPayload) => changeBackground(data),
     onSuccess: (response) => {
       toast({
         title: "Success",
-        description: "Background changed successfully!",
+        description: "Background change task started successfully!",
       });
-      return response.data.image_url; // Return URL for external handling
+      // The task ID is handled externally (see handleSubmit)
     },
     onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to change background.",
+        description: "Failed to start background change task.",
         variant: "destructive",
       });
-      console.error('Error changing background:', error);
+      console.error("Error starting background change task:", error);
     },
   });
 };
 
+// Background Image Task Status Query
+export const useBackgroundTaskStatus = (taskId?: string) => {
+  const { toast } = useToast();
 
-//for get change background change
-export const useCheckBackgroundStatus = (taskId: string | null) => {
   return useQuery({
-    queryKey: ["backgroundStatus", taskId],
-    queryFn: () => (taskId ? getChangeBackground(taskId) : null),
-    enabled: !!taskId, 
-    refetchInterval: 5000, 
+    queryKey: ["taskStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      const res = await getBackgroundTaskStatus(taskId);
+      return res.data; // Return the actual data from the response
+    },
+    enabled: !!taskId,
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false;
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the task status response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Background change completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to change background.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch task status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching task status:", error);
+    },
+  });
+};
+
+//human face task query 
+
+export const useHumanTaskStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["humanTaskStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      const res = await getChangeHuman(taskId);
+      return res.data; // Return the actual data from the response
+    },
+    enabled: !!taskId,
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false;
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the task status response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Human task completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to process human task.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch human task status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching human task status:", error);
+    },
   });
 };
 
@@ -324,9 +414,7 @@ export const useChangeHuman = () => {
         title: "Success",
         description: "Human changed successfully!",
       });
-
-      // You can handle the response here (like adding the image to the state or UI)
-      return response.data.image_url; // Return the URL for external handling
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -336,17 +424,6 @@ export const useChangeHuman = () => {
       });
       console.error('Error changing human:', error);
     },
-  });
-};
-
-
-// For checking change human status
-export const useCheckHumanStatus = (taskId: string | null) => {
-  return useQuery({
-    queryKey: ["humanStatus", taskId],
-    queryFn: () => (taskId ? getChangeHuman(taskId) : null),
-    enabled: !!taskId,  // Ensures the query only runs when taskId is available
-    refetchInterval: 5000, // Refetch the status every 5 seconds
   });
 };
 

@@ -152,4 +152,3 @@ export const upscaleImage = async (data: UpscaleImagePayload): Promise<any> => {
 export const getUpscaleHuman = async (taskId: string) =>{
   return apiClient.get(`/upscaler/v1/status/${taskId}`);
 }
-
