@@ -1,16 +1,20 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
+
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+
 import { useCanvasStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import Sidebar from "../Sidebar/Sidebar";
 import ParentPrompt from "../PromptUI/ParentPrompt";
-import { Edit } from "lucide-react";
+import { Edit,Trash2 } from "lucide-react";
 import { EditImageCard } from "./ImageEditor/EditImageCard";
 import { Dialog, DialogTrigger, DialogContent, DialogClose } from "../ui/dialog";
-import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore"; // Import the single image store
+import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore";
+// import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore"; // Import the single image store
 
 interface CanvasElement {
   id: string;
@@ -50,6 +54,26 @@ export default function InfiniteCanvas() {
   } = useCanvasStore();
 
   const { setImage } = useSingleImageStore(); // Zustand single image store hook
+
+
+    // Initialize images on mount
+    useEffect(() => {
+      const initialize = async () => {
+        await useImageStore.getState().initializeImages();
+      };
+      initialize();
+    }, []);
+
+    // Coordinate transformation
+  const getCanvasCoords = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    return {
+      x: (clientX - (rect?.left || 0) - offset.x) / scale,
+      y: (clientY - (rect?.top || 0) - offset.y) / scale,
+    };
+  };
+
+
 
   const handleWheel = useCallback(
     (e: WheelEvent) => {
@@ -152,29 +176,40 @@ export default function InfiniteCanvas() {
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
+  
       const reader = new FileReader();
       reader.onload = async (event) => {
         const dataUrl = event.target?.result as string;
         const element = new Image();
         element.src = dataUrl;
-
+  
         await new Promise((resolve) => {
           element.onload = resolve;
         });
-
+  
         // Calculate size maintaining aspect ratio
         const aspectRatio = element.width / element.height;
         let width = INITIAL_IMAGE_SIZE;
         let height = width / aspectRatio;
-
+  
         if (height > INITIAL_IMAGE_SIZE) {
           height = INITIAL_IMAGE_SIZE;
           width = height * aspectRatio;
         }
-
+  
+        const imageId = crypto.randomUUID();
+  
+        // Add to useImageStore
+        useImageStore.getState().addImage({
+          id: imageId,
+          url: dataUrl,
+          position: { x: 800, y: 100 },
+          size: { width, height },
+        });
+  
+        // Add to useCanvasStore
         addMedia({
-          id: crypto.randomUUID(),
+          id: imageId,
           type: "image",
           element,
           position: { x: 800, y: 100 },
@@ -404,6 +439,16 @@ export default function InfiniteCanvas() {
           </Dialog>
         ))}
         <ParentPrompt />
+        <button
+          onClick={() => {
+            useCanvasStore.persist.clearStorage();
+            useImageStore.persist.clearStorage();
+            window.location.reload(); // Reload to reset the state
+          }}
+          className="absolute top-4 right-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-50"
+        >
+          <Trash2 size={20} />
+        </button>
       </div>
     </div>
   );

@@ -2,8 +2,14 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { useChangeBackground } from "@/AxiosApi/TanstackQuery";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 import { v4 as uuidv4 } from "uuid";
 import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
@@ -13,33 +19,30 @@ import { X } from "lucide-react"; // Import a delete icon
 const BackGroundChange = () => {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState(null);
-  const { image } = useSingleImageStore();
+  const { selectedImageId, images } = useImageStore();
   const { mutate: changeBackground } = useChangeBackground();
   const addImage = useImageStore((state) => state.addImage);
   const { toast } = useToast();
+  const selectedImage = images.find((img) => img.id === selectedImageId);
 
+  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
+  
   const handleSubmit = () => {
-    if (!image) {
-      toast({
-        title: "Error",
-        description: "No image available in the store. Please upload an image first.",
-        variant: "destructive",
-      });
+    if (!selectedImage) {
+      toast({ title: "Error", description: "No image selected.", variant: "destructive" });
       return;
     }
     if (!prompt) {
-      toast({
-        title: "Error",
-        description: "Please provide a prompt for the new background.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Provide a prompt.", variant: "destructive" });
       return;
     }
-
     const payload = {
-      init_image: image.url,
+      init_image: selectedImage.url,
       prompt,
-      background_image: backgroundImage, // Include the uploaded background image
+      style_image: backgroundImage || "",
+      samples: 1,
+      negative_prompt: "",
+      seed: -1,
     };
 
     changeBackground(payload, {
@@ -67,14 +70,15 @@ const BackGroundChange = () => {
     });
   };
 
-  const handleBackgroundImageUpload = (e) => {
-    const file = e.target.files[0];
+  const handleBackgroundImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBackgroundImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const response = await uploadBackendFiles(file);
+        setBackgroundImage(response);
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to upload background image.", variant: "destructive" });
+      }
     }
   };
 
@@ -90,14 +94,16 @@ const BackGroundChange = () => {
           {/* Current Image Section */}
           <div className="flex-1 space-y-2">
             <Label className="text-gray-700">Current Image</Label>
-            {image ? (
+            {selectedImage ? (
               <img
-                src={image.url}
-                alt={image.name || "Current Image"}
+                src={selectedImage.url}
+                alt={selectedImage.name || "Current Image"}
                 className="w-full h-auto rounded-md border border-gray-200"
               />
             ) : (
-              <p className="text-gray-500">No image available in the store. Please upload an image first.</p>
+              <p className="text-gray-500">
+                No image available in the store. Please upload an image first.
+              </p>
             )}
           </div>
 
@@ -133,7 +139,9 @@ const BackGroundChange = () => {
 
         {/* Prompt Input Section */}
         <div className="space-y-2">
-          <Label htmlFor="prompt" className="text-gray-700">Prompt</Label>
+          <Label htmlFor="prompt" className="text-gray-700">
+            Prompt
+          </Label>
           <Input
             id="prompt"
             placeholder="Describe the new background"

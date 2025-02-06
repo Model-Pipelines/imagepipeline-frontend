@@ -31,7 +31,6 @@ const Upscale = () => {
 
     const payload = {
       input_image: image.url,
-      scale_factor: upscaleFactor,
     };
 
     upscaleImage(payload, {
@@ -72,7 +71,7 @@ const Upscale = () => {
             <img
               src={image.url}
               alt={image.name || "Current Image"}
-              className="w-full h-auto rounded-md border border-gray-200"
+              className="w-28 h-auto rounded-md border border-gray-200"
             />
           ) : (
             <p className="text-gray-500">No image available in the store. Please upload an image first.</p>
@@ -80,7 +79,7 @@ const Upscale = () => {
         </div>
 
         {/* Upscale Factor Section */}
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label className="text-gray-700">Upscale Factor</Label>
           <div className="flex flex-col gap-4">
             <Slider
@@ -95,7 +94,9 @@ const Upscale = () => {
               Upscale factor: {upscaleFactor}x (Higher values increase image resolution but may take longer to process.)
             </p>
           </div>
-        </div>
+        </div> */}
+
+        
       </CardContent>
       <CardFooter>
         <Button

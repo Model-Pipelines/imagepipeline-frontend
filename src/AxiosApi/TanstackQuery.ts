@@ -14,61 +14,24 @@ import {
   upscaleImage,
   uploadFiles,
   uploadBackendFiles,
-} from './GenerativeApi';
-import {
-  GenerateImagePayload,
-  ControlNetPayload,
-  RenderSketchPayload,
-  RecolorImagePayload,
-  InteriorDesignPayload,
-  GenerateLogoPayload,
-  FaceControlPayload,
-  ChangeBackgroundPayload,
-  ChangeHumanPayload,
-  UpscaleImagePayload,
-  UploadFilesPayload,
-} from "./types";
-import { v4 as uuidv4 } from "uuid"; // For generating unique IDs
-import { useImageStore } from "./ZustandImageStore"; // Your Zustand store
+  getChangeBackground,
+} from "@/AxiosApi/GenerativeApi";
 
-// Cache Keys
-const cacheKeys = {
-  GENERATE_IMAGE: 'generateImage',
-  DESCRIBE_IMAGE: 'describeImage',
-  CONTROL_NET: 'controlNet',
-  RENDER_SKETCH: 'renderSketch',
-  RECOLOR_IMAGE: 'recolorImage',
-  INTERIOR_DESIGN: 'interiorDesign',
-  GENERATE_LOGO: 'generateLogo',
-  FACE_CONTROL: 'faceControl',
-  CHANGE_BACKGROUND: 'changeBackground',
-  CHANGE_HUMAN: 'changeHuman',
-  UPSCALE_IMAGE: 'upscaleImage',
-  UPLOAD_FILES: 'uploadFiles',
-  UPLOAD_BACKEND_FILES: 'uploadBackendFiles',
-};
+import { ChangeBackgroundPayload, ChangeHumanPayload, ControlNetPayload, FaceControlPayload, GenerateImagePayload, GenerateLogoPayload, InteriorDesignPayload, RecolorImagePayload, RenderSketchPayload, UploadFilesPayload, UpscaleImagePayload } from './types';
 
 // Generate Image Mutation
 export const useGenerateImage = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.GENERATE_IMAGE],
+    mutationKey: ['generateImage'],
     mutationFn: (data: GenerateImagePayload) => generateImage(data),
     onSuccess: (response) => {
-      // Add the generated image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Generated Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Image generated successfully!",
       });
+      return response.data.image_url; // Return the URL for external handling
     },
     onError: (error) => {
       toast({
@@ -84,27 +47,21 @@ export const useGenerateImage = () => {
 // Describe Image Query
 export const useDescribeImage = (inputImage: string) => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useQuery({
-    queryKey: [cacheKeys.DESCRIBE_IMAGE, inputImage],
+    queryKey: ['describeImage', inputImage],
     queryFn: () => describeImage({ input_image: inputImage }),
     enabled: !!inputImage,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
     onSuccess: (response) => {
-      // Add the described image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: inputImage, // Use the input image URL
-        name: "Described Image", // Default name
-        description: response.data.description, // Description from the API
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Image described successfully!",
       });
+      return {
+        url: inputImage,
+        description: response.data.description,
+      }; // Return data for external handling
     },
     onError: (error) => {
       toast({
@@ -117,27 +74,70 @@ export const useDescribeImage = (inputImage: string) => {
   });
 };
 
-// ControlNet Mutation (Outline, Depth, Pose)
-export const useControlNet = () => {
+// Upload Files Mutation
+export const useUploadFiles = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.CONTROL_NET],
+    mutationKey: ['uploadFiles'],
+    mutationFn: ({ userUploadedImage, maskImageUrl }: UploadFilesPayload) =>
+      uploadFiles(userUploadedImage, maskImageUrl),
+    onSuccess: (response) => {
+      toast({
+        title: "Success",
+        description: "Files uploaded successfully!",
+      });
+      return response.data.image_urls; // Return URLs for external handling
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to upload files.",
+        variant: "destructive",
+      });
+      console.error('Error uploading files:', error);
+    },
+  });
+};
+
+// Upload Backend Files Mutation
+export const useUploadBackendFiles = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationKey: ['uploadBackendFiles'],
+    mutationFn: (file: File) => uploadBackendFiles(file),
+    onSuccess: (response) => {
+      toast({
+        title: "Success",
+        description: "Backend file uploaded successfully!",
+      });
+      return response; // Return the URL directly (response is already the URL)
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload backend file.",
+        variant: "destructive",
+      });
+      console.error('Error uploading backend files:', error);
+    },
+  });
+};
+
+// ControlNet Mutation
+export const useControlNet = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationKey: ['controlNet'],
     mutationFn: (data: ControlNetPayload) => controlNet(data),
     onSuccess: (response) => {
-      // Add the processed image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "ControlNet Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "ControlNet applied successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -153,24 +153,16 @@ export const useControlNet = () => {
 // Render Sketch Mutation
 export const useRenderSketch = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.RENDER_SKETCH],
+    mutationKey: ['renderSketch'],
     mutationFn: (data: RenderSketchPayload) => renderSketch(data),
     onSuccess: (response) => {
-      // Add the rendered sketch to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Rendered Sketch", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Sketch rendered successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -186,24 +178,16 @@ export const useRenderSketch = () => {
 // Recolor Image Mutation
 export const useRecolorImage = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.RECOLOR_IMAGE],
+    mutationKey: ['recolorImage'],
     mutationFn: (data: RecolorImagePayload) => recolorImage(data),
     onSuccess: (response) => {
-      // Add the recolored image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Recolored Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Image recolored successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -219,24 +203,16 @@ export const useRecolorImage = () => {
 // Interior Design Mutation
 export const useInteriorDesign = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.INTERIOR_DESIGN],
+    mutationKey: ['interiorDesign'],
     mutationFn: (data: InteriorDesignPayload) => interiorDesign(data),
     onSuccess: (response) => {
-      // Add the interior design image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Interior Design Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Interior design applied successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -252,24 +228,16 @@ export const useInteriorDesign = () => {
 // Generate Logo Mutation
 export const useGenerateLogo = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.GENERATE_LOGO],
+    mutationKey: ['generateLogo'],
     mutationFn: (data: GenerateLogoPayload) => generateLogo(data),
     onSuccess: (response) => {
-      // Add the generated logo to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Generated Logo", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Logo generated successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -285,24 +253,16 @@ export const useGenerateLogo = () => {
 // Face Control Mutation
 export const useFaceControl = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.FACE_CONTROL],
+    mutationKey: ['faceControl'],
     mutationFn: (data: FaceControlPayload) => faceControl(data),
     onSuccess: (response) => {
-      // Add the face-controlled image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Face-Controlled Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Face control applied successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -315,27 +275,19 @@ export const useFaceControl = () => {
   });
 };
 
-// Change Background Mutation
+// Change Background Mutation for post 
 export const useChangeBackground = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.CHANGE_BACKGROUND],
+    mutationKey: ['changeBackground'],
     mutationFn: (data: ChangeBackgroundPayload) => changeBackground(data),
     onSuccess: (response) => {
-      // Add the background-changed image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Background-Changed Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Background changed successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -348,27 +300,33 @@ export const useChangeBackground = () => {
   });
 };
 
+
+//for get change background change
+export const useCheckBackgroundStatus = (taskId: string | null) => {
+  return useQuery({
+    queryKey: ["backgroundStatus", taskId],
+    queryFn: () => (taskId ? getChangeBackground(taskId) : null),
+    enabled: !!taskId, 
+    refetchInterval: 5000, 
+  });
+};
+
+
 // Change Human Mutation
 export const useChangeHuman = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.CHANGE_HUMAN],
+    mutationKey: ['changeHuman'],
     mutationFn: (data: ChangeHumanPayload) => changeHuman(data),
     onSuccess: (response) => {
-      // Add the human-changed image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Human-Changed Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Human changed successfully!",
       });
+
+      // You can handle the response here (like adding the image to the state or UI)
+      return response.data.image_url; // Return the URL for external handling
     },
     onError: (error) => {
       toast({
@@ -381,27 +339,32 @@ export const useChangeHuman = () => {
   });
 };
 
+
+// For checking change human status
+export const useCheckHumanStatus = (taskId: string | null) => {
+  return useQuery({
+    queryKey: ["humanStatus", taskId],
+    queryFn: () => (taskId ? getChangeHuman(taskId) : null),
+    enabled: !!taskId,  // Ensures the query only runs when taskId is available
+    refetchInterval: 5000, // Refetch the status every 5 seconds
+  });
+};
+
+
+
 // Upscale Image Mutation
 export const useUpscaleImage = () => {
   const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
 
   return useMutation({
-    mutationKey: [cacheKeys.UPSCALE_IMAGE],
+    mutationKey: ['upscaleImage'],
     mutationFn: (data: UpscaleImagePayload) => upscaleImage(data),
     onSuccess: (response) => {
-      // Add the upscaled image to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Upscaled Image", // Default name
-      };
-      addImage(newImage);
-
       toast({
         title: "Success",
         description: "Image upscaled successfully!",
       });
+      return response.data.image_url; // Return URL for external handling
     },
     onError: (error) => {
       toast({
@@ -410,75 +373,6 @@ export const useUpscaleImage = () => {
         variant: "destructive",
       });
       console.error('Error upscaling image:', error);
-    },
-  });
-};
-
-// File Upload Mutation for Multiple Files
-export const useUploadFiles = () => {
-  const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
-
-  return useMutation({
-    mutationKey: [cacheKeys.UPLOAD_FILES],
-    mutationFn: ({ userUploadedImage, maskImageUrl }: UploadFilesPayload) =>
-      uploadFiles(userUploadedImage, maskImageUrl),
-    onSuccess: (response) => {
-      // Add the uploaded image(s) to the Zustand store
-      response.data.image_urls.forEach((url: string) => {
-        const newImage = {
-          id: uuidv4(), // Generate a unique UUID
-          url: url, // Public URL from the API
-          name: "Uploaded Image", // Default name
-        };
-        addImage(newImage);
-      });
-
-      toast({
-        title: "Success",
-        description: "Files uploaded successfully!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to upload files.",
-        variant: "destructive",
-      });
-      console.error('Error uploading files:', error);
-    },
-  });
-};
-
-// File Upload Mutation for Single Backend File
-export const useUploadBackendFiles = () => {
-  const { toast } = useToast();
-  const addImage = useImageStore((state) => state.addImage); // Zustand action to add image
-
-  return useMutation({
-    mutationKey: [cacheKeys.UPLOAD_BACKEND_FILES],
-    mutationFn: (file: File) => uploadBackendFiles(file),
-    onSuccess: (response) => {
-      // Add the uploaded backend file to the Zustand store
-      const newImage = {
-        id: uuidv4(), // Generate a unique UUID
-        url: response.data.image_url, // Assume the API returns the public URL
-        name: "Backend Uploaded Image", // Default name
-      };
-      addImage(newImage);
-
-      toast({
-        title: "Success",
-        description: "Backend file uploaded successfully!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to upload backend file.",
-        variant: "destructive",
-      });
-      console.error('Error uploading backend files:', error);
     },
   });
 };

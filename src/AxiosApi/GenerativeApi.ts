@@ -56,27 +56,31 @@ export const uploadFiles = async (
   }
 };
 
-// Upload Backend Files
+// GenerativeApi.ts
 export const uploadBackendFiles = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append("image_files", file);
+  formData.append("image_files", file); // Match the backend's expected field name
+
   try {
-    const response = await apiClient.post("/upload_images", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await apiClient.post("/upload_images", formData);
+
     if (response.status === 200) {
-      const { image_urls } = response.data;
-      return image_urls[0];
+      return response.data.image_urls[0];
     } else {
-      throw new Error("Image upload failed");
+      throw new Error(`Upload failed: ${response.status}`);
     }
   } catch (error) {
-    console.error("Error uploading backend files:", error);
-    throw error;
+    console.error("Upload error:", error);
+
+    // Handle 422 errors from the server
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+
+    throw new Error("File upload failed. Please try again.");
   }
 };
+
 
 // Generate Image
 export const generateImage = async (data: GenerateImagePayload): Promise<any> => {
@@ -123,12 +127,29 @@ export const changeBackground = async (data: ChangeBackgroundPayload): Promise<a
   return apiClient.post('/bgchanger/v1', data);
 };
 
+//GET request for change background 
+export const getChangeBackground = async (taskId: string) => {
+  return apiClient.get(`/bgchanger/v1/status/${taskId}`);
+};
+
 // Change Human
 export const changeHuman = async (data: ChangeHumanPayload): Promise<any> => {
   return apiClient.post('/modelswitch/v1', data);
 };
 
+//GET request for change human 
+export const getChangeHuman = async (taskId: string) => {
+  return apiClient.get(`/modelswitch/v1/status/${taskId}`); 
+}
+
 // Upscale Image
 export const upscaleImage = async (data: UpscaleImagePayload): Promise<any> => {
   return apiClient.post('/upscaler/v1', data);
 };
+
+//GET request for the upscaler human 
+
+export const getUpscaleHuman = async (taskId: string) =>{
+  return apiClient.get(`/upscaler/v1/status/${taskId}`);
+}
+
