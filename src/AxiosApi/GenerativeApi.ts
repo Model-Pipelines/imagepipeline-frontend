@@ -55,28 +55,31 @@ export const uploadFiles = async (
     throw error;
   }
 };
-
-// Upload Backend Files
+// GenerativeApi.ts
 export const uploadBackendFiles = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append("image_files", file);
+  formData.append("image_files", file); // Match the backend's expected field name
+
   try {
-    const response = await apiClient.post("/upload_images", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
-    });
+    const response = await apiClient.post("/upload_images", formData);
+
     if (response.status === 200) {
-      const { image_urls } = response.data;
-      return image_urls[0];
+      return response.data.image_urls[0];
     } else {
-      throw new Error("Image upload failed");
+      throw new Error(`Upload failed: ${response.status}`);
     }
   } catch (error) {
-    console.error("Error uploading backend files:", error);
-    throw error;
+    console.error("Upload error:", error);
+
+    // Handle 422 errors from the server
+    if (error.response?.data?.detail) {
+      throw new Error(error.response.data.detail);
+    }
+
+    throw new Error("File upload failed. Please try again.");
   }
 };
+
 
 // Generate Image
 export const generateImage = async (data: GenerateImagePayload): Promise<any> => {

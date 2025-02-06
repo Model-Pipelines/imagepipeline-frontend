@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import BackGroundChange from "./BackGroundChage";
+import BackGroundChange from "./BackGroundChage"
 import Upscale from "./UpScaleImage";
 
 export function EditImageCard() {
@@ -23,12 +23,14 @@ export function EditImageCard() {
       </TabsList>
 
       {/* Tabs Content */}
-      <TabsContent value="background-change" className="mt-6">
-        <BackGroundChange />
-      </TabsContent>
-      <TabsContent value="upscale" className="mt-6">
-        <Upscale />
-      </TabsContent>
+      <div className="mt-6 w-full max-w-[600px] mx-auto">
+        <TabsContent value="background-change">
+          <BackGroundChange />
+        </TabsContent>
+        <TabsContent value="upscale">
+          <Upscale />
+        </TabsContent>
+      </div>
     </Tabs>
   );
 }

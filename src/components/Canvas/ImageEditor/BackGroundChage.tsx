@@ -2,31 +2,39 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { useChangeBackground } from "@/AxiosApi/TanstackQuery";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  useChangeBackground,
+  useUploadBackendFiles,
+} from "@/AxiosApi/TanstackQuery";
 import { v4 as uuidv4 } from "uuid";
-import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
-import { X } from "lucide-react"; // Import a delete icon
+import { X } from "lucide-react";
 
 const BackGroundChange = () => {
   const [prompt, setPrompt] = useState("");
-  const [backgroundImage, setBackgroundImage] = useState(null);
-  const { image } = useSingleImageStore();
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const { selectedImageId, images, addImage } = useImageStore();
   const { mutate: changeBackground } = useChangeBackground();
-  const addImage = useImageStore((state) => state.addImage);
   const { toast } = useToast();
 
+  const selectedImage = images.find((img) => img.id === selectedImageId);
+
   const handleSubmit = () => {
-    if (!image) {
+    if (!selectedImage) {
       toast({
         title: "Error",
-        description: "No image available in the store. Please upload an image first.",
+        description: "No image selected. Please select an image first.",
         variant: "destructive",
       });
       return;
     }
+
     if (!prompt) {
       toast({
         title: "Error",
@@ -36,45 +44,75 @@ const BackGroundChange = () => {
       return;
     }
 
+    // Prepare the payload
     const payload = {
-      init_image: image.url,
-      prompt,
-      background_image: backgroundImage, // Include the uploaded background image
+      init_image: selectedImage.url, // URL of the selected image
+      prompt: prompt, // User-provided prompt
+      style_image: backgroundImage || "", // URL of the uploaded background image (optional)
+      samples: 1, // Default value
+      negative_prompt: "", // Default value
+      seed: -1, // Default value
     };
 
+    // Call the API
     changeBackground(payload, {
       onSuccess: (response) => {
+        // Verify the response structure
+        console.log("API Response:", response);
+
+        // Extract the image URL from the response
+        const imageUrl = response.data?.image_url || response.data?.url;
+
+        if (!imageUrl) {
+          throw new Error("Invalid response structure: Missing image URL.");
+        }
+
+        // Add the new image to the Zustand store
         const newImage = {
           id: uuidv4(),
-          url: response.data.image_url,
-          name: "Background-Changed Image",
+          url: imageUrl,
+          position: { x: 0, y: 0 },
+          size: { width: 200, height: 200 },
         };
-
         addImage(newImage);
 
+        // Show success toast
         toast({
           title: "Success",
           description: "Background changed successfully!",
         });
       },
       onError: (error) => {
+        // Show error toast
         toast({
           title: "Error",
-          description: "Failed to change the background.",
+          description: error.message || "Failed to change background.",
           variant: "destructive",
         });
       },
     });
   };
 
-  const handleBackgroundImageUpload = (e) => {
-    const file = e.target.files[0];
+  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
+
+  const handleBackgroundImageUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setBackgroundImage(reader.result);
-      };
-      reader.readAsDataURL(file);
+      try {
+        // Upload the file and get the URL
+        const response = await uploadBackendFiles(file);
+        setBackgroundImage(response); // Set the uploaded image URL
+      } catch (error) {
+        // Show error toast
+        toast({
+          title: "Error",
+          description: "Failed to upload background image.",
+          variant: "destructive",
+        });
+        console.error("Error uploading file:", error);
+      }
     }
   };
 
@@ -83,21 +121,23 @@ const BackGroundChange = () => {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardContent className="space-y-6">
         {/* Image Row */}
         <div className="flex flex-col md:flex-row gap-6">
           {/* Current Image Section */}
           <div className="flex-1 space-y-2">
-            <Label className="text-gray-700">Current Image</Label>
-            {image ? (
+            <Label className="text-gray-700">Selected Image</Label>
+            {selectedImage ? (
               <img
-                src={image.url}
-                alt={image.name || "Current Image"}
+                src={selectedImage.url}
+                alt="Selected Image"
                 className="w-full h-auto rounded-md border border-gray-200"
               />
             ) : (
-              <p className="text-gray-500">No image available in the store. Please upload an image first.</p>
+              <p className="text-gray-500">
+                No image selected. Please select an image first.
+              </p>
             )}
           </div>
 
@@ -133,7 +173,9 @@ const BackGroundChange = () => {
 
         {/* Prompt Input Section */}
         <div className="space-y-2">
-          <Label htmlFor="prompt" className="text-gray-700">Prompt</Label>
+          <Label htmlFor="prompt" className="text-gray-700">
+            Prompt
+          </Label>
           <Input
             id="prompt"
             placeholder="Describe the new background"

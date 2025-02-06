@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider"; // Import Slider for upscale factor
+import { Slider } from "@/components/ui/slider";
 import { useUpscaleImage } from "@/AxiosApi/TanstackQuery";
 import { v4 as uuidv4 } from "uuid";
 import { useSingleImageStore } from "@/AxiosApi/ZustandSingleImageStore";
@@ -63,7 +63,7 @@ const Upscale = () => {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardContent className="space-y-6">
         {/* Current Image Section */}
         <div className="space-y-2">

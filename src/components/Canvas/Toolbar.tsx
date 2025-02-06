@@ -1,9 +1,9 @@
 "use client";
 
-import { v4 as uuidv4 } from "uuid"; // Import UUID library
+import { v4 as uuidv4 } from "uuid";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useCanvasStore } from "@/lib/store";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { uploadBackendFiles } from "@/services/apiService";
 import { ChangeEvent } from "react";
 
@@ -13,7 +13,13 @@ interface ToolbarProps {
 }
 
 export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
-  const addMedia = useCanvasStore((state) => state.addMedia);
+  const addImage = useImageStore((state) => state.addImage); // ✅ Use addImage
+
+  // ✅ Ensure addImage is a function before using it
+  if (typeof addImage !== "function") {
+    console.error("addImage is not defined in useImageStore.");
+    return null; // Prevent rendering if there's an issue
+  }
 
   const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -38,13 +44,12 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
       width = height * aspectRatio;
     }
 
-    addMedia({
+    addImage({
       id: uuidv4(), // Use uuid instead of crypto.randomUUID()
-      type: "image",
-      element,
+      url: uploadedImageUrl,
+      element, // ✅ Store reference to the image element
       position: { x: 800, y: 100 },
       size: { width, height },
-      scale: 1,
     });
   };
 
