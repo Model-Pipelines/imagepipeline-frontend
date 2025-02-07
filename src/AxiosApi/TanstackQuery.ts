@@ -172,7 +172,7 @@ export const useControlNetTaskStatus = (taskId?: string) => {
     enabled: !!taskId, // Only fetch if taskId is provided
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -247,7 +247,7 @@ export const useRenderSketchStatus = (taskId?: string) => {
     enabled: !!taskId, // Fetch only if taskId is available
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -322,7 +322,7 @@ export const useRecolorImageStatus = (taskId?: string) => {
     enabled: !!taskId, // Fetch only if taskId is available
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -396,7 +396,7 @@ export const useInteriorDesignStatus = (taskId?: string) => {
     enabled: !!taskId, // Fetch only if taskId is available
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -471,7 +471,7 @@ export const useGenerateLogoStatus = (taskId?: string) => {
     enabled: !!taskId, // Fetch only if taskId is available
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -649,7 +649,7 @@ export const useHumanTaskStatus = (taskId?: string) => {
     enabled: !!taskId,
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false;
+      return data.status === "PENDING" ? 5000 : false;
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {
@@ -725,7 +725,7 @@ export const useUpscaleImageStatus = (taskId?: string) => {
     enabled: !!taskId, // Fetch only if taskId is available
     refetchInterval: (data) => {
       if (!data) return false;
-      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+      return data.status === "PENDING" ? 5000 : false; // Poll every 1s if pending
     },
     onSuccess: (data) => {
       if (data.status === "SUCCESS") {

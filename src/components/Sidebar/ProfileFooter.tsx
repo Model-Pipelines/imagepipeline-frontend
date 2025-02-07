@@ -26,7 +26,7 @@ export function ProfileFooter() {
 
   return (
     <CardFooter className="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-      <span>Enable Grid</span>
+      {/* <span>Enable Grid</span>
       <Button
         variant={showGrid ? "secondary" : "outline"}
         size="icon"
@@ -36,7 +36,7 @@ export function ProfileFooter() {
       >
         <Grip className="h-4 w-4" />
         
-      </Button> 
+      </Button>  */}
       {/* Left Section: Terms and Privacy */}
       <div className="flex gap-4 mb-2 sm:mb-0">
         <a

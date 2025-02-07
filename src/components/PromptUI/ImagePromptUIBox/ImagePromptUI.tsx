@@ -15,7 +15,7 @@ import ImageGallery from "./ImageGallery"
 import SelectedImageEditor from "./SelectedImageEditor"
 import { useMutation } from "@tanstack/react-query"
 import axios from "axios"
-import Popover from "../SettingPanelUITest/SettingPanelUItest"
+
 
 const OFFSET_MULTIPLIER = 20
 
@@ -264,7 +264,7 @@ const ImagePromptUI = () => {
               <Settings className="h-5 w-5 text-gray-700" />
               <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
             </Button>
-            <Popover />
+            
           </div>
         </div>
       </div>
@@ -284,7 +284,7 @@ const ImagePromptUI = () => {
       )}
 
       {isColorPaletteVisible && (
-        <div className="absolute z-50 top-1/2 left-1/2 transform translate-x-[600px] -translate-y-[650px]">
+        <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
           <CustomColorPalette />
         </div>
       )}
