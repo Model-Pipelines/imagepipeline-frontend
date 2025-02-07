@@ -268,7 +268,7 @@ const ImagePromptUI = () => {
       </div>
 
       {isSettingsPanelVisible && (
-        <div className="absolute  z-50 top-1/2 left-1/2 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+        <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
           <SettingsPanel
             onTypeChange={(type: any) => setGenerationType(type)}
             paperclipImage={paperclipImage}

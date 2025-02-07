@@ -35,7 +35,6 @@ export default function BackGroundChange() {
   const { mutate: changeBackground } = useChangeBackground();
   const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
   const { toast } = useToast();
-  const selectedImage = images.find((img) => img.id === selectedImageId);
 
   // Memoize selected image so that we only recalc when images or selectedImageId change.
   const selectedImage = useMemo(
@@ -111,7 +110,11 @@ export default function BackGroundChange() {
       return;
     }
     if (!prompt) {
-      toast({ title: "Error", description: "Provide a prompt.", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please provide a prompt for the new background.",
+        variant: "destructive",
+      });
       return;
     }
 

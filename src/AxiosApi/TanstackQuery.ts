@@ -16,6 +16,12 @@ import {
   uploadBackendFiles,
   getBackgroundTaskStatus,
   getChangeHuman,
+  getControlNetTaskStatus,
+  getRenderSketchStatus,
+  getRecolorImageStatus,
+  getInteriorDesignStatus,
+  getGenerateLogoStatus,
+  getUpscaleImageStatus
 } from "@/AxiosApi/GenerativeApi";
 
 import { ChangeBackgroundPayload, ChangeHumanPayload, ControlNetPayload, FaceControlPayload, GenerateImagePayload, GenerateLogoPayload, InteriorDesignPayload, RecolorImagePayload, RenderSketchPayload, UploadFilesPayload, UpscaleImagePayload } from './types';
@@ -151,6 +157,58 @@ export const useControlNet = () => {
   });
 };
 
+// controlnet task status query
+
+// Hook to track ControlNet task status
+export const useControlNetTaskStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["controlNetTaskStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getControlNetTaskStatus(taskId);
+    },
+    enabled: !!taskId, // Only fetch if taskId is provided
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "ControlNet task completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to process ControlNet task.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch ControlNet task status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching ControlNet task status:", error);
+    },
+  });
+};
+
+
 // Render Sketch Mutation
 export const useRenderSketch = () => {
   const { toast } = useToast();
@@ -176,6 +234,56 @@ export const useRenderSketch = () => {
   });
 };
 
+//hook to track render sketch task status 
+export const useRenderSketchStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["renderSketchStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getRenderSketchStatus(taskId);
+    },
+    enabled: !!taskId, // Fetch only if taskId is available
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Sketch rendering completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to render sketch.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch sketch rendering status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching sketch rendering status:", error);
+    },
+  });
+};
+
+
 // Recolor Image Mutation
 export const useRecolorImage = () => {
   const { toast } = useToast();
@@ -197,6 +305,55 @@ export const useRecolorImage = () => {
         variant: "destructive",
       });
       console.error('Error recoloring image:', error);
+    },
+  });
+};
+
+// Hook to track Recolor Image task status
+export const useRecolorImageStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["recolorImageStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getRecolorImageStatus(taskId);
+    },
+    enabled: !!taskId, // Fetch only if taskId is available
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Image recoloring completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to recolor image.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch recoloring status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching recoloring status:", error);
     },
   });
 };
@@ -226,6 +383,55 @@ export const useInteriorDesign = () => {
   });
 };
 
+// Hook to track Interior Design task status
+export const useInteriorDesignStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["interiorDesignStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getInteriorDesignStatus(taskId);
+    },
+    enabled: !!taskId, // Fetch only if taskId is available
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Interior design completed successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to apply interior design.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch interior design status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching interior design status:", error);
+    },
+  });
+};
+
 // Generate Logo Mutation
 export const useGenerateLogo = () => {
   const { toast } = useToast();
@@ -250,6 +456,57 @@ export const useGenerateLogo = () => {
     },
   });
 };
+
+
+
+export const useGenerateLogoStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["generateLogoStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getGenerateLogoStatus(taskId);
+    },
+    enabled: !!taskId, // Fetch only if taskId is available
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Logo generated successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to generate logo.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch logo generation status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching logo generation status:", error);
+    },
+  });
+};
+
 
 // Face Control Mutation
 export const useFaceControl = () => {
@@ -276,7 +533,7 @@ export const useFaceControl = () => {
   });
 };
 
-// Change Background Mutation for post 
+// Change Background Mutation
 export const useChangeBackground = () => {
   const { toast } = useToast();
 
@@ -350,7 +607,34 @@ export const useBackgroundTaskStatus = (taskId?: string) => {
   });
 };
 
-//human face task query 
+
+
+// Change Human Mutation
+export const useChangeHuman = () => {
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationKey: ['changeHuman'],
+    mutationFn: (data: ChangeHumanPayload) => changeHuman(data),
+    onSuccess: (response) => {
+      toast({
+        title: "Success",
+        description: "Human changed successfully!",
+      });
+      return response.data.image_url; // Return URL for external handling
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to change human.",
+        variant: "destructive",
+      });
+      console.error('Error changing human:', error);
+    },
+  });
+};
+
+//human face task query status
 
 export const useHumanTaskStatus = (taskId?: string) => {
   const { toast } = useToast();
@@ -402,32 +686,6 @@ export const useHumanTaskStatus = (taskId?: string) => {
 };
 
 
-// Change Human Mutation
-export const useChangeHuman = () => {
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationKey: ['changeHuman'],
-    mutationFn: (data: ChangeHumanPayload) => changeHuman(data),
-    onSuccess: (response) => {
-      toast({
-        title: "Success",
-        description: "Human changed successfully!",
-      });
-      return response.data.image_url; // Return URL for external handling
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to change human.",
-        variant: "destructive",
-      });
-      console.error('Error changing human:', error);
-    },
-  });
-};
-
-
 
 // Upscale Image Mutation
 export const useUpscaleImage = () => {
@@ -450,6 +708,55 @@ export const useUpscaleImage = () => {
         variant: "destructive",
       });
       console.error('Error upscaling image:', error);
+    },
+  });
+};
+
+// Hook to track upscale image task status
+export const useUpscaleImageStatus = (taskId?: string) => {
+  const { toast } = useToast();
+
+  return useQuery({
+    queryKey: ["upscaleImageStatus", taskId],
+    queryFn: async () => {
+      if (!taskId) throw new Error("No task ID provided");
+      return await getUpscaleImageStatus(taskId);
+    },
+    enabled: !!taskId, // Fetch only if taskId is available
+    refetchInterval: (data) => {
+      if (!data) return false;
+      return data.status === "PENDING" ? 1000 : false; // Poll every 1s if pending
+    },
+    onSuccess: (data) => {
+      if (data.status === "SUCCESS") {
+        const imageUrl = data.download_urls?.[0] || data.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found in the response.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "Success",
+          description: "Image upscaled successfully!",
+        });
+      } else if (data.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: data.error || "Failed to upscale image.",
+          variant: "destructive",
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to fetch upscale image status.",
+        variant: "destructive",
+      });
+      console.error("Error fetching upscale image status:", error);
     },
   });
 };
