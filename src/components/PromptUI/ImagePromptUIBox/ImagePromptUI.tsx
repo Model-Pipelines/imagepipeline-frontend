@@ -15,6 +15,7 @@ import ImageGallery from "./ImageGallery"
 import SelectedImageEditor from "./SelectedImageEditor"
 import { useMutation } from "@tanstack/react-query"
 import axios from "axios"
+import Popover from "../SettingPanelUITest/SettingPanelUItest"
 
 const OFFSET_MULTIPLIER = 20
 
@@ -263,18 +264,23 @@ const ImagePromptUI = () => {
               <Settings className="h-5 w-5 text-gray-700" />
               <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
             </Button>
+            <Popover />
           </div>
         </div>
       </div>
 
       {isSettingsPanelVisible && (
+        
         <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+         
           <SettingsPanel
             onTypeChange={(type: any) => setGenerationType(type)}
             paperclipImage={paperclipImage}
             inputText={inputText}
           />
+          
         </div>
+      
       )}
 
       {isColorPaletteVisible && (

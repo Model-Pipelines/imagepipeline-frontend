@@ -13,14 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useApi } from "@/context/apiContext";
 import { Toaster } from "../ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-
-interface UploadedContent {
-  aspectRatio: string;
-  message: string;
-}
+import {
+  useControlNet,
+  useRenderSketch,
+  useRecolorImage,
+  useInteriorDesign,
+  useGenerateLogo,
+  useUploadBackendFiles,
+} from "@/AxiosApi/TanstackQuery";
+import { ControlNetPayload, RenderSketchPayload, RecolorImagePayload, InteriorDesignPayload, GenerateLogoPayload } from "@/AxiosApi/types";
 
 interface SettingsPanelProps {
   onTypeChange: (type: string) => void;
@@ -29,31 +32,23 @@ interface SettingsPanelProps {
 }
 
 const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPanelProps) => {
-  const {
-    generateOutlineImage,
-    generateDepthImage,
-    generatePoseImage,
-    generateRenderSketch,
-    generateRecolorSketch,
-    generateInteriorDesign,
-    generateLogo,
-    generateBackgroundChangeByReference,
-    generateHumanChangeByReference,
-    upscaleImageByReference,
-  } = useApi();
-
   const [type, setType] = useState("");
   const [aspectRatio, setAspectRatio] = useState("3:4");
-  const [uploadedContent, setUploadedContent] = useState<UploadedContent | null>(null);
   const [selectedImages, setSelectedImages] = useState<{ [key: string]: string }>({});
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
-  const [logoPrompt, setLogoPrompt] = useState("");
-  
+
+  const { toast } = useToast();
+
   const aspectRatios = ["9:16", "3:4", "1:1", "4:3", "16:9", "21:9"];
 
+  const { mutate: controlNetMutate } = useControlNet();
+  const { mutate: renderSketchMutate } = useRenderSketch();
+  const { mutate: recolorImageMutate } = useRecolorImage();
+  const { mutate: interiorDesignMutate } = useInteriorDesign();
+  const { mutate: generateLogoMutate } = useGenerateLogo();
+  const { mutate: uploadBackendFilesMutate } = useUploadBackendFiles();
+
   const handleUpload = (event: ChangeEvent<HTMLInputElement>, tabKey: string) => {
-    const { toast } = useToast();
-    
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -75,92 +70,118 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
     );
   };
 
-  const handleGenerateImageByReference = async () => {
+  const generatePayload = () => {
     if (!type || !paperclipImage) {
-      alert("Please select a type and upload an image.");
-      return;
+      toast({
+        title: "Error",
+        description: "Please select a type and upload an image.",
+        variant: "destructive",
+      });
+      return null;
     }
 
-    const prompt = inputText; // Use inputText from props
-    const init_image = paperclipImage;
+    const basePayload = {
+      prompt: "text",
+      image: paperclipImage,
+    };
+
+    switch (type) {
+      case "Outline":
+        return {
+          ...basePayload,
+          controlnet: "canny",
+          num_inference_steps: 30,
+          samples: 1,
+        } as ControlNetPayload;
+      case "Depth":
+        return {
+          ...basePayload,
+          controlnets: "depth",
+          num_inference_steps: 30,
+          samples: 1,
+        } as unknown as ControlNetPayload;
+      case "Pose":
+        return {
+          ...basePayload,
+          controlnets: "openpose",
+          num_inference_steps: 30,
+          samples: 1,
+        } as unknown as ControlNetPayload;
+      case "Render Sketch":
+        return {
+          ...basePayload,
+          model_id: "sdxl",
+          controlnets: ["scribble"],
+          negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+        } as unknown as RenderSketchPayload;
+      case "Recolor":
+        return {
+          ...basePayload,
+          model_id: "sdxl",
+          controlnets: ["reference-only"],
+          negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+        } as unknown as RecolorImagePayload;
+      case "Interior Design":
+        return {
+          ...basePayload,
+          model_id: "sdxl",
+          controlnets: ["mlsd"],
+          negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+        } as unknown as InteriorDesignPayload;
+      case "Logo":
+        return {
+          ...basePayload,
+          logo_prompt: inputText,
+        } as GenerateLogoPayload;
+      default:
+        toast({
+          title: "Error",
+          description: "Invalid type selected.",
+          variant: "destructive",
+        });
+        return null;
+    }
+  };
+
+  const handleGenerateImageByReference = async () => {
+    const payload = generatePayload();
+    if (!payload) return;
 
     try {
-      let response;
       switch (type) {
         case "Outline":
-          response = await generateOutlineImage({
-            controlnet: "canny",
-            prompt,
-            image,
-          });
-          break;
         case "Depth":
-          response = await generateDepthImage({
-            controlnets: "depth",
-            prompt,
-            image,
-          });
-          break;
         case "Pose":
-          response = await generatePoseImage({
-            controlnets: "openpose",
-            prompt,
-            image,
-          });
+          controlNetMutate(payload as ControlNetPayload);
           break;
         case "Render Sketch":
-          response = await generateRenderSketch({
-            model_id: "sdxl",
-            controlnets: ["scribble"],
-            prompt,
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            images: [paperclipImage],
-            controlnet_weights: [1.0],
-          });
+          renderSketchMutate(payload as RenderSketchPayload);
           break;
         case "Recolor":
-          response = await generateRecolorSketch({
-            model_id: "sdxl",
-            controlnets: ["reference-only"],
-            prompt,
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            images: [paperclipImage],
-            controlnet_weights: [1.0],
-          });
+          recolorImageMutate(payload as RecolorImagePayload);
           break;
         case "Interior Design":
-          response = await generateInteriorDesign({
-            model_id: "sdxl",
-            controlnets: ["mlsd"],
-            prompt,
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            images: [paperclipImage],
-            controlnet_weights: [1.0],
-          });
+          interiorDesignMutate(payload as InteriorDesignPayload);
           break;
         case "Logo":
-          response = await generateLogo({
-            logo_prompt: inputText, // Use inputText for logo_prompt
-            prompt: inputText, // Use inputText for applied_prompt
-            image: init_image,
-          });
+          generateLogoMutate(payload as GenerateLogoPayload);
           break;
         default:
-          alert("Invalid type selected.");
+          toast({
+            title: "Error",
+            description: "Invalid type selected.",
+            variant: "destructive",
+          });
           return;
       }
-
-      console.log("Generation response:", response);
-      alert("Generation successful!");
     } catch (error) {
       console.error("Error generating content:", error);
-      alert("Failed to generate content. Please try again.");
+      toast({
+        title: "Error",
+        description: "Failed to generate content. Please try again.",
+        variant: "destructive",
+      });
     }
-
-    toast({
-      title: "Image Generated",
-      description: "Your image has been successfully generated.",
-    });
   };
 
   const handleTypeChange = (value: string) => {
@@ -364,14 +385,6 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
           </div>
         </TabsContent>
       </Tabs>
-
-      {uploadedContent && uploadedContent.message && (
-        <div className="p-4 bg-white text-black rounded-lg shadow-md mt-4">
-          <h4 className="font-medium text-lg mb-2">Uploaded Content</h4>
-          <p><strong>Aspect Ratio:</strong> {uploadedContent.aspectRatio}</p>
-          <p className="text-green-600"><strong>Message:</strong> {uploadedContent.message}</p>
-        </div>
-      )}
     </div>
   );
 };
