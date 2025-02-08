@@ -1,7 +1,7 @@
 "use client"
 import { useState } from "react"
 import { Menu, HelpCircle, Users, Trash2, LogOut } from "lucide-react"
-import { SignOutButton } from '@clerk/nextjs'
+
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -85,14 +85,3 @@ export default function AccountDropdown() {
     </div>
   )
 }
-
-
-
-
-
-
-
-
-
-
-
