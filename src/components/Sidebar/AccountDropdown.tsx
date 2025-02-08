@@ -64,12 +64,9 @@ export default function AccountDropdown() {
                     </span>
                   </div>
                   {/* Wrap your custom logout button with SignOutButton */}
-                  <SignOutButton afterSignOutUrl="/sign-up" asChild>
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 mt-2">
-                      <LogOut className="h-4 w-4" />
-                      Log out
-                    </button>
-                  </SignOutButton>
+                  <button className="w-full py-1 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
+                    <LogOut className="h-4 w-4" />
+                    Sign out  </button>
                 </CardContent>
                 <Separator className="bg-white/20 dark:bg-gray-700/20" />
                 {/* Theme Selector */}
