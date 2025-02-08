@@ -3,9 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Provider from "./provider";
 import { Toaster } from "@/components/ui/toaster";
-import {
-  ClerkProvider,
-} from '@clerk/nextjs'
+
 
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import ReactQueryProvider from "@/store/TanstackQuery";
@@ -31,19 +29,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-          
+
         <ReactQueryProvider>
-        <Provider>{children}</Provider>
-        {/* <ReactQueryDevtools /> */}
+          <Provider>{children}</Provider>
+          {/* <ReactQueryDevtools /> */}
         </ReactQueryProvider>
         <Toaster />
       </body>
     </html>
-        </ClerkProvider>
+
   );
 }
