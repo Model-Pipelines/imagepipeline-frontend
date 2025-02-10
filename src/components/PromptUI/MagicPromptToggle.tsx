@@ -31,6 +31,9 @@ export function MagicPromptToggle() {
       ) : (
         <span className="inline-flex items-center justify-center gap-1">
           {aiMode === "on" ? (
+
+
+
             <Sparkles className="size-4" />
           ) : (
             <Sparkle className="size-4" />
