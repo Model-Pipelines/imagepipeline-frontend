@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { FaUpload } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { motion } from "framer-motion";
 import {
   Select,
   SelectContent,
@@ -23,7 +24,13 @@ import {
   useGenerateLogo,
   useUploadBackendFiles,
 } from "@/AxiosApi/TanstackQuery";
-import { ControlNetPayload, RenderSketchPayload, RecolorImagePayload, InteriorDesignPayload, GenerateLogoPayload } from "@/AxiosApi/types";
+import {
+  ControlNetPayload,
+  RenderSketchPayload,
+  RecolorImagePayload,
+  InteriorDesignPayload,
+  GenerateLogoPayload,
+} from "@/AxiosApi/types";
 
 interface SettingsPanelProps {
   onTypeChange: (type: string) => void;
@@ -31,10 +38,16 @@ interface SettingsPanelProps {
   inputText: string;
 }
 
-const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPanelProps) => {
+const SettingsPanel = ({
+  onTypeChange,
+  paperclipImage,
+  inputText,
+}: SettingsPanelProps) => {
   const [type, setType] = useState("");
   const [aspectRatio, setAspectRatio] = useState("3:4");
-  const [selectedImages, setSelectedImages] = useState<{ [key: string]: string }>({});
+  const [selectedImages, setSelectedImages] = useState<{
+    [key: string]: string;
+  }>({});
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
 
   const { toast } = useToast();
@@ -48,7 +61,10 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
   const { mutate: generateLogoMutate } = useGenerateLogo();
   const { mutate: uploadBackendFilesMutate } = useUploadBackendFiles();
 
-  const handleUpload = (event: ChangeEvent<HTMLInputElement>, tabKey: string) => {
+  const handleUpload = (
+    event: ChangeEvent<HTMLInputElement>,
+    tabKey: string
+  ) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -191,7 +207,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
 
   return (
     <div className="fixed p-4 bg-white/20 backdrop-blur-md text-black rounded-xl shadow-lg w-96 ring-1 ring-black/5 isolate">
-      <Tabs defaultValue="Reference">
+      <Tabs defaultValue="Aspect-Ratio">
         <TabsList>
           <TabsTrigger value="Aspect-Ratio">Aspect Ratio</TabsTrigger>
           <TabsTrigger value="Reference">Reference</TabsTrigger>
@@ -206,7 +222,11 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
                 <Button
                   key={ratio}
                   variant={aspectRatio === ratio ? "default" : "outline"}
-                  className={`px-2 ${aspectRatio === ratio ? "bg-yellow-500 text-white" : "bg-gray-100 hover:bg-gray-200"}`}
+                  className={`px-2 ${
+                    aspectRatio === ratio
+                      ? "bg-yellow-500 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
                   onClick={() => setAspectRatio(ratio)}
                 >
                   {ratio}
@@ -231,7 +251,9 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
                   />
                 </div>
 
-                <span className="text-gray-400 dark:text-gray-400 font-semibold">x</span>
+                <span className="text-gray-400 dark:text-gray-400 font-semibold">
+                  x
+                </span>
 
                 <div className="flex flex-col items-start w-1/2">
                   <Label
@@ -261,10 +283,7 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
               >
                 Type
               </label>
-              <Select
-                value={type}
-                onValueChange={handleTypeChange}
-              >
+              <Select value={type} onValueChange={handleTypeChange}>
                 <SelectTrigger className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
@@ -274,18 +293,63 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
                   <SelectItem value="Pose">Pose</SelectItem>
                   <SelectItem value="Render Sketch">Render Sketch</SelectItem>
                   <SelectItem value="Recolor">Recolor</SelectItem>
-                  <SelectItem value="Interior Design">Interior Design</SelectItem>
+                  <SelectItem value="Interior Design">
+                    Interior Design
+                  </SelectItem>
                   <SelectItem value="Logo">Logo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="flex justify-center mb-4">
+            {/* <div className="flex justify-center mb-4">
               <Button
                 onClick={handleGenerateImageByReference}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
               >
                 <FaUpload />
+                Generate
+              </Button>
+              <Toaster />
+            </div> */}
+
+            <div className="mb-4">
+              <label
+                htmlFor="imageUpload"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Upload Reference Image
+              </label>
+              <input
+                type="file"
+                id="imageUpload"
+                accept="image/*"
+                // onChange={handleImageUpload}
+                // ref={fileInputRef}
+                className="hidden"
+              />
+              <motion.div
+                className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                whileHover={{ scale: 1.05, rotate: 2 }}
+                whileTap={{ scale: 0.95 }}
+                // onClick={() => fileInputRef.current?.click()}
+              >
+                {Image ? (
+                  <img
+                    src={Image || "/placeholder.svg"}
+                    alt="Uploaded"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <FaUpload size={24} />
+                  </div>
+                )}
+              </motion.div>
+
+              <Button
+                onClick={handleGenerateImageByReference}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+              >
                 Generate
               </Button>
               <Toaster />
@@ -304,13 +368,100 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
           </div>
 
           <div className="flex justify-center">
-            <Button
+            {/* <Button
               onClick={handleGenerateImageByReference}
               className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
             >
               <FaUpload />
               Upload
-            </Button>
+            </Button> */}
+
+
+            <div className="mb-4">
+        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
+          Upload Reference Image
+        </label>
+        <input
+          type="file"
+          id="imageUpload"
+          accept="image/*"
+          // onChange={handleImageUpload}
+          // ref={fileInputRef}
+          className="hidden"
+        />
+        <motion.div
+          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+          whileHover={{ scale: 1.05, rotate: 2 }}
+          whileTap={{ scale: 0.95 }}
+          // onClick={() => fileInputRef.current?.click()}
+        >
+          {Image ? (
+            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <FaUpload size={24} />
+            </div>
+          )}
+        </motion.div>
+      </div>
+      <div className="mb-4">
+        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
+          Upload Reference Image
+        </label>
+        <input
+          type="file"
+          id="imageUpload"
+          accept="image/*"
+          // onChange={handleImageUpload}
+          // ref={fileInputRef}
+          className="hidden"
+        />
+        <motion.div
+          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+          whileHover={{ scale: 1.05, rotate: 2 }}
+          whileTap={{ scale: 0.95 }}
+          // onClick={() => fileInputRef.current?.click()}
+        >
+          {Image ? (
+            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <FaUpload size={24} />
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+      <div className="mb-4">
+        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
+          Upload Reference Image
+        </label>
+        <input
+          type="file"
+          id="imageUpload"
+          accept="image/*"
+          // onChange={handleImageUpload}
+          // ref={fileInputRef}
+          className="hidden"
+        />
+        <motion.div
+          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+          whileHover={{ scale: 1.05, rotate: 2 }}
+          whileTap={{ scale: 0.95 }}
+          // onClick={() => fileInputRef.current?.click()}
+        >
+          {Image ? (
+            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-400">
+              <FaUpload size={24} />
+            </div>
+          )}
+        </motion.div>
+      </div>
+
+
+
           </div>
 
           <div className="mb-4">
@@ -323,23 +474,44 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
             <div className="flex justify-center gap-4">
               <Button
                 onClick={() => togglePosition("center")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${selectedPositions.includes("center") ? "bg-yellow-500 text-white" : ""}`}
+                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+                  selectedPositions.includes("center")
+                    ? "bg-yellow-500 text-white"
+                    : ""
+                }`}
               >
                 Center
               </Button>
               <Button
                 onClick={() => togglePosition("left")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${selectedPositions.includes("left") ? "bg-yellow-500 text-white" : ""}`}
+                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+                  selectedPositions.includes("left")
+                    ? "bg-yellow-500 text-white"
+                    : ""
+                }`}
               >
                 Left
               </Button>
               <Button
                 onClick={() => togglePosition("right")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${selectedPositions.includes("right") ? "bg-yellow-500 text-white" : ""}`}
+                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+                  selectedPositions.includes("right")
+                    ? "bg-yellow-500 text-white"
+                    : ""
+                }`}
               >
                 Right
               </Button>
             </div>
+
+            <Button
+                onClick={handleGenerateImageByReference}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+              >
+                Generate
+              </Button>
+              <Toaster />
+              
           </div>
         </TabsContent>
 
@@ -357,8 +529,8 @@ const SettingsPanel = ({ onTypeChange, paperclipImage, inputText }: SettingsPane
               onClick={handleGenerateImageByReference}
               className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
             >
-              <FaUpload />
-              Upload
+             
+              Generate
             </Button>
           </div>
           <div className="mb-4">

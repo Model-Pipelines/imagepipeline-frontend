@@ -19,7 +19,7 @@ export function PreviewDualActionButton() {
   };
 
   return (
-    <div className="flex text-neutral-600 dark:text-neutral-400 rounded-full dark:bg-neutral-900">
+    <div className="flex text-neutral-60 rounded-full">
 
 <div className="flex gap-5 ">
   {/* Globe Toggle Button */}

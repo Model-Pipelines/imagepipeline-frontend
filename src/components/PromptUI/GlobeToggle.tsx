@@ -4,16 +4,15 @@ import { Globe, Lock, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function GlobeToggle() {
-  const [visibility, setVisibility] = useState<"public" | "private">("public"); // 'public' or 'private'
-  const [loading, setLoading] = useState(false); // Loading state
+  const [visibility, setVisibility] = useState<"public" | "private">("public");
+  const [loading, setLoading] = useState(false);
 
   const handleToggle = () => {
-    setLoading(true); // Activate loader
-    // Simulate an async operation (e.g., API call)
+    setLoading(true);
     setTimeout(() => {
       setVisibility((prev) => (prev === "public" ? "private" : "public"));
-      setLoading(false); // Deactivate loader
-    }, 2000); // 2-second delay
+      setLoading(false);
+    }, 2000);
   };
 
   return (
@@ -21,7 +20,11 @@ export function GlobeToggle() {
       type="button"
       onClick={handleToggle}
       className={cn(
-        "border border-neutral-400/40 bg-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 hover:bg-neutral-300 transition duration-200 ease-in-out rounded-full inline-flex w-24 h-full gap-1 items-center justify-center dark:active:bg-neutral-700 active:border-neutral-500 overflow-hidden active:bg-neutral-400",
+        "border-none bg-neutral-200 dark:text-black dark:hover:bg-neutral-300",
+        "hover:bg-neutral-300 transition duration-200 ease-in-out",
+        "inline-flex items-center justify-center dark:active:bg-neutral-700",
+        "overflow-hidden active:bg-neutral-400",
+        "w-12 h-12 rounded-full lg:w-24 lg:h-10 lg:rounded-lg"
       )}
     >
       {loading ? (
@@ -33,7 +36,9 @@ export function GlobeToggle() {
           ) : (
             <Lock className="size-4" />
           )}
-          {visibility === "public" ? "Public" : "Private"}
+          <span className="hidden lg:inline">
+            {visibility === "public" ? "Public" : "Private"}
+          </span>
         </span>
       )}
     </button>

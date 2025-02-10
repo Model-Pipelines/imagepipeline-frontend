@@ -31,14 +31,14 @@ const Sidebar: FC = () => {
         <div className="p-2 rounded-md text-black dark:text-white font-bold">LOGO</div>
       </Link>
 
-      <div className="flex flex-col items-center space-y-20">
+      <div className=" flex flex-col items-center space-y-20">
         {sidebarItems.map((item) => (
           <div
             key={item.type}
             className={`p-2 rounded-md cursor-pointer ${
               activeIcon === item.type
-                ? "bg-yellow-500 dark:bg-gray-700 text-white"
-                : "hover:bg-yellow-500 dark:hover:bg-gray-700 text-black dark:text-white"
+                ? "bg-purple-800 dark:bg-gray-700 text-white"
+                : "hover:bg-purple-800 hover:text-white dark:hover:bg-gray-700 text-purple-700 dark:text-white"
             }`}
             onClick={() => handleIconClick(item.type)}
             aria-label={item.label}
@@ -49,7 +49,7 @@ const Sidebar: FC = () => {
       </div>
 
       <div className="flex flex-col items-center space-y-10">
-        <div className="hover:bg-yellow-500 dark:hover:bg-gray-700 p-2 rounded-md text-black dark:text-white cursor-pointer">
+        <div className="hover:bg-purple-800 hover:text-white dark:hover:bg-gray-700 p-2 rounded-md text-purple-700 dark:text-white cursor-pointer">
           <AccountDropdown />
         </div>
       </div>
@@ -101,7 +101,7 @@ const Sidebar: FC = () => {
       {isMobile || isTablet? (
         renderMobileDock()
       ) : (
-        <div className="flex flex-col bg-[#ffd700] dark:bg-[#ffa726] items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
+        <div className="flex flex-col bg-purple-700/20 dark:bg-purple-800 items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
           {renderSidebarContent()}
         </div>
       )}

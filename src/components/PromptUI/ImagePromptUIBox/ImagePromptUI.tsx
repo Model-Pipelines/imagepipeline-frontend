@@ -15,6 +15,7 @@ import ImageGallery from "./ImageGallery"
 import SelectedImageEditor from "./SelectedImageEditor"
 import { useMutation } from "@tanstack/react-query"
 import axios from "axios"
+import PreviewDualActionButton from "../ToggleVisibilityButton"
 
 
 const OFFSET_MULTIPLIER = 20
@@ -220,28 +221,7 @@ const ImagePromptUI = () => {
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Button
-              onClick={() => {
-                /* Toggle public/private */
-              }}
-              className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
-              aria-label="Toggle public/private"
-            >
-              <Globe className="h-5 w-5 text-gray-700" />
-              <span className="hidden lg:ml-2 lg:inline">Public</span>
-            </Button>
-            <Button
-              onClick={handleMagicPromptToggle}
-              className={`w-10 h-10 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
-                magicPrompt ? "bg-yellow-400 hover:bg-yellow-500" : "bg-gray-200 hover:bg-gray-300"
-              }`}
-              aria-label="Toggle AI enhancement"
-            >
-              <Zap className={`h-5 w-5 ${magicPrompt ? "text-white" : "text-gray-700"}`} />
-              <span className={`hidden lg:ml-2 lg:inline ${magicPrompt ? "text-white" : "text-gray-700"}`}>
-                AI Enhance
-              </span>
-            </Button>
+            <PreviewDualActionButton />
           </div>
           <div className="flex items-center gap-2">
             <Button

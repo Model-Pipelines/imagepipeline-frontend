@@ -15,7 +15,7 @@ export function ThemeSwitcher() {
   ];
 
   return (
-    <Card className="border-none">
+    <Card className="border-none shadow-none">
       <CardContent className="py-2">
         {/* Wrap the buttons with AnimatedBackground */}
         <AnimatedBackground
