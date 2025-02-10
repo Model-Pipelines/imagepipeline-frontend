@@ -3,7 +3,7 @@
 import { useState, ChangeEvent } from "react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { FaUpload } from "react-icons/fa";
+import { FaUpload, FaTimes } from "react-icons/fa"; // Added FaTimes for the cross icon
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -49,6 +49,8 @@ const SettingsPanel = ({
     [key: string]: string;
   }>({});
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
+  const [referenceImage, setReferenceImage] = useState<string | null>(null);
+  const [faceImages, setFaceImages] = useState<string[]>([]); // Array to store multiple face images
 
   const { toast } = useToast();
 
@@ -61,23 +63,47 @@ const SettingsPanel = ({
   const { mutate: generateLogoMutate } = useGenerateLogo();
   const { mutate: uploadBackendFilesMutate } = useUploadBackendFiles();
 
-  const handleUpload = (
-    event: ChangeEvent<HTMLInputElement>,
-    tabKey: string
-  ) => {
+  // Handle reference image upload
+  const handleReferenceImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        setSelectedImages((prev) => ({
-          ...prev,
-          [tabKey]: e.target?.result as string,
-        }));
+        setReferenceImage(e.target?.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Handle face image upload
+  const handleFaceImageUpload = (
+    event: ChangeEvent<HTMLInputElement>,
+    index: number
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newFaceImages = [...faceImages];
+        newFaceImages[index] = e.target?.result as string;
+        setFaceImages(newFaceImages);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Delete reference image
+  const deleteReferenceImage = () => {
+    setReferenceImage(null);
+  };
+
+  // Delete face image
+  const deleteFaceImage = (index: number) => {
+    const newFaceImages = faceImages.filter((_, i) => i !== index);
+    setFaceImages(newFaceImages);
+  };
+
+  // Toggle character position
   const togglePosition = (position: string) => {
     setSelectedPositions((prev) =>
       prev.includes(position)
@@ -86,6 +112,7 @@ const SettingsPanel = ({
     );
   };
 
+  // Generate payload for API calls
   const generatePayload = () => {
     if (!type || !paperclipImage) {
       toast({
@@ -159,6 +186,7 @@ const SettingsPanel = ({
     }
   };
 
+  // Handle image generation
   const handleGenerateImageByReference = async () => {
     const payload = generatePayload();
     if (!payload) return;
@@ -200,9 +228,24 @@ const SettingsPanel = ({
     }
   };
 
+  // Handle type change
   const handleTypeChange = (value: string) => {
     setType(value);
     onTypeChange(value);
+  };
+
+  // Handle submit for each tab
+  const handleSubmit = (tabKey: string) => {
+    switch (tabKey) {
+      case "Reference":
+        handleGenerateImageByReference();
+        break;
+      case "Face":
+        // Handle face image submission logic here
+        break;
+      default:
+        break;
+    }
   };
 
   return (
@@ -301,17 +344,6 @@ const SettingsPanel = ({
               </Select>
             </div>
 
-            {/* <div className="flex justify-center mb-4">
-              <Button
-                onClick={handleGenerateImageByReference}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-              >
-                <FaUpload />
-                Generate
-              </Button>
-              <Toaster />
-            </div> */}
-
             <div className="mb-4">
               <label
                 htmlFor="imageUpload"
@@ -323,22 +355,32 @@ const SettingsPanel = ({
                 type="file"
                 id="imageUpload"
                 accept="image/*"
-                // onChange={handleImageUpload}
-                // ref={fileInputRef}
+                onChange={handleReferenceImageUpload}
                 className="hidden"
               />
               <motion.div
-                className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer relative"
                 whileHover={{ scale: 1.05, rotate: 2 }}
                 whileTap={{ scale: 0.95 }}
-                // onClick={() => fileInputRef.current?.click()}
+                onClick={() => document.getElementById("imageUpload")?.click()}
               >
-                {Image ? (
-                  <img
-                    src={Image || "/placeholder.svg"}
-                    alt="Uploaded"
-                    className="w-full h-full object-cover"
-                  />
+                {referenceImage ? (
+                  <>
+                    <img
+                      src={referenceImage}
+                      alt="Uploaded"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteReferenceImage();
+                      }}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <FaTimes size={12} />
+                    </button>
+                  </>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
                     <FaUpload size={24} />
@@ -347,8 +389,8 @@ const SettingsPanel = ({
               </motion.div>
 
               <Button
-                onClick={handleGenerateImageByReference}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+                onClick={() => handleSubmit("Reference")}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 mt-4"
               >
                 Generate
               </Button>
@@ -363,105 +405,52 @@ const SettingsPanel = ({
               htmlFor="faceInput"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Upload Face Image(s)
+              Upload Face Images (Max 3)
             </label>
-          </div>
-
-          <div className="flex justify-center">
-            {/* <Button
-              onClick={handleGenerateImageByReference}
-              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-            >
-              <FaUpload />
-              Upload
-            </Button> */}
-
-
-            <div className="mb-4">
-        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
-          Upload Reference Image
-        </label>
-        <input
-          type="file"
-          id="imageUpload"
-          accept="image/*"
-          // onChange={handleImageUpload}
-          // ref={fileInputRef}
-          className="hidden"
-        />
-        <motion.div
-          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.95 }}
-          // onClick={() => fileInputRef.current?.click()}
-        >
-          {Image ? (
-            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <FaUpload size={24} />
+            <div className="flex gap-4">
+              {[0, 1, 2].map((index) => (
+                <div key={index} className="relative">
+                  <input
+                    type="file"
+                    id={`faceInput-${index}`}
+                    accept="image/*"
+                    onChange={(e) => handleFaceImageUpload(e, index)}
+                    className="hidden"
+                  />
+                  <motion.div
+                    className="w-14 h-20 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() =>
+                      document.getElementById(`faceInput-${index}`)?.click()
+                    }
+                  >
+                    {faceImages[index] ? (
+                      <>
+                        <img
+                          src={faceImages[index]}
+                          alt="Uploaded"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteFaceImage(index);
+                          }}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <FaTimes size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <FaUpload size={24} />
+                      </div>
+                    )}
+                  </motion.div>
+                </div>
+              ))}
             </div>
-          )}
-        </motion.div>
-      </div>
-      <div className="mb-4">
-        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
-          Upload Reference Image
-        </label>
-        <input
-          type="file"
-          id="imageUpload"
-          accept="image/*"
-          // onChange={handleImageUpload}
-          // ref={fileInputRef}
-          className="hidden"
-        />
-        <motion.div
-          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.95 }}
-          // onClick={() => fileInputRef.current?.click()}
-        >
-          {Image ? (
-            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <FaUpload size={24} />
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-      <div className="mb-4">
-        <label htmlFor="imageUpload" className="block text-sm font-medium text-gray-700 mb-2">
-          Upload Reference Image
-        </label>
-        <input
-          type="file"
-          id="imageUpload"
-          accept="image/*"
-          // onChange={handleImageUpload}
-          // ref={fileInputRef}
-          className="hidden"
-        />
-        <motion.div
-          className="w-14 h-20 mx-auto bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.95 }}
-          // onClick={() => fileInputRef.current?.click()}
-        >
-          {Image ? (
-            <img src={Image || "/placeholder.svg"} alt="Uploaded" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-400">
-              <FaUpload size={24} />
-            </div>
-          )}
-        </motion.div>
-      </div>
-
-
-
           </div>
 
           <div className="mb-4">
@@ -505,34 +494,16 @@ const SettingsPanel = ({
             </div>
 
             <Button
-                onClick={handleGenerateImageByReference}
-                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-              >
-                Generate
-              </Button>
-              <Toaster />
-              
+              onClick={() => handleSubmit("Face")}
+              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 mt-4"
+            >
+              Generate
+            </Button>
+            <Toaster />
           </div>
         </TabsContent>
 
         <TabsContent value="Style">
-          <div className="mb-4">
-            <label
-              htmlFor="styleInput"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Upload Style Image(s)
-            </label>
-          </div>
-          <div className="flex justify-center">
-            <Button
-              onClick={handleGenerateImageByReference}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
-            >
-             
-              Generate
-            </Button>
-          </div>
           <div className="mb-4">
             <label
               htmlFor="styleInput"
@@ -555,6 +526,13 @@ const SettingsPanel = ({
               </SelectContent>
             </Select>
           </div>
+
+          <Button
+            onClick={() => handleSubmit("Style")}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+          >
+            Generate
+          </Button>
         </TabsContent>
       </Tabs>
     </div>
