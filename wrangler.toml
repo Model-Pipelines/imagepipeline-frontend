@@ -4,10 +4,3 @@ compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".vercel/output/static"
 
 
-[vars]
-NODE_ENV = "production"
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_bWVhc3VyZWQtd2Fob28tODAuY2xlcmsuYWNjb3VudHMuZGV2JA"
-CLERK_SECRET_KEY = "sk_test_504dyF0gXhtNFuX6NhlQY95KQ52jcRbPZVMiu7DiMf"
-
-NEXT_PUBLIC_CLERK_SIGN_IN_URL = "/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL = "/sign-up"
