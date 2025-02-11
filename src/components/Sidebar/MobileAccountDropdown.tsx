@@ -1,6 +1,6 @@
 "use client"
 import { useState } from "react"
-import { Menu, HelpCircle, Users, Trash2, LogOut } from "lucide-react"
+import { Menu, HelpCircle, Users, Trash2, LogOut,KeyRound  } from "lucide-react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -39,40 +39,34 @@ export default function MobileAccountDropdown() {
                 {/* Menu Items */}
                 <CardContent className="py-2">
                   <div className="flex flex-col gap-2">
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
+                    {/* <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
                       <HelpCircle className="h-4 w-4" />
                       Help & documentation
                     </button>
                     <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <Users className="h-4 w-4" />
-                      Manage muted users
-                    </button>
+                      <KeyRound className="h-4 w-4" />
+                      API Key
+                    </button> */}
                     <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
                       <Trash2 className="h-4 w-4" />
                       Delete account
                     </button>
-                  </div>
-                </CardContent>
-                <Separator className="bg-white/20 dark:bg-gray-700/20" />
-                {/* API & Logout */}
-                <CardContent className="py-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-800 dark:text-gray-200">API</span>
-                    <span className="text-xs bg-gray-200/50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 rounded-full px-2">
-                      Beta
-                    </span>
-                  </div>
-                  <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 mt-2">
+
+                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
                     <LogOut className="h-4 w-4" />
-                    Log out
+                    Sign out{" "}
                   </button>
+
+
+                  </div>
                 </CardContent>
+
                 <Separator className="bg-white/20 dark:bg-gray-700/20" />
                 {/* Theme Selector */}
                 <ThemeSwitcher />
 
                 {/* Footer Links */}
-                <ProfileFooter />
+                {/* <ProfileFooter /> */}
               </div>
             </Card>
           </motion.div>
