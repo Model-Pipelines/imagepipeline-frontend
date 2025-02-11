@@ -8,7 +8,7 @@ import {
   LogOut,
   KeyRound,
 } from "lucide-react";
-
+import { useClerk } from "@clerk/nextjs"; // Import useClerk for sign-out
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +18,7 @@ import { ProfileFooter } from "./ProfileFooter";
 
 export default function AccountDropdown() {
   const [isOpen, setIsOpen] = useState(false);
+  const { signOut } = useClerk(); // Use the signOut method from Clerk
 
   return (
     <div className="relative">
@@ -59,12 +60,14 @@ export default function AccountDropdown() {
                       Delete account
                     </button>
 
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                    <LogOut className="h-4 w-4" />
-                    Sign out{" "}
-                  </button>
-
-
+                    {/* Sign Out Button */}
+                    <button
+                      onClick={() => signOut()} // Trigger sign-out
+                      className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign out
+                    </button>
                   </div>
                 </CardContent>
 
