@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Paperclip, X, Globe, Zap, Settings, Palette } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea"
 import { useImageStore, useSingleImageStore, type ImageItem } from "./ImageStore"
-import { useColorPaletteStore, useCanvasStore } from "@/lib/store"
+import { useColorPaletteStore } from "@/lib/store"
 import { useApi } from "@/context/apiContext"
 import { uploadFiles } from "@/services/apiService"
 import ImageUploadLoader from "../ImageUploadLoader"
@@ -34,8 +34,10 @@ const ImagePromptUI = () => {
   const [uploadPreview, setUploadPreview] = useState<string | null>(null)
 
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette)
-  const addMedia = useCanvasStore((state) => state.addMedia)
+  // const addMedia = useCanvasStore((state) => state.addMedia)
+  
   const textAreaRef = useRef<HTMLTextAreaElement>(null)
+
 
   const addImageGlobal = useImageStore((state) => state.addImage)
   const globalImages = useImageStore((state) => state.images)
@@ -117,14 +119,16 @@ const ImagePromptUI = () => {
           width = height * aspectRatio
         }
 
-        addMedia({
+        const newImage: Image = {
           id: crypto.randomUUID(),
-          type: "image",
-          element,
+          url: downloadUrl,
           position: { x: 0, y: 0 },
           size: { width, height },
-          scale: 1,
-        })
+          element: element
+        };
+    
+        // Add to image store instead of canvas store
+        addImage(newImage);
       }
     },
     onError: (error: any) => {

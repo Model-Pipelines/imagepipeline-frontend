@@ -12,35 +12,35 @@ const cards = [
   {
     id: 1,
     rotation: -30,
-    image: "/carsignup.png",
+    image: "/carsignup.webp",
     alt: "Car signup image",
     delay: 0.2,
   },
   {
     id: 2,
     rotation: -15,
-    image: "/flowersignup.png",
+    image: "/flowersignup.webp",
     alt: "Flower signup image",
     delay: 0.4,
   },
   {
     id: 3,
     rotation: 0,
-    image: "/girlanimesignup.png",
+    image: "/girlanimesignup.webp",
     alt: "Girl anime signup image",
     delay: 0.6,
   },
   {
     id: 4,
     rotation: 15,
-    image: "/girlsignup.png",
+    image: "/girlsignup.webp",
     alt: "Girl signup image",
     delay: 0.8,
   },
   {
     id: 5,
     rotation: 30,
-    image: "/naturesignup.png",
+    image: "/naturesignup.webp",
     alt: "Nature signup image",
     delay: 1,
   },
@@ -124,7 +124,7 @@ export default function Page() {
       </motion.div>
 
       {/* Fan Cards */}
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-10">
+      <div className="absolute bottom-0 left-[38%] transform -translate-x-1/2 z-10">
         <div className="relative h-[240px] w-[480px]">
           {cards.map((card) => (
             <motion.div

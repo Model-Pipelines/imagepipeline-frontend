@@ -68,11 +68,12 @@ export interface CanvasElement {
   id: string;
   type: "image" | "video" | "audio" | "text";
   src?: string;
+  element?: HTMLImageElement; // Add this line
   position: Point;
   size: Size;
   rotation: number;
   zIndex: number;
-  aspectRatio?: number; // Add aspect ratio to maintain proportions
+  scale?: number; // Add this line
 }
 
 // Define the CanvasState interface.
@@ -113,6 +114,7 @@ interface CanvasState {
   setIsMoveTool: (isMoveTool: boolean) => void;
   setShowGrid: (show: boolean) => void;
   addToHistory: (state: CanvasElement[]) => void;
+  
 }
 
 export const useCanvasStore = create<CanvasState>()(
@@ -145,7 +147,11 @@ export const useCanvasStore = create<CanvasState>()(
           set((state) => {
             const newElement = {
               ...element,
-              aspectRatio: element.size.width / element.size.height,
+              // Ensure required properties have defaults
+              rotation: element.rotation || 0,
+              zIndex: element.zIndex || 0,
+              size: element.size || { width: 200, height: 200 },
+              position: element.position || { x: 0, y: 0 }
             };
             const newElements = [...state.elements, newElement];
             return {
