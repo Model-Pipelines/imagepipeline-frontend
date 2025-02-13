@@ -215,7 +215,7 @@ export default function BackGroundChange() {
                     className="w-full h-auto rounded-md border border-gray-200"
                   />
                   <button
-                    onClick={handleDeleteBackgroundImage}
+                    // onClick={handleDeleteBackgroundImage}
                     className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-100"
                   >
                     <X className="w-4 h-4 text-gray-700" />
