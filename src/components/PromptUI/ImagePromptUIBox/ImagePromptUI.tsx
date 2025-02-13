@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Paperclip, X, Settings, Palette } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useCanvasStore, useColorPaletteStore } from "@/lib/store";
-import { useSingleImageStore } from "./ImageStore";
+// import { useSingleImageStore } from "./ImageStore";
 import { uploadFiles } from "@/services/apiService";
 import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
@@ -30,7 +30,7 @@ const ImagePromptUI = () => {
   const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
 
   // (Optional) In case you use a single image store elsewhere:
-  const { selectedImage, setSelectedImage, clearSelectedImage } = useSingleImageStore();
+  // const { selectedImage, setSelectedImage, clearSelectedImage } = useSingleImageStore();
 
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
 
