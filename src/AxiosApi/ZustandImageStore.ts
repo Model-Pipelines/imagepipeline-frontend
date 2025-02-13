@@ -25,37 +25,19 @@ export const useImageStore = create<ImageState>()(
       (set, get) => ({
         images: [],
         selectedImageId: null,
-
-        // Updated: addImage now uses the properties passed to it
         addImage: (image) =>
-          set((state) => {
-            // Prevent duplicates by checking if the image already exists
-            if (state.images.some((img) => img.id === image.id)) return state;
-            return {
-              images: [...state.images, image],
-            };
-          }),
-
-        // Remove an image by ID
+          set((state) => ({ images: [...state.images, image] })),
         removeImage: (id) =>
           set((state) => ({
             images: state.images.filter((img) => img.id !== id),
-            selectedImageId:
-              state.selectedImageId === id ? null : state.selectedImageId,
           })),
-
-        // Update an image's properties
         updateImage: (id, updates) =>
           set((state) => ({
             images: state.images.map((img) =>
               img.id === id ? { ...img, ...updates } : img
             ),
           })),
-
-        // Set the currently selected image ID
         setSelectedImageId: (id) => set({ selectedImageId: id }),
-
-        // Initialize image elements after hydration
         initializeImages: async () => {
           const currentImages = get().images;
           await Promise.all(
@@ -84,8 +66,7 @@ export const useImageStore = create<ImageState>()(
         name: "ImageStore", // Key for localStorage
         partialize: (state) => ({
           ...state,
-          // Exclude element from persistence to avoid serialization issues
-          images: state.images.map(({ element, ...rest }) => rest),
+          images: state.images.map(({ element, ...rest }) => rest), // Exclude element from persistence
         }),
       }
     )
