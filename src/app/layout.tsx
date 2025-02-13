@@ -41,7 +41,7 @@ export default function RootLayout({
 
           <ReactQueryProvider>
             <Provider>{children}</Provider>
-            {/* <ReactQueryDevtools /> */}
+            <ReactQueryDevtools />
           </ReactQueryProvider>
           <Toaster />
         </body>

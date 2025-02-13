@@ -1,20 +1,19 @@
+"use client";
+
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import {
-  useChangeBackground,
-  useUploadBackendFiles,
-  useBackgroundTaskStatus,
-} from "@/AxiosApi/TanstackQuery";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { uploadBackendFiles, changeBackground, getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
 import { v4 as uuidv4 } from "uuid";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
 import { X } from "lucide-react";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 
-// Optionally, extract a FileInput component so that its re-renders are isolated.
+// Memoized FileInput component to reduce re-renders
 const FileInput = React.memo(
   ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
     <input
@@ -28,26 +27,37 @@ const FileInput = React.memo(
 
 export default function BackGroundChange() {
   const [prompt, setPrompt] = useState("");
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(null); // Uploaded background image
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null); // URL for the uploaded background image
   const [imageBackgroundId, setImageBackgroundId] = useState<string | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false); // Track generating state
+  const [isGenerating, setIsGenerating] = useState(false);
   const { selectedImageId, images, addImage } = useImageStore();
-  const { mutate: changeBackground } = useChangeBackground();
-  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
   const { toast } = useToast();
 
-  // Memoize selected image so that we only recalc when images or selectedImageId change.
+  // Memoize the selected image from the global store
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
-  // Poll background task status only if task ID is set.
-  const { data: taskStatus } = useBackgroundTaskStatus(imageBackgroundId || "");
+  // Mutation for initiating background change
+  const { mutate: startBackgroundChange } = useMutation({
+    mutationFn: (payload: any) => changeBackground(payload), // Use the existing changeBackground function
+  });
 
-  // Effect: Process task status on success only once.
+  // Query for polling task status
+  const { data: taskStatus } = useQuery({
+    queryKey: ['backgroundTask', imageBackgroundId],
+    queryFn: () => getBackgroundTaskStatus(imageBackgroundId!), // Use the existing getBackgroundTaskStatus function
+    enabled: !!imageBackgroundId, // Only run query if task ID exists
+    refetchInterval: (data) =>
+      data?.status === 'SUCCESS' || data?.status === 'FAILURE' ? false : 5000, // Poll every second until task completes
+  });
+
+  // Handle task status updates
   useEffect(() => {
-    if (taskStatus?.status === "SUCCESS") {
+    if (!taskStatus) return;
+
+    if (taskStatus.status === 'SUCCESS') {
       const processImage = async () => {
         const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
         if (!imageUrl) {
@@ -56,7 +66,6 @@ export default function BackGroundChange() {
         }
 
         try {
-          // Load the image element first
           const img = new Image();
           img.src = imageUrl;
           await new Promise((resolve, reject) => {
@@ -64,7 +73,7 @@ export default function BackGroundChange() {
             img.onerror = reject;
           });
 
-          // Check for duplicates after loading the image
+          // Avoid duplicates
           if (images.some((img) => img.url === imageUrl)) {
             setIsGenerating(false);
             return;
@@ -75,31 +84,32 @@ export default function BackGroundChange() {
             ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
             : { x: 50, y: 60 };
 
-          // Add the generated image to the Zustand store
+          // Add the new (generated) image to the store
           addImage({
             id: uuidv4(),
             url: imageUrl,
             position: newPosition,
             size: { width: 100, height: 100 },
-            element: img, // Now using the properly loaded image element
+            element: img,
           });
 
-          setIsGenerating(false);
           toast({ title: "Success", description: "Background changed!" });
         } catch (error) {
-          setIsGenerating(false);
           toast({ title: "Error", description: "Failed to load image", variant: "destructive" });
+        } finally {
+          setIsGenerating(false);
+          setImageBackgroundId(null); // Stop polling
         }
       };
-
       processImage();
-    } else if (taskStatus?.status === "FAILURE") {
+    } else if (taskStatus.status === 'FAILURE') {
       setIsGenerating(false);
-      toast({ title: "Error", description: "Failed to generate image.", variant: "destructive" });
+      setImageBackgroundId(null);
+      toast({ title: "Error", description: "Failed to generate image", variant: "destructive" });
     }
-  }, [taskStatus, images, addImage, toast]);
+  }, [taskStatus, addImage, images, toast]);
 
-  // Memoized submit handler.
+  // Submit handler for background change
   const handleSubmit = useCallback(() => {
     if (!selectedImage) {
       toast({
@@ -117,22 +127,21 @@ export default function BackGroundChange() {
       });
       return;
     }
-
-    setIsGenerating(true); // Start generating state
+    setIsGenerating(true);
 
     const payload = {
       init_image: selectedImage.url,
       prompt,
       style_image: backgroundImage || "", // Use the uploaded background image if available
       samples: 1,
-      negative_prompt: "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+      negative_prompt:
+        "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
       seed: -1,
     };
 
-    changeBackground(payload, {
+    startBackgroundChange(payload, {
       onSuccess: (response) => {
-        console.log("API Response:", response);
-        if (!response.data?.id) {
+        if (!response?.id) {
           setIsGenerating(false);
           toast({
             title: "Error",
@@ -141,11 +150,8 @@ export default function BackGroundChange() {
           });
           return;
         }
-        setImageBackgroundId(response.data.id);
-        toast({
-          title: "Success",
-          description: "Background change task started!",
-        });
+        setImageBackgroundId(response.id); // Start polling
+        toast({ title: "Success", description: "Background change task started!" });
       },
       onError: (error) => {
         setIsGenerating(false);
@@ -156,36 +162,33 @@ export default function BackGroundChange() {
         });
       },
     });
-  }, [selectedImage, prompt, backgroundImage, changeBackground, toast]);
+  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast]);
 
-  // Memoized file upload handler.
+  // File upload handler for background image
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
         try {
-          const response = await uploadBackendFiles(file);
-          setBackgroundImage(response); // Set the uploaded image URL
+          const imageUrl: string = await uploadBackendFiles(file); // Use the existing uploadBackendFiles function
+          setBackgroundImage(imageUrl); // Set the URL directly
+          toast({ title: "Success", description: "Background image uploaded!" });
         } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to upload background image.",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Failed to upload background image.", variant: "destructive" });
         }
       }
     },
-    [uploadBackendFiles, toast]
+    [toast]
   );
 
-  // Simple handler to delete background image.
+  // Handler to delete the uploaded background image
   const handleDeleteBackgroundImage = useCallback(() => {
-    setBackgroundImage(null); // Clear the uploaded background image
+    setBackgroundImage(null);
   }, []);
 
   return (
     <Card className="w-full">
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-4">
         <div className="flex flex-col md:flex-row gap-6">
           <div className="flex-1 space-y-2">
             <Label className="text-gray-700">Selected Image</Label>
@@ -196,9 +199,7 @@ export default function BackGroundChange() {
                 className="w-full h-auto rounded-md border border-gray-200"
               />
             ) : (
-              <p className="text-gray-500">
-                No image selected. Please select an image first.
-              </p>
+              <p className="text-gray-500">No image selected. Please select an image first.</p>
             )}
           </div>
           <div className="flex-1 space-y-2">
@@ -239,7 +240,7 @@ export default function BackGroundChange() {
       <CardFooter>
         <Button
           onClick={handleSubmit}
-          disabled={isGenerating} // Disable button while generating
+          disabled={isGenerating}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
         >
           {isGenerating ? (

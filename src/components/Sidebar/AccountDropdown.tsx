@@ -1,24 +1,20 @@
 "use client";
-import { useState } from "react";
-import {
-  Menu,
-  HelpCircle,
-  Users,
-  Trash2,
-  LogOut,
-  KeyRound,
-} from "lucide-react";
-import { useClerk } from "@clerk/nextjs"; // Import useClerk for sign-out
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { motion, AnimatePresence } from "framer-motion";
-import { ThemeSwitcher } from "./ThemeSwitcher";
-import { ProfileSection } from "./ProfileSection";
+
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  LogOut,
+  Menu,
+} from "lucide-react";
+import { useState } from "react";
 import { ProfileFooter } from "./ProfileFooter";
+import { ProfileSection } from "./ProfileSection";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export default function AccountDropdown() {
   const [isOpen, setIsOpen] = useState(false);
-  const { signOut } = useClerk(); // Use the signOut method from Clerk
+
 
   return (
     <div className="relative">
@@ -44,32 +40,7 @@ export default function AccountDropdown() {
                 {/* Profile Section */}
                 <ProfileSection />
 
-                {/* Menu Items */}
-                <CardContent className="py-2">
-                  <div className="flex flex-col gap-2">
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <HelpCircle className="h-4 w-4" />
-                      Help & documentation
-                    </button>
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <KeyRound className="h-4 w-4" />
-                      API Key
-                    </button>
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <Trash2 className="h-4 w-4" />
-                      Delete account
-                    </button>
 
-                    {/* Sign Out Button */}
-                    <button
-                      onClick={() => signOut()} // Trigger sign-out
-                      className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      Sign out
-                    </button>
-                  </div>
-                </CardContent>
 
                 <Separator className="bg-white/20 dark:bg-gray-700/20" />
                 {/* Theme Selector */}

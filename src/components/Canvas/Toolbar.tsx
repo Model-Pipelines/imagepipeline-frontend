@@ -1,34 +1,64 @@
+"use client";
 import { v4 as uuidv4 } from "uuid";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
-import { ChangeEvent } from "react";
+import { ChangeEvent, useCallback } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface ToolbarProps {
-  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onDownload: () => void;
 }
 
-export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
-  const addImage = useImageStore((state) => state.addImage); // ✅ Use addImage
-  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles(); // ✅ Use mutateAsync
-  const images = useImageStore((state) => state.images); // Get the list of images
+export default function Toolbar({ onDownload }: ToolbarProps) {
+  const addImage = useImageStore((state) => state.addImage);
+  const images = useImageStore((state) => state.images);
+  const { mutateAsync: uploadBackendFiles } = useUploadBackendFiles();
+  const { toast } = useToast();
 
-  // Handle file upload
-  const handleFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file) {
+      toast({
+        title: "Error",
+        description: "No file selected",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file type and size
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Error",
+        description: "Please upload a valid image file",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "Error",
+        description: "File size exceeds 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      // Upload the file to the backend and get the URL
-      const uploadedImageUrl = await uploadBackendFiles(file);
+      // uploadBackendFiles returns a string (the image URL)
+      const uploadedImageUrl: string = await uploadBackendFiles(file);
+      if (!uploadedImageUrl) {
+        throw new Error("Invalid response: No image URL found");
+      }
 
-      // Create an image element and load the uploaded image
+      // Create an HTMLImageElement and wait for it to load
       const element = new Image();
       element.src = uploadedImageUrl;
-      await new Promise((resolve) => {
-        element.onload = resolve;
+      await new Promise<void>((resolve, reject) => {
+        element.onload = () => resolve();
+        element.onerror = () => reject(new Error("Failed to load image element"));
       });
 
       // Calculate size maintaining aspect ratio
@@ -40,29 +70,40 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
         width = height * aspectRatio;
       }
 
-      // Calculate dynamic position based on the number of images
-      const offsetX = 20; // Offset for x-axis
-      const offsetY = 20; // Offset for y-axis
+      // Calculate dynamic position based on number of images
+      const offsetX = 20;
+      const offsetY = 20;
       const position = {
-        x: 800 + images.length * offsetX, // Start at 800 and increment by offsetX
-        y: 100 + images.length * offsetY, // Start at 100 and increment by offsetY
+        x: 800 + images.length * offsetX, // e.g. starting at x = 800 and shifting right
+        y: 100 + images.length * offsetY, // e.g. starting at y = 100 and shifting down
       };
 
-      // Add the new image to the store
+      // Add the new image to the store with its element reference
       addImage({
-        id: uuidv4(), // Use uuid instead of crypto.randomUUID()
+        id: uuidv4(),
         url: uploadedImageUrl,
-        element, // ✅ Store reference to the image element
+        element, // Save the loaded image element
         position, // Use the calculated position
         size: { width, height },
       });
-    } catch (error) {
-      console.error("Error uploading file:", error);
+
+      toast({
+        title: "Upload Started",
+        description: "Your image has been uploaded.",
+      });
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
     }
-  };
+  }, [uploadBackendFiles, toast, addImage, images.length]);
 
   return (
     <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+      {/* Upload Button */}
       <label className="cursor-pointer">
         <Button
           className="bg-gray-300 hover:bg-gray-400"
@@ -82,6 +123,7 @@ export default function Toolbar({ onUpload, onDownload }: ToolbarProps) {
           </span>
         </Button>
       </label>
+      {/* Download Button */}
       <Button
         variant="outline"
         size="icon"

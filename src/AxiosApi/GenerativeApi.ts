@@ -13,7 +13,9 @@ import {
   UpscaleImagePayload,
 } from "./types";
 
-// Utility Functions for File Uploads
+/**
+ * Utility Function: Converts a Base64 string to a File.
+ */
 export const base64ToFile = (base64String: string, filename: string): File => {
   const arr = base64String.split(",");
   const mime = arr[0].match(/:(.*?);/)?.[1];
@@ -27,7 +29,13 @@ export const base64ToFile = (base64String: string, filename: string): File => {
   return new File([u8arr], filename, { type: mime });
 };
 
-// Upload Files and Return Public URLs
+/* ============================================================
+   POST Requests
+   ============================================================ */
+
+/**
+ * Upload Files and Return Public URLs
+ */
 export const uploadFiles = async (
   userUploadedImage: File,
   maskImageUrl?: string
@@ -35,8 +43,8 @@ export const uploadFiles = async (
   const formData = new FormData();
   formData.append("image_files", userUploadedImage);
   if (maskImageUrl) {
-    const newMaskImageUrl = base64ToFile(maskImageUrl, "mask_image.png");
-    formData.append("image_files", newMaskImageUrl);
+    const newMaskImageFile = base64ToFile(maskImageUrl, "mask_image.png");
+    formData.append("image_files", newMaskImageFile);
   }
   try {
     const response = await apiClient.post("/upload_images", formData, {
@@ -45,147 +53,202 @@ export const uploadFiles = async (
       },
     });
     if (response.status === 200) {
-      const { image_urls } = response.data;
-      return image_urls;
+      return response.data.image_urls;
     } else {
       throw new Error("Image upload failed");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error uploading files:", error);
     throw error;
   }
 };
 
-// GenerativeApi.ts
+/**
+ * Upload Backend Files Mutation
+ */
 export const uploadBackendFiles = async (file: File): Promise<string> => {
   const formData = new FormData();
-  formData.append("image_files", file); // Match the backend's expected field name
+  formData.append("image_files", file); // Ensure this matches the backend's expected field name
 
   try {
     const response = await apiClient.post("/upload_images", formData);
-
     if (response.status === 200) {
       return response.data.image_urls[0];
     } else {
       throw new Error(`Upload failed: ${response.status}`);
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Upload error:", error);
-
-    // Handle 422 errors from the server
     if (error.response?.data?.detail) {
       throw new Error(error.response.data.detail);
     }
-
     throw new Error("File upload failed. Please try again.");
   }
 };
 
-
-// Generate Image
+/**
+ * Generate Image
+ */
 export const generateImage = async (data: GenerateImagePayload): Promise<any> => {
-  return apiClient.post('/generate/v3', data);
+  const response = await apiClient.post('/generate/v3', data);
+  return response.data;
 };
 
-// Describe Image
+/**
+ * Describe Image
+ */
 export const describeImage = async (data: DescribeImagePayload): Promise<any> => {
-  return apiClient.post('/image2prompt/v1', data);
+  const response = await apiClient.post('/image2prompt/v1', data);
+  return response.data;
 };
 
-// ControlNet (Outline, Depth, Pose)
+/**
+ * ControlNet (Outline, Depth, Pose)
+ */
 export const controlNet = async (data: ControlNetPayload): Promise<any> => {
-  return apiClient.post('/control/v1', data);
+  const response = await apiClient.post('/control/v1', data);
+  return response.data;
 };
 
-// Get request for controlnet 
-
-export const getControlNetTaskStatus = async (taskId: string) => {
-  const response = await apiClient.get(`/control/v1/status/${taskId}`);
-};
-
-// Render Sketch
+/**
+ * Render Sketch
+ */
 export const renderSketch = async (data: RenderSketchPayload): Promise<any> => {
-  return apiClient.post('/sdxl/controlnet/v1', data);
+  const response = await apiClient.post('/sdxl/controlnet/v1', data);
+  return response.data;
 };
 
-// get request gor render sketch 
-
-export const getRenderSketchStatus = async (taskId: string) => {
-  const response = await apiClient.get(`/sketch/v1/status/${taskId}`);
-  
-};
-
-// Recolor Image
+/**
+ * Recolor Image
+ */
 export const recolorImage = async (data: RecolorImagePayload): Promise<any> => {
-  return apiClient.post('/sdxl/controlnet/v1', data);
+  const response = await apiClient.post('/sdxl/controlnet/v1', data);
+  return response.data;
 };
 
-//GET request for recolor image status 
-
-export const getRecolorImageStatus = async (taskId: string) => {
-  const response = await apiClient.get(`/recolor/v1/status/${taskId}`);
-  return response.data; // Ensure response contains the required status data
-};
-
-
-// Interior Design
+/**
+ * Interior Design
+ */
 export const interiorDesign = async (data: InteriorDesignPayload): Promise<any> => {
-  return apiClient.post('/sdxl/controlnet/v1', data);
+  const response = await apiClient.post('/sdxl/controlnet/v1', data);
+  return response.data;
 };
 
-// GET request for interior design
-export const getInteriorDesignStatus = async (taskId: string) => {
-  const response = await apiClient.get(`/interior/v1/status/${taskId}`);
-  return response.data; // Ensure response contains the required status data
-};
-
-
-// Generate Logo
+/**
+ * Generate Logo
+ */
 export const generateLogo = async (data: GenerateLogoPayload): Promise<any> => {
-  return apiClient.post('/logo/v1', data);
+  const response = await apiClient.post('/logo/v1', data);
+  return response.data;
 };
 
-// GET logo generation task status
-export const getGenerateLogoStatus = async (taskId: string) => {
-  const response = await apiClient.get(`/logo/v1/status/${taskId}`);
-  return response.data; // Ensure response contains the required status data
-};
-
-// Face Control
+/**
+ * Face Control
+ */
 export const faceControl = async (data: FaceControlPayload): Promise<any> => {
-  return apiClient.post('/sdxl/text2image/v1', data);
+  const response = await apiClient.post('/sdxl/text2image/v1', data);
+  return response.data;
 };
 
-// Change Background
+/**
+ * Change Background
+ */
 export const changeBackground = async (data: ChangeBackgroundPayload): Promise<any> => {
-  return apiClient.post('/bgchanger/v1', data);
+  const response = await apiClient.post('/bgchanger/v1', data);
+  return response.data;
 };
 
-//GET request for change background 
-export const getBackgroundTaskStatus = async (taskId: string) => {
-  return apiClient.get(`/bgchanger/v1/status/${taskId}`);
-};
-
-// Change Human
+/**
+ * Change Human
+ */
 export const changeHuman = async (data: ChangeHumanPayload): Promise<any> => {
-  return apiClient.post('/modelswitch/v1', data);
+  const response = await apiClient.post('/modelswitch/v1', data);
+  return response.data;
 };
 
-//GET request for change human 
-export const getChangeHuman = async (taskId: string) => {
-  return apiClient.get(`/modelswitch/v1/status/${taskId}`); 
-}
-
-// Upscale Image
+/**
+ * Upscale Image
+ */
 export const upscaleImage = async (data: UpscaleImagePayload): Promise<any> => {
-  return apiClient.post('/upscaler/v1', data);
+  const response = await apiClient.post('/upscaler/v1', data);
+  return response.data;
 };
 
-//GET request for the upscaler human 
+/* ============================================================
+   GET Requests (Task Status Endpoints)
+   The following endpoints were incomplete before; they now return the task status data.
+   ============================================================ */
 
-// Function to fetch upscale image task status
-export const getUpscaleImageStatus = async (taskId: string) => {
+/**
+ * Get ControlNet Task Status
+ */
+export const getControlNetTaskStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/control/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Render Sketch Task Status
+ */
+export const getRenderSketchStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/sketch/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Recolor Image Status
+ */
+export const getRecolorImageStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/recolor/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Interior Design Status
+ */
+export const getInteriorDesignStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/interior/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Generate Logo Status
+ */
+export const getGenerateLogoStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/logo/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Background Task Status
+ */
+export const getBackgroundTaskStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/bgchanger/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Change Human Task Status
+ */
+export const getChangeHuman = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/modelswitch/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
+ * Get Upscale Image Task Status
+ */
+export const getUpscaleImageStatus = async (taskId: string): Promise<any> => {
   const response = await apiClient.get(`/upscale/v1/status/${taskId}`);
-  
+  return response.data;
 };
 
+/**
+ * Get Generate Image Task Status
+ */
+export const getGenerateImage = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/generate/v3/status/${id}`);
+  return response.data;
+};
+
+// End of API functions

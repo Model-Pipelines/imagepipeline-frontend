@@ -2,7 +2,6 @@
   "name": "canvas-imagepipeline-frontend",
   "version": "0.1.0",
   "private": true,
-
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -44,10 +43,10 @@
     "tailwindcss-animate": "^1.0.7",
     "use-image": "^1.1.1",
     "uuid": "^11.0.5",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "@cloudflare/next-on-pages": "^1.13.7"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.7",
     "@eslint/eslintrc": "^3.2.0",
     "@tanstack/eslint-plugin-query": "^5.66.0",
     "@types/node": "^20.17.17",

@@ -1,225 +1,219 @@
 "use client";
 
-import { type ChangeEvent, useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Paperclip, X, Settings, Palette } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useCanvasStore, useColorPaletteStore } from "@/lib/store";
-// import { useSingleImageStore } from "./ImageStore";
-import { uploadFiles } from "@/services/apiService";
+import { useToast } from "@/hooks/use-toast";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import PreviewDualActionButton from "../ToggleVisibilityButton";
-import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+
+import { GenerateImagePayload } from "@/AxiosApi/types";
+import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
+import { useQuery } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
 
 const ImagePromptUI = () => {
-  const [magicPrompt, setMagicPrompt] = useState(false);
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
-  const [isPaletteOpen, setIsPaletteOpen] = useState(false);
+  const [selectedPalette, setSelectedPalette] = useState<PaletteType | null>(null); 
   const [inputText, setInputText] = useState("");
   const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
 
-  // Using the canvas store so we add the generated (and uploaded) images as media items.
-  const addImage = useImageStore((state) => state.addImage); 
-  const selectedPalette = useColorPaletteStore((state) => state.selectedPalette);
+   // Add missing toggle functions
+   const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
+   const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
 
-  // (Optional) In case you use a single image store elsewhere:
-  // const { selectedImage, setSelectedImage, clearSelectedImage } = useSingleImageStore();
 
+  // "default", "controlnet", "renderSketch", "recolor", "logo"
+  const [generationType, setGenerationType] =
+    useState<"default" | "controlnet" | "renderSketch" | "recolor" | "logo">("default");
+
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+
+  const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const { addImage, images } = useImageStore();
 
-  // Mutation for generating an image via the text-to-image API.
-  const generateImageMutation = useMutation({
-    mutationFn: async (prompt: string) => {
-      if (!prompt.trim()) {
-        throw new Error("Please enter a description to generate an image.");
-      }
+  const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
+  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage();
 
-      const postUrl = "https://api.imagepipeline.io/generate/v3";
-      const postData = {
-        prompt,
-        width: 1024,
-        height: 1024,
-      };
-
-      const headers = {
-        "API-Key": "pKAUeBAx7amJ8ZXu7SsZeot4dJdi6MQGH8ph9KRxizSj2G8lD3qWv7DQzZf4Sgkn",
-        "Content-Type": "application/json",
-      };
-
-      // Post the request to start generating the image
-      const postResponse = await axios.post(postUrl, postData, { headers });
-
-      if (!(postResponse.data && postResponse.data.id)) {
-        throw new Error("Failed to generate image. No ID received.");
-      }
-
-      const { id } = postResponse.data;
-      const getUrl = `https://api.imagepipeline.io/generate/v3/status/${id}`;
-
-      let status = "PENDING";
-      let downloadUrl: string | null = null;
-
-      // Poll for the image generation status
-      while (status === "PENDING") {
-        const getResponse = await axios.get(getUrl, { headers });
-        status = getResponse.data.status;
-
-        if (status === "SUCCESS") {
-          downloadUrl = getResponse.data.download_urls[0];
-          break;
-        } else if (status === "FAILED") {
-          throw new Error("Image generation failed.");
-        }
-
-        // Wait for 60 seconds before checking again
-        await new Promise((resolve) => setTimeout(resolve, 60000));
-      }
-
-      if (!downloadUrl) {
-        throw new Error("Failed to retrieve download URL.");
-      }
-
-      return downloadUrl;
-    },
-    onSuccess: (downloadUrl: string) => {
-      // Create an image element from the download URL.
-      const element = new Image();
-      element.src = downloadUrl;
-
-      element.onload = () => {
-        // Calculate dimensions while maintaining aspect ratio with max dimension 200
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
-
-        if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
-        }
-
-        // Add the image as a media item to the canvas store.
-        addImage({
-          id: crypto.randomUUID(),
-          type: "image",
-          element,
-          url: downloadUrl, // optional: store the URL as well
-          position: { x: 0, y: 0 },
-          size: { width, height },
-          scale: 1,
-        });
-      };
-    },
-    onError: (error: any) => {
-      console.error("Error generating image:", error.message);
-      alert("Failed to generate the image. Please try again.");
-    },
+  // Poll the generate image task status using React Query.
+  const { data: generateTaskStatus } = useQuery({
+    queryKey: ["generateImageTask", generateTaskId],
+    queryFn: () => getGenerateImage(generateTaskId!),
+    enabled: !!generateTaskId,
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
 
+  // Handle updates to the generate image task status.
+  useEffect(() => {
+    if (!generateTaskStatus) return;
+
+    if (generateTaskStatus.status === "SUCCESS") {
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        // Slight offset from the last image
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        addImage({
+          id: uuidv4(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: 520, height: 520 },
+          element: img,
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
+      img.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+      };
+    } else if (generateTaskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
+      setGenerateTaskId(null);
+    }
+  }, [generateTaskStatus, addImage, images, toast]);
+
   const handleGenerateImage = () => {
+    // Ensure prompt is not empty
     if (!inputText.trim()) {
-      alert("Please enter a description to generate an image.");
+      toast({
+        title: "Error",
+        description: "Please enter a description",
+        variant: "destructive",
+      });
       return;
     }
-    generateImageMutation.mutate(inputText);
+
+    // Immediately clear the input text and file preview for a better UX.
+    setInputText("");
+    setPaperclipImage(null);
+
+    // Build the payload exactly as the API expects.
+    const payload: GenerateImagePayload = {
+      prompt: inputText.trim(),
+      num_inference_steps: 30, // Per your API docs
+      samples: 1,
+      enhance_prompt: true, // or false
+      palette: [], // or your chosen color hex array
+      height: 1024,
+      width: 1024,
+      seed: -1, // API docs show default seed is -1
+    };
+
+    generateImage(payload, {
+      onSuccess: (response) => {
+        if (!response.id) {
+          toast({
+            title: "Error",
+            description: "Missing task ID in response",
+            variant: "destructive",
+          });
+          return;
+        }
+        setGenerateTaskId(response.id);
+        toast({
+          title: "Processing started",
+          description: "Your image is being generated",
+        });
+      },
+      onError: (error) => {
+        toast({
+          title: "Generation Failed",
+          description:
+            error instanceof Error ? error.message : "Failed to generate image",
+          variant: "destructive",
+        });
+      },
+    });
   };
 
-  // Handle the paperclip (upload) click to let user choose an image file.
-  const handlePaperclipClick = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = (e) =>
-      handlePaperclipFileUpload(e as unknown as ChangeEvent<HTMLInputElement>);
-    input.click();
-  };
-
-  // When a file is chosen, upload it and add it to the canvas store.
-  const handlePaperclipFileUpload = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  
+  const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
-      const previewUrl = URL.createObjectURL(file);
-      setUploadPreview(previewUrl);
-
-      const uploadedImageUrl = await uploadFiles(file);
-      if (uploadedImageUrl.length > 0) {
-        const element = new Image();
-        element.src = uploadedImageUrl[0];
-
-        element.onload = () => {
-          const aspectRatio = element.width / element.height;
-          let width = 200;
-          let height = width / aspectRatio;
-
-          if (height > 200) {
-            height = 200;
-            width = height * aspectRatio;
-          }
-
-          // Add the uploaded image to the canvas store so it can be moved.
-          addImage({
-            id: crypto.randomUUID(),
-            type: "image",
-            element,
-            url: uploadedImageUrl[0],
-            position: { x: 0, y: 0 },
-            size: { width, height },
-            scale: 1,
-          });
-        };
-        setPaperclipImage(uploadedImageUrl[0]);
-      } else {
-        throw new Error("Failed to upload image");
-      }
+      // Upload the file and get its URL.
+      const imageUrl: string = await uploadBackendFile(file);
+      if (!imageUrl) throw new Error("Failed to upload image");
+      setPaperclipImage(imageUrl);
+      toast({
+        title: "Upload Successful",
+        description: "Image added to canvas",
+      });
     } catch (error) {
-      console.error("Error uploading file:", error);
-      alert("Failed to upload the image. Please try again.");
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
-      setUploadPreview(null);
     }
   };
 
-  // Toggle the settings panel and the color palette.
-  const toggleSettingsPanel = () => setIsSettingsPanelVisible((prev) => !prev);
-  const toggleColorPalette = () => {
-    setIsColorPaletteVisible((prev) => !prev);
-    setIsPaletteOpen((prev) => !prev);
-  };
+  // Add missing file input handling
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePaperclipClick = () => fileInputRef.current?.click();
+  
 
   return (
     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto relative">
-      <div className="flex flex-col gap-4">
-        {(isUploading || uploadPreview || paperclipImage) && (
-          <div className="relative mt-4 z-[100]">
-            <div className="flex flex-wrap gap-2">
-              <div className="relative">
-                <ImageUploadLoader
-                  imagePreview={uploadPreview || paperclipImage}
-                  isUploading={isUploading}
-                />
-                {!isUploading && paperclipImage && (
-                  <button
-                    onClick={() => setPaperclipImage(null)}
-                    className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
-                    aria-label="Delete image"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
+    <div className="flex flex-col gap-4">
+      {(isUploading || paperclipImage) && (
+        <div className="relative mt-4 z-[100]">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <ImageUploadLoader
+                imagePreview={paperclipImage}
+                isUploading={isUploading}
+              />
+              {!isUploading && paperclipImage && (
+                <button
+                  onClick={() => setPaperclipImage(null)}
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                  aria-label="Delete image"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         <div className="flex items-center gap-2">
           <div className="relative flex-grow">
@@ -276,6 +270,14 @@ const ImagePromptUI = () => {
             </Button>
           </div>
         </div>
+        <Button
+          onClick={handleGenerateImage}
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
+          aria-label="Generate"
+        >
+          <span className="hidden lg:inline">Generate</span>
+          <span className="lg:hidden">➜</span>
+        </Button>
       </div>
 
       {isSettingsPanelVisible && (
