@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Card,
@@ -12,12 +13,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { X } from "lucide-react";
-import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi"; // Correct import: returns string (image URL)
-import { useChangeHuman } from "@/AxiosApi/TanstackQuery";
+import { uploadBackendFiles, changeHuman, getChangeHuman } from "@/AxiosApi/GenerativeApi";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 import { useToast } from "@/hooks/use-toast";
-import { useTaskStore } from "@/AxiosApi/TaskStore";
-import { useChangeHumanStatus } from "@/AxiosApi/GetTanstack";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
 
 // Simple FileInput component.
 const FileInput = ({
@@ -37,51 +37,95 @@ export function HumanEditorImage() {
   const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  // Global image store
-  const { selectedImageId, images } = useImageStore();
+  // Global image store including the addImage function.
+  const { selectedImageId, images, addImage } = useImageStore();
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
-  // Global task store – derive pending state for human modification tasks
-  const { tasks, removeTask } = useTaskStore();
-  const isPending = tasks.some((task) => task.type === "changeHuman" && task.id === taskId);
+  // Mutation for initiating human modification
+  const { mutate: startHumanModification } = useMutation({
+    mutationFn: (payload: any) => changeHuman(payload),
+  });
 
-  // API hooks
-  const { mutate: changeHumanImage } = useChangeHuman();
-  const { data: taskStatus } = useChangeHumanStatus(taskId || "");
+  // Query for polling task status
+  const { data: taskStatus } = useQuery({
+    queryKey: ["humanTask", taskId],
+    queryFn: () => getChangeHuman(taskId!),
+    enabled: !!taskId,
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
+  });
 
   // Handle task status updates
   useEffect(() => {
     if (!taskStatus) return;
 
     if (taskStatus.status === "SUCCESS") {
-      const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
-      if (!imageUrl) {
-        toast({
-          title: "Error",
-          description: "Image URL not found",
-          variant: "destructive",
-        });
-        return;
-      }
+      const processImage = async () => {
+        const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
+        if (!imageUrl) {
+          toast({
+            title: "Error",
+            description: "Image URL not found",
+            variant: "destructive",
+          });
+          return;
+        }
+        try {
+          const img = new Image();
+          img.src = imageUrl;
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => resolve();
+            img.onerror = () => reject();
+          });
 
-      toast({ title: "Success", description: "Human modified successfully!" });
-      setTaskId(null); // Clear the task ID
-      removeTask(taskId!); // Remove the task from the store
+          // Check for duplicates in the store
+          if (images.some((img) => img.url === imageUrl)) {
+            setIsGenerating(false);
+            return;
+          }
+
+          const lastImage = images[images.length - 1];
+          const newPosition = lastImage
+            ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+            : { x: 50, y: 60 };
+
+          // Add the new (generated) image to the store
+          addImage({
+            id: uuidv4(),
+            url: imageUrl,
+            position: newPosition,
+            size: { width: 100, height: 100 },
+            element: img,
+          });
+          toast({ title: "Success", description: "Human modified successfully!" });
+        } catch (error) {
+          toast({
+            title: "Error",
+            description: "Failed to load image",
+            variant: "destructive",
+          });
+        } finally {
+          setTaskId(null);
+          setIsGenerating(false);
+        }
+      };
+      processImage();
     } else if (taskStatus.status === "FAILURE") {
       toast({
         title: "Error",
         description: taskStatus.error || "Failed to modify human",
         variant: "destructive",
       });
-      setTaskId(null); // Clear the task ID
-      removeTask(taskId!); // Remove the task from the store
+      setTaskId(null);
+      setIsGenerating(false);
     }
-  }, [taskStatus, toast, removeTask, taskId]);
+  }, [taskStatus, images, addImage, toast]);
 
   // Submit handler with full validation
   const handleSubmit = useCallback(() => {
@@ -121,7 +165,8 @@ export function HumanEditorImage() {
       // …other required API parameters
     };
 
-    changeHumanImage(payload, {
+    setIsGenerating(true);
+    startHumanModification(payload, {
       onSuccess: (response) => {
         if (!response.id) {
           toast({
@@ -129,9 +174,10 @@ export function HumanEditorImage() {
             description: "Invalid response: Missing task ID",
             variant: "destructive",
           });
+          setIsGenerating(false);
           return;
         }
-        setTaskId(response.id); // Start polling
+        setTaskId(response.id); // Start polling for the task status
         toast({
           title: "Processing",
           description: "Human modification in progress...",
@@ -143,12 +189,12 @@ export function HumanEditorImage() {
           description: error.message || "Failed to start modification",
           variant: "destructive",
         });
+        setIsGenerating(false);
       },
     });
-  }, [selectedImage, humanImage, prompt, changeHumanImage, toast]);
+  }, [selectedImage, humanImage, prompt, startHumanModification, toast]);
 
   // Handle reference image upload.
-  // Note: uploadBackendFiles returns a string (the image URL) so we use it directly.
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -159,7 +205,7 @@ export function HumanEditorImage() {
         if (!imageUrl) {
           throw new Error("Invalid response: Missing image URL");
         }
-        setHumanImage(imageUrl); // Set the uploaded image URL
+        setHumanImage(imageUrl);
         toast({ title: "Success", description: "Reference image uploaded!" });
       } catch (error) {
         toast({
@@ -227,10 +273,10 @@ export function HumanEditorImage() {
       <CardFooter>
         <Button
           onClick={handleSubmit}
-          disabled={isPending}
+          disabled={isGenerating}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isPending ? (
+          {isGenerating ? (
             <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>
           ) : (
             "Modify Human"

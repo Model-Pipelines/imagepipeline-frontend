@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -174,9 +174,10 @@ export default function CustomColorPalette() {
     setOpenPopoverIndex(null);
   };
 
+  // Increase z-index on the card so it overlays other content.
   return (
     isVisible && (
-      <Card className="fixed w-[300px] bg-white/20 backdrop-blur-md text-white">
+      <Card className="fixed z-[1000] w-[300px] bg-white/20 backdrop-blur-md text-white">
         <CardContent className="p-4">
           <Button
             variant="ghost"
@@ -242,11 +243,14 @@ export default function CustomColorPalette() {
                         }}
                       >
                         <PopoverTrigger asChild>
-                          <button
+                          {/* Use a div with role="button" instead of a button to avoid nested buttons */}
+                          <div
+                            role="button"
+                            tabIndex={0}
                             className={cn(
                               "h-5 w-5 rounded-sm transition-all hover:scale-105",
                               activeColorIndex === index &&
-                                "ring-1 ring-yellow-500"
+                              "ring-1 ring-yellow-500"
                             )}
                             style={{ backgroundColor: color }}
                             onClick={(e) => {
@@ -256,7 +260,7 @@ export default function CustomColorPalette() {
                             {color === "#FFFFFF" && (
                               <Plus className="h-4 w-4 mx-auto text-zinc-400" />
                             )}
-                          </button>
+                          </div>
                         </PopoverTrigger>
                         <PopoverContent className="w-64 p-2 bg-yellow-500 border-zinc-800">
                           <div className="flex justify-between items-center mb-2">

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools, persist } from "zustand/middleware";
+import { devtools } from "zustand/middleware";
 
 interface CanvasState {
   scale: number;
@@ -15,23 +15,16 @@ interface CanvasState {
 }
 
 export const useCanvasStore = create<CanvasState>()(
-  devtools(
-    persist(
-      (set) => ({
-        scale: 1,
-        offset: { x: 0, y: 0 },
-        isDragging: false,
-        isResizing: false,
-        resizeHandle: null,
-        setScale: (scale) => set({ scale }),
-        setOffset: (offset) => set({ offset }),
-        setIsDragging: (isDragging) => set({ isDragging }),
-        setIsResizing: (isResizing) => set({ isResizing }),
-        setResizeHandle: (handle) => set({ resizeHandle: handle }),
-      }),
-      {
-        name: "CanvasStorage", // Key for localStorage
-      }
-    )
-  )
+  devtools((set) => ({
+    scale: 1,
+    offset: { x: 0, y: 0 },
+    isDragging: false,
+    isResizing: false,
+    resizeHandle: null,
+    setScale: (scale) => set({ scale }),
+    setOffset: (offset) => set({ offset }),
+    setIsDragging: (isDragging) => set({ isDragging }),
+    setIsResizing: (isResizing) => set({ isResizing }),
+    setResizeHandle: (handle) => set({ resizeHandle: handle }),
+  }))
 );
