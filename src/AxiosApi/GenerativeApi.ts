@@ -247,7 +247,7 @@ export const getUpscaleImageStatus = async (taskId: string): Promise<any> => {
  * Get Generate Image Task Status
  */
 export const getGenerateImage = async (id: string): Promise<any> => {
-  const response = await apiClient.get(`/generate/v3/status/${id}}`);
+  const response = await apiClient.get(`/generate/v3/status/${id}`);
   return response.data;
 };
 
