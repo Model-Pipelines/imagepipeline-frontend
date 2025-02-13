@@ -20,9 +20,15 @@ import { v4 as uuidv4 } from "uuid";
 const ImagePromptUI = () => {
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [selectedPalette, setSelectedPalette] = useState<PaletteType | null>(null); 
   const [inputText, setInputText] = useState("");
   const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+   // Add missing toggle functions
+   const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
+   const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
+
 
   // "default", "controlnet", "renderSketch", "recolor", "logo"
   const [generationType, setGenerationType] =
@@ -178,107 +184,110 @@ const ImagePromptUI = () => {
     }
   };
 
+  // Add missing file input handling
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePaperclipClick = () => fileInputRef.current?.click();
+  
+
   return (
-    <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
-      <div className="flex flex-col gap-4">
-        {/* File Preview */}
-        {(isUploading || paperclipImage) && (
-          <div className="relative mt-4 z-[100]">
-            <div className="flex flex-wrap gap-2">
-              <ImageUploadLoader imagePreview={paperclipImage} isUploading={isUploading} />
-              {!isUploading && (
+    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto relative">
+    <div className="flex flex-col gap-4">
+      {(isUploading || paperclipImage) && (
+        <div className="relative mt-4 z-[100]">
+          <div className="flex flex-wrap gap-2">
+            <div className="relative">
+              <ImageUploadLoader
+                imagePreview={paperclipImage}
+                isUploading={isUploading}
+              />
+              {!isUploading && paperclipImage && (
                 <button
                   onClick={() => setPaperclipImage(null)}
-                  className="absolute top-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                  aria-label="Delete image"
                 >
                   <X size={16} />
                 </button>
               )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Input Section */}
-        <div className="flex flex-col sm:flex-row items-center gap-2">
-          <div className="relative flex-grow">
-            <input
-              type="file"
-              hidden
-              id="file-upload"
-              onChange={(e) =>
-                e.target.files?.[0] && handleFileUpload(e.target.files[0])
-              }
-            />
-            <label
-              htmlFor="file-upload"
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
-            >
-              <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            </label>
-            <Textarea
-              ref={textAreaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Describe what you want to generate..."
-              className="w-full pl-10 pr-2 bg-slate-50 dark:bg-gray-700 resize-none rounded-lg"
-              rows={3}
-            />
-          </div>
-          <Button
-            onClick={handleGenerateImage}
-            disabled={isGenerating || !!generateTaskId}
-            className="h-12 w-12 md:h-auto md:w-auto md:px-6"
+      <div className="flex items-center gap-2">
+        <div className="relative flex-grow">
+          <button
+            className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1"
+            onClick={handlePaperclipClick}
+            title="Upload Image"
           >
-            {isGenerating || generateTaskId ? (
-              <span className="animate-pulse">...</span>
-            ) : (
-              "Generate"
-            )}
-          </Button>
-        </div>
-
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-2">
-          <div className="flex items-center gap-2">
-            <PreviewDualActionButton />
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setIsColorPaletteVisible(!isColorPaletteVisible)}
-            >
-              <Palette className="mr-2 h-4 w-4" />
-              Colors
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setIsSettingsPanelVisible(!isSettingsPanelVisible)}
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Overlays */}
-      {isSettingsPanelVisible && (
-        <div className="absolute top-10 right-10 z-[9999]">
-          <SettingsPanel
-            onClose={() => setIsSettingsPanelVisible(false)}
-            generationType={generationType}
-            onTypeChange={setGenerationType}
-            initialPrompt={inputText}
+            <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          </button>
+          <Textarea
+            ref={textAreaRef}
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            placeholder="Describe what you want to see or Upload image"
+            className="w-full h-10 pl-10 pr-2 text-black dark:text-white focus:outline-none bg-slate-50 border-none dark:bg-gray-700 dark:border-gray-600 resize-none rounded-lg"
+            aria-label="Image description input"
           />
         </div>
-      )}
+        <Button
+          onClick={handleGenerateImage}
+          className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
+          aria-label="Generate"
+        >
+          <span className="hidden lg:inline">Generate</span>
+          <span className="lg:hidden">➜</span>
+        </Button>
+      </div>
 
-      {isColorPaletteVisible && (
-        <div className="absolute top-10 left-10 z-[9999]">
-          <CustomColorPalette onClose={() => setIsColorPaletteVisible(false)} />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <PreviewDualActionButton />
         </div>
-      )}
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={toggleColorPalette}
+            className={`w-10 h-10 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
+              isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+            }`}
+            aria-label="Toggle color palette"
+          >
+            <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+            <span className={`hidden lg:ml-2 lg:inline ${selectedPalette ? "text-white" : "text-gray-700"}`}>
+              Color: {selectedPalette ? selectedPalette.name : "Auto"}
+            </span>
+          </Button>
+          <Button
+            onClick={toggleSettingsPanel}
+            className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
+            aria-label="Toggle settings"
+          >
+            <Settings className="h-5 w-5 text-gray-700" />
+            <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
+          </Button>
+        </div>
+      </div>
     </div>
+
+    {isSettingsPanelVisible && (
+      <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+        <SettingsPanel
+          onTypeChange={(type: any) => {}}
+          paperclipImage={paperclipImage}
+          inputText={inputText}
+        />
+      </div>
+    )}
+
+    {isColorPaletteVisible && (
+      <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
+        <CustomColorPalette />
+      </div>
+    )}
+
+  </div>
   );
 };
 
