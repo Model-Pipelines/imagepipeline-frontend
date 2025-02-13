@@ -1,78 +1,132 @@
-import React, { useMemo, useState } from "react";
+"use client";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider"; // Import Slider for upscale factor
+import { Slider } from "@/components/ui/slider";
 import { useUpscaleImage } from "@/AxiosApi/TanstackQuery";
-import { v4 as uuidv4 } from "uuid";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
+import { useTaskStore } from "@/AxiosApi/TaskStore";
+import { useUpscaleImageStatus } from "@/AxiosApi/GetTanstack"; // Import the status hook
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 
 const Upscale = () => {
-  const [upscaleFactor, setUpscaleFactor] = useState<number>(2); // Default upscale factor
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const { mutate: upscaleImage } = useUpscaleImage();
-  const addImage = useImageStore((state) => state.addImage);
+  const [upscaleFactor, setUpscaleFactor] = useState<number>(2);
+  const [taskId, setTaskId] = useState<string | null>(null); // Track the task ID
   const { toast } = useToast();
-  const { selectedImageId, images } = useImageStore();
 
-  // Get the selected image from the store
+  // Get the currently selected image from the global image store
+  const { selectedImageId, images, addImage } = useImageStore();
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
-  const handleSubmit = () => {
-    // Check if there's a selected image
+  // Check the global task store to see if any upscale task is pending
+  const { tasks, removeTask } = useTaskStore();
+  const isPending = tasks.some((task) => task.type === "upscale" && task.id === taskId);
+
+  // Upscale mutation
+  const { mutate: upscaleImage } = useUpscaleImage();
+  const { data: taskStatus } = useUpscaleImageStatus(taskId || ""); // Poll task status
+
+  // Handle task status updates
+  useEffect(() => {
+    if (!taskStatus) return;
+
+    if (taskStatus.status === "SUCCESS") {
+      const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Add the upscaled image to the store
+      addImage({
+        id: taskId!, // Use task ID as image ID
+        url: imageUrl,
+        position: { x: 0, y: 0 },
+        size: { width: 300, height: 300 },
+      });
+
+      toast({ title: "Success", description: "Image upscaled successfully!" });
+      setTaskId(null); // Clear the task ID
+      removeTask(taskId!); // Remove the task from the store
+    } else if (taskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: taskStatus.error || "Failed to upscale image",
+        variant: "destructive",
+      });
+      setTaskId(null); // Clear the task ID
+      removeTask(taskId!); // Remove the task from the store
+    }
+  }, [taskStatus, toast, addImage, removeTask, taskId]);
+
+  // Submit handler with full validation
+  const handleSubmit = useCallback(() => {
     if (!selectedImage) {
       toast({
         title: "Error",
-        description: "No image selected. Please select an image first.",
+        description: "Please select an image to upscale",
         variant: "destructive",
       });
       return;
     }
 
-    setIsLoading(true); // Set loading state to true
-
+    // Construct the payload for upscaling
     const payload = {
-      input_image: selectedImage.url, // Use the selected image's URL
+      input_image: selectedImage.url,
+      scale: upscaleFactor,
+      // ...other required parameters
     };
 
     upscaleImage(payload, {
       onSuccess: (response) => {
-        const newImage = {
-          id: uuidv4(),
-          url: response.data.image_url,
-          name: "Upscaled Image",
-        };
-
-        addImage(newImage);
-
+        if (!response.id) {
+          toast({
+            title: "Error",
+            description: "Invalid response: Missing task ID",
+            variant: "destructive",
+          });
+          return;
+        }
+        setTaskId(response.id); // Start polling
         toast({
-          title: "Success",
-          description: "Image upscaled successfully!",
+          title: "Processing",
+          description: "Upscaling in progress...",
         });
-
-        setIsLoading(false); // Reset loading state
       },
-      onError: (error) => {
+      onError: (error: any) => {
         toast({
           title: "Error",
-          description: "Failed to upscale the image.",
+          description: error.message || "Failed to start upscaling",
           variant: "destructive",
         });
-        setIsLoading(false); // Reset loading state
       },
     });
-  };
+  }, [selectedImage, upscaleFactor, upscaleImage, toast]);
 
   return (
-    <Card>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Image Upscaling</CardTitle>
+      </CardHeader>
       <CardContent className="space-y-6">
-        {/* Current Image Section */}
         <div className="space-y-2">
-          <Label className="text-gray-700">Current Image</Label>
+          <Label>Selected Image</Label>
           {selectedImage ? (
             <img
               src={selectedImage.url}
@@ -80,35 +134,35 @@ const Upscale = () => {
               className="w-full h-auto rounded-md border"
             />
           ) : (
-            <p className="text-gray-500">No image selected.</p>
+            <p className="text-gray-500">No image selected</p>
           )}
         </div>
-
-        {/* Upscale Factor Section (Optional) */}
-        {/* <div className="space-y-2">
-          <Label className="text-gray-700">Upscale Factor</Label>
-          <div className="flex flex-col gap-4">
-            <Slider
-              defaultValue={[upscaleFactor]}
-              min={1}
-              max={4}
-              step={1}
-              onValueChange={(value) => setUpscaleFactor(value[0])}
-              className="w-full"
-            />
-            <p className="text-sm text-gray-500">
-              Upscale factor: {upscaleFactor}x (Higher values increase image resolution but may take longer to process.)
-            </p>
-          </div>
-        </div> */}
+        <div className="space-y-2">
+          <Label>Upscale Factor ({upscaleFactor}x)</Label>
+          <Slider
+            defaultValue={[upscaleFactor]}
+            min={1}
+            max={4}
+            step={1}
+            onValueChange={(value) => setUpscaleFactor(value[0])}
+            className="w-full"
+          />
+          <p className="text-sm text-gray-500">
+            Higher values increase resolution but require more processing time
+          </p>
+        </div>
       </CardContent>
       <CardFooter>
         <Button
           onClick={handleSubmit}
-          disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          disabled={isPending}
+          className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isLoading ? "Processing..." : "Upscale Image"}
+          {isPending ? (
+            <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>
+          ) : (
+            "Upscale Image"
+          )}
         </Button>
       </CardFooter>
     </Card>

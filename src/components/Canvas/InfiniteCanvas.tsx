@@ -10,6 +10,7 @@ import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "
 import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
+import { useTaskStore } from "@/AxiosApi/TaskStore";
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
@@ -345,6 +346,7 @@ export default function InfiniteCanvas() {
           onClick={() => {
             useCanvasStore.persist.clearStorage();
             useImageStore.persist.clearStorage();
+            useTaskStore.persist.clearStorage();
             window.location.reload(); // Reload to reset the state
           }}
           className="absolute top-4 right-16 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-50"
@@ -369,6 +371,7 @@ export default function InfiniteCanvas() {
         />
         {images.map((img) => (
           <Dialog key={img.id}>
+            <DialogTitle>Image Editor</DialogTitle>
             <DialogTrigger asChild>
               <button
                 className="absolute"
