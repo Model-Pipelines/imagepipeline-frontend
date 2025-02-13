@@ -6,7 +6,13 @@ import { Edit, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import ParentPrompt from "../PromptUI/ParentPrompt";
 import Sidebar from "../Sidebar/Sidebar";
-import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "../ui/dialog";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
 import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
@@ -16,7 +22,8 @@ const INITIAL_IMAGE_SIZE = 200;
 
 export default function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { images, selectedImageId, setSelectedImageId, updateImage, addImage } = useImageStore();
+  const { images, selectedImageId, setSelectedImageId, updateImage, addImage } =
+    useImageStore();
   const {
     scale,
     offset,
@@ -28,8 +35,13 @@ export default function InfiniteCanvas() {
     setResizeHandle,
   } = useCanvasStore();
 
-  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(null);
+  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
+  const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(
+    null
+  );
 
   // Initialize images on mount
   useEffect(() => {
@@ -56,8 +68,14 @@ export default function InfiniteCanvas() {
         const spacing = 50; // Space between images
 
         const newPosition = {
-          x: (numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing) / scale - offset.x,
-          y: Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing) / scale - offset.y,
+          x:
+            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale -
+            offset.x,
+          y:
+            (Math.floor(numImages / gridSize) *
+              (INITIAL_IMAGE_SIZE + spacing)) /
+              scale -
+            offset.y,
         };
 
         addImage({
@@ -265,13 +283,15 @@ export default function InfiniteCanvas() {
       },
     ];
 
-    return handles.find(
-      (handle) =>
-        pos.x >= handle.x - handle.region &&
-        pos.x <= handle.x + handle.region &&
-        pos.y >= handle.y - handle.region &&
-        pos.y <= handle.y + handle.region
-    )?.id || null;
+    return (
+      handles.find(
+        (handle) =>
+          pos.x >= handle.x - handle.region &&
+          pos.x <= handle.x + handle.region &&
+          pos.y >= handle.y - handle.region &&
+          pos.y <= handle.y + handle.region
+      )?.id || null
+    );
   };
 
   // Canvas drawing
@@ -293,7 +313,13 @@ export default function InfiniteCanvas() {
       .filter((img) => img.element && img.element.complete) // Ensure the image is loaded
       .forEach((img) => {
         // Draw image
-        ctx.drawImage(img.element!, img.position.x, img.position.y, img.size.width, img.size.height);
+        ctx.drawImage(
+          img.element!,
+          img.position.x,
+          img.position.y,
+          img.size.width,
+          img.size.height
+        );
 
         // Draw selection border and resize handles if the image is selected
         if (img.id === selectedImageId) {
@@ -312,7 +338,10 @@ export default function InfiniteCanvas() {
             { x: img.position.x, y: img.position.y }, // NW
             { x: img.position.x + img.size.width, y: img.position.y }, // NE
             { x: img.position.x, y: img.position.y + img.size.height }, // SW
-            { x: img.position.x + img.size.width, y: img.position.y + img.size.height }, // SE
+            {
+              x: img.position.x + img.size.width,
+              y: img.position.y + img.size.height,
+            }, // SE
           ];
 
           handles.forEach((handle) => {
@@ -374,16 +403,22 @@ export default function InfiniteCanvas() {
                 className="absolute"
                 style={{
                   transform: `translate(
-                    ${(img.position.x + img.size.width) * scale + offset.x + 10}px,
+                    ${
+                      (img.position.x + img.size.width) * scale + offset.x + 10
+                    }px,
                     ${img.position.y * scale + offset.y - 10}px
                   )`,
                   zIndex: 1000,
                 }}
                 onClick={() => setSelectedImageId(img.id)}
               >
-                <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
+                <Edit
+                  className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors"
+                  size={20}
+                />
               </button>
             </DialogTrigger>
+            <DialogTitle />
             <DialogContent>
               {img.id === selectedImageId && <EditImageCard />}
             </DialogContent>
