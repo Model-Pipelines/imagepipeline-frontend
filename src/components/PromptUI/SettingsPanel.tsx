@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { FaUpload, FaTimes } from "react-icons/fa";
@@ -23,6 +21,7 @@ import {
   useInteriorDesign,
   useGenerateLogo,
   useUploadBackendFiles,
+  useGenerateImage,
 } from "@/AxiosApi/TanstackQuery";
 import {
   ControlNetPayload,
@@ -31,6 +30,19 @@ import {
   InteriorDesignPayload,
   GenerateLogoPayload,
 } from "@/AxiosApi/types";
+
+import {
+  getControlNetTaskStatus,
+  getRenderSketchStatus,
+  getRecolorImageStatus,
+  getInteriorDesignStatus,
+  getGenerateLogoStatus,
+  getGenerateImage,
+} from "@/AxiosApi/GenerativeApi";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+
+import { v4 as uuidv4 } from "uuid";
+import { useQuery } from "@tanstack/react-query";
 
 interface SettingsPanelProps {
   onTypeChange: (type: string) => void;
@@ -55,14 +67,102 @@ const SettingsPanel = ({
 
   const { toast } = useToast();
 
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const { addImage, images } = useImageStore();
+
   const aspectRatios = ["9:16", "3:4", "1:1", "4:3", "16:9", "21:9"];
 
-  const { mutate: controlNetMutate } = useControlNet();
-  const { mutate: renderSketchMutate } = useRenderSketch();
-  const { mutate: recolorImageMutate } = useRecolorImage();
-  const { mutate: interiorDesignMutate } = useInteriorDesign();
-  const { mutate: generateLogoMutate } = useGenerateLogo();
+  const { mutateAsync: controlNetMutate } = useControlNet();
+const { mutateAsync: renderSketchMutate } = useRenderSketch();
+const { mutateAsync: recolorImageMutate } = useRecolorImage();
+const { mutateAsync: interiorDesignMutate } = useInteriorDesign();
+const { mutateAsync: generateLogoMutate } = useGenerateLogo();
   const { mutateAsync: uploadBackendFilesMutate } = useUploadBackendFiles();
+  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage();
+
+  // Handle task status polling
+  const { data: generateTaskStatus } = useQuery({
+    queryKey: ["generateImageTask", generateTaskId],
+    queryFn: async () => {
+      if (!generateTaskId) return null;
+
+      switch (type) {
+        case "Outline":
+        case "Depth":
+        case "Pose":
+          return await getControlNetTaskStatus(generateTaskId);
+        case "Render Sketch":
+          return await getRenderSketchStatus(generateTaskId);
+        case "Recolor":
+          return await getRecolorImageStatus(generateTaskId);
+        case "Interior Design":
+          return await getInteriorDesignStatus(generateTaskId);
+        case "Logo":
+          return await getGenerateLogoStatus(generateTaskId);
+        default:
+          return await getGenerateImage(generateTaskId);
+      }
+    },
+    enabled: !!generateTaskId,
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
+  });
+
+  // Handle updates to the generate image task status.
+  useEffect(() => {
+    if (!generateTaskStatus) return;
+
+    console.log("Task status updated:", generateTaskStatus); // Debugging
+
+    if (generateTaskStatus.status === "SUCCESS") {
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        // Slight offset from the last image
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        addImage({
+          id: uuidv4(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: 520, height: 520 },
+          element: img,
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
+      img.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+      };
+    } else if (generateTaskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
+      setGenerateTaskId(null);
+    }
+  }, [generateTaskStatus, addImage, images, toast]);
 
   // Handle reference image upload
   const handleReferenceImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -167,12 +267,12 @@ const SettingsPanel = ({
       });
       return null;
     }
-  
+
     const basePayload = {
       prompt: inputText,
       image: referenceImage,
     };
-  
+
     switch (type) {
       case "Outline":
         return {
@@ -182,7 +282,7 @@ const SettingsPanel = ({
           num_inference_steps: 30,
           samples: 1,
         } as ControlNetPayload;
-  
+
       case "Depth":
         return {
           controlnet: "depth", // Required
@@ -191,7 +291,7 @@ const SettingsPanel = ({
           num_inference_steps: 30,
           samples: 1,
         } as ControlNetPayload;
-  
+
       case "Pose":
         return {
           controlnet: "openpose", // Required
@@ -200,7 +300,7 @@ const SettingsPanel = ({
           num_inference_steps: 30,
           samples: 1,
         } as ControlNetPayload;
-  
+
       case "Render Sketch":
         return {
           model_id: "sdxl", // Required
@@ -212,7 +312,7 @@ const SettingsPanel = ({
           samples: 1,
           controlnet_weights: [1.0], // Required
         } as RenderSketchPayload;
-  
+
       case "Recolor":
         return {
           model_id: "sdxl", // Required
@@ -224,7 +324,7 @@ const SettingsPanel = ({
           samples: 1,
           controlnet_weights: [1.0], // Required
         } as RecolorImagePayload;
-  
+
       case "Interior Design":
         return {
           model_id: "sdxl", // Required
@@ -236,14 +336,14 @@ const SettingsPanel = ({
           samples: 1,
           controlnet_weights: [1.0], // Required
         } as InteriorDesignPayload;
-  
+
       case "Logo":
         return {
           logo_prompt: inputText, // Required
           prompt: inputText, // Required
           image: referenceImage, // Required
         } as GenerateLogoPayload;
-  
+
       default:
         toast({
           title: "Error",
@@ -258,25 +358,27 @@ const SettingsPanel = ({
   const handleGenerateImageByReference = async () => {
     const payload = generatePayload();
     if (!payload) return;
-
+  
     try {
+      console.log("Sending payload:", payload);
+      let response;
       switch (type) {
         case "Outline":
         case "Depth":
         case "Pose":
-          controlNetMutate(payload as ControlNetPayload);
+          response = await controlNetMutate(payload as ControlNetPayload);
           break;
         case "Render Sketch":
-          renderSketchMutate(payload as RenderSketchPayload);
+          response = await renderSketchMutate(payload as RenderSketchPayload);
           break;
         case "Recolor":
-          recolorImageMutate(payload as RecolorImagePayload);
+          response = await recolorImageMutate(payload as RecolorImagePayload);
           break;
         case "Interior Design":
-          interiorDesignMutate(payload as InteriorDesignPayload);
+          response = await interiorDesignMutate(payload as InteriorDesignPayload);
           break;
         case "Logo":
-          generateLogoMutate(payload as GenerateLogoPayload);
+          response = await generateLogoMutate(payload as GenerateLogoPayload);
           break;
         default:
           toast({
@@ -285,6 +387,28 @@ const SettingsPanel = ({
             variant: "destructive",
           });
           return;
+      }
+  
+      console.log("API Response:", response);
+  
+      if (!response) {
+        throw new Error("No response from the server");
+      }
+  
+      if (response?.task_id || response?.id) {
+        const taskId = response.task_id || response.id;
+        setGenerateTaskId(taskId);
+        toast({
+          title: "Processing started",
+          description: "Your image is being generated",
+        });
+      } else {
+        console.error("No task ID in response:", response);
+        toast({
+          title: "Error",
+          description: "No task ID returned from the server.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error generating content:", error);
@@ -295,6 +419,7 @@ const SettingsPanel = ({
       });
     }
   };
+
 
   // Handle type change
   const handleTypeChange = (value: string) => {

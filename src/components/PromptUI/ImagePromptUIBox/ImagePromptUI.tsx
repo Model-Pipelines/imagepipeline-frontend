@@ -53,6 +53,7 @@ const ImagePromptUI = () => {
       data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
 
+
   // Handle updates to the generate image task status.
   useEffect(() => {
     if (!generateTaskStatus) return;

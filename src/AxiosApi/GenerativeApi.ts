@@ -94,6 +94,7 @@ export const generateImage = async (data: GenerateImagePayload): Promise<any> =>
   return response.data;
 };
 
+
 /**
  * Describe Image
  */
@@ -109,6 +110,7 @@ export const controlNet = async (data: ControlNetPayload): Promise<any> => {
   const response = await apiClient.post('/control/v1', data);
   return response.data;
 };
+
 
 /**
  * Render Sketch
@@ -191,7 +193,7 @@ export const getControlNetTaskStatus = async (taskId: string): Promise<any> => {
  * Get Render Sketch Task Status
  */
 export const getRenderSketchStatus = async (taskId: string): Promise<any> => {
-  const response = await apiClient.get(`/sketch/v1/status/${taskId}`);
+  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`);
   return response.data;
 };
 
@@ -199,7 +201,7 @@ export const getRenderSketchStatus = async (taskId: string): Promise<any> => {
  * Get Recolor Image Status
  */
 export const getRecolorImageStatus = async (taskId: string): Promise<any> => {
-  const response = await apiClient.get(`/recolor/v1/status/${taskId}`);
+  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`);
   return response.data;
 };
 
@@ -207,7 +209,7 @@ export const getRecolorImageStatus = async (taskId: string): Promise<any> => {
  * Get Interior Design Status
  */
 export const getInteriorDesignStatus = async (taskId: string): Promise<any> => {
-  const response = await apiClient.get(`/interior/v1/status/${taskId}`);
+  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`);
   return response.data;
 };
 
