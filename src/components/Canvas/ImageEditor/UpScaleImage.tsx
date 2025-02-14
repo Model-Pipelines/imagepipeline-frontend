@@ -1,12 +1,6 @@
 "use client";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import React, { useCallback, useMemo, useState } from "react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -14,107 +8,23 @@ import { useUpscaleImage } from "@/AxiosApi/TanstackQuery";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
-import { getUpscaleImageStatus } from "@/AxiosApi/GenerativeApi";
-import { v4 as uuidv4 } from "uuid";
-import { useQuery } from "@tanstack/react-query";
+import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
 
 const Upscale = () => {
   const [upscaleFactor, setUpscaleFactor] = useState<number>(2);
-  const [taskId, setTaskId] = useState<string | null>(null);
   const { toast } = useToast();
+  const { addTask } = useBackgroundTaskStore();
 
-  // Get the currently selected image from the global store.
-  const { selectedImageId, images, addImage } = useImageStore();
+  const { selectedImageId, images } = useImageStore();
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
-  // Upscale mutation, including its loading state.
-  const { mutate: upscaleImage, isLoading } = useUpscaleImage();
+  // Destructure status from the mutation hook and derive isLoading based on normalized status.
+  const { mutate: upscaleImage, status } = useUpscaleImage();
+  const isLoading = status.trim().toUpperCase() === "PENDING";
 
-  // useQuery to poll the upscale task status.
-  const { data: taskStatus } = useQuery({
-    queryKey: ["upscaleTask", taskId],
-    queryFn: () => getUpscaleImageStatus(taskId!),
-    enabled: !!taskId, // Only poll when taskId exists.
-    refetchInterval: (data) =>
-      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
-  });
-
-  // If a task is in progress or the mutation is loading, disable the button.
-  const isPending = !!taskId || isLoading;
-
-  // Handle task status updates.
-  useEffect(() => {
-    if (!taskStatus) return;
-
-    if (taskStatus.status === "SUCCESS") {
-      const processUpscaledImage = async () => {
-        const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
-        if (!imageUrl) {
-          toast({
-            title: "Error",
-            description: "Image URL not found",
-            variant: "destructive",
-          });
-          setTaskId(null);
-          return;
-        }
-        try {
-          // Create an image element and wait for it to load.
-          const img = new Image();
-          img.src = imageUrl;
-          await new Promise<void>((resolve, reject) => {
-            img.onload = resolve;
-            img.onerror = reject;
-          });
-
-          // Check for duplicates.
-          if (images.some((image) => image.url === imageUrl)) {
-            setTaskId(null);
-            return;
-          }
-
-          // Calculate a new position with a slight offset.
-          const lastImage = images[images.length - 1];
-          const newPosition = lastImage
-            ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-            : { x: 50, y: 60 };
-
-          // Add the upscaled image to the store with a unique ID.
-          addImage({
-            id: uuidv4(),
-            url: imageUrl,
-            position: newPosition,
-            size: { width: 300, height: 300 },
-            element: img,
-          });
-
-          toast({ title: "Success", description: "Image upscaled successfully!" });
-        } catch (error) {
-          toast({
-            title: "Error",
-            description: "Failed to load upscaled image",
-            variant: "destructive",
-          });
-        } finally {
-          setTaskId(null);
-        }
-      };
-
-      processUpscaledImage();
-    } else if (taskStatus.status === "FAILURE") {
-      toast({
-        title: "Error",
-        description: taskStatus.error || "Failed to upscale image",
-        variant: "destructive",
-      });
-      setTaskId(null);
-    }
-  }, [taskStatus, images, addImage, toast]);
-
-  // Submit handler with full validation.
   const handleSubmit = useCallback(() => {
     if (!selectedImage) {
       toast({
@@ -125,11 +35,9 @@ const Upscale = () => {
       return;
     }
 
-    // Construct the payload for upscaling.
     const payload = {
       input_image: selectedImage.url,
       scale: upscaleFactor,
-      // ...other required parameters.
     };
 
     upscaleImage(payload, {
@@ -142,7 +50,7 @@ const Upscale = () => {
           });
           return;
         }
-        setTaskId(response.id); // Start polling for the task status.
+        addTask(response.id, selectedImageId!, "upscale");
         toast({
           title: "Processing",
           description: "Upscaling in progress...",
@@ -156,7 +64,7 @@ const Upscale = () => {
         });
       },
     });
-  }, [selectedImage, upscaleFactor, upscaleImage, toast]);
+  }, [selectedImage, upscaleFactor, upscaleImage, toast, addTask, selectedImageId]);
 
   return (
     <Card className="w-full">
@@ -194,10 +102,10 @@ const Upscale = () => {
       <CardFooter>
         <Button
           onClick={handleSubmit}
-          disabled={isPending}
+          disabled={isLoading}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isPending ? (
+          {isLoading ? (
             <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>
           ) : (
             "Upscale Image"

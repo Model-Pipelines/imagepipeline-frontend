@@ -74,7 +74,7 @@ export default function InfiniteCanvas() {
           y:
             (Math.floor(numImages / gridSize) *
               (INITIAL_IMAGE_SIZE + spacing)) /
-              scale -
+            scale -
             offset.y,
         };
 
@@ -403,12 +403,11 @@ export default function InfiniteCanvas() {
                 className="absolute"
                 style={{
                   transform: `translate(
-                    ${
-                      (img.position.x + img.size.width) * scale + offset.x + 10
+                    ${(img.position.x + img.size.width) * scale + offset.x + 10
                     }px,
                     ${img.position.y * scale + offset.y - 10}px
                   )`,
-                  zIndex: 1000,
+                  zIndex: 10,
                 }}
                 onClick={() => setSelectedImageId(img.id)}
               >
