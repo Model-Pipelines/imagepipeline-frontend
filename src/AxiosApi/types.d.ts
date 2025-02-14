@@ -33,7 +33,7 @@ export interface RenderSketchPayload {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  images: string[];
+  init_images: string[]; 
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -45,7 +45,7 @@ export interface RecolorImagePayload {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  images: string[];
+  init_images: string[]; 
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];

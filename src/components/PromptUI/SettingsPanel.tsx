@@ -3,7 +3,7 @@
 import { useState, ChangeEvent } from "react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { FaUpload, FaTimes } from "react-icons/fa"; // Added FaTimes for the cross icon
+import { FaUpload, FaTimes } from "react-icons/fa";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
@@ -50,7 +50,8 @@ const SettingsPanel = ({
   }>({});
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [referenceImage, setReferenceImage] = useState<string | null>(null);
-  const [faceImages, setFaceImages] = useState<string[]>([]); // Array to store multiple face images
+  const [faceImages, setFaceImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { toast } = useToast();
 
@@ -61,34 +62,78 @@ const SettingsPanel = ({
   const { mutate: recolorImageMutate } = useRecolorImage();
   const { mutate: interiorDesignMutate } = useInteriorDesign();
   const { mutate: generateLogoMutate } = useGenerateLogo();
-  const { mutate: uploadBackendFilesMutate } = useUploadBackendFiles();
+  const { mutateAsync: uploadBackendFilesMutate } = useUploadBackendFiles();
 
   // Handle reference image upload
-  const handleReferenceImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleReferenceImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setReferenceImage(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsUploading(true);
+
+        // Generate local preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setReferenceImage(e.target?.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to backend and get URL
+        const imageUrl = await uploadBackendFilesMutate(file);
+        setReferenceImage(imageUrl);
+        toast({
+          title: "Upload Successful",
+          description: "Reference image uploaded",
+        });
+      } catch (error) {
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload reference image",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
   // Handle face image upload
-  const handleFaceImageUpload = (
+  const handleFaceImageUpload = async (
     event: ChangeEvent<HTMLInputElement>,
     index: number
   ) => {
     const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
+      try {
+        setIsUploading(true);
+
+        // Generate local preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const newFaceImages = [...faceImages];
+          newFaceImages[index] = e.target?.result as string;
+          setFaceImages(newFaceImages);
+        };
+        reader.readAsDataURL(file);
+
+        // Upload to backend and get URL
+        const imageUrl = await uploadBackendFilesMutate(file);
         const newFaceImages = [...faceImages];
-        newFaceImages[index] = e.target?.result as string;
+        newFaceImages[index] = imageUrl;
         setFaceImages(newFaceImages);
-      };
-      reader.readAsDataURL(file);
+        toast({
+          title: "Upload Successful",
+          description: "Face image uploaded",
+        });
+      } catch (error) {
+        toast({
+          title: "Upload Failed",
+          description: "Failed to upload face image",
+          variant: "destructive",
+        });
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -114,68 +159,91 @@ const SettingsPanel = ({
 
   // Generate payload for API calls
   const generatePayload = () => {
-    if (!type || !paperclipImage) {
+    if (!type || !referenceImage || !inputText) {
       toast({
         title: "Error",
-        description: "Please select a type and upload an image.",
+        description: "Please select a type, upload an image, and enter a prompt.",
         variant: "destructive",
       });
       return null;
     }
-
+  
     const basePayload = {
-      prompt: "text",
-      image: paperclipImage,
+      prompt: inputText,
+      image: referenceImage,
     };
-
+  
     switch (type) {
       case "Outline":
         return {
-          ...basePayload,
-          controlnet: "canny",
+          controlnet: "canny", // Required
+          prompt: inputText, // Required
+          image: referenceImage, // Required
           num_inference_steps: 30,
           samples: 1,
         } as ControlNetPayload;
+  
       case "Depth":
         return {
-          ...basePayload,
-          controlnets: "depth",
+          controlnet: "depth", // Required
+          prompt: inputText, // Required
+          image: referenceImage, // Required
           num_inference_steps: 30,
           samples: 1,
-        } as unknown as ControlNetPayload;
+        } as ControlNetPayload;
+  
       case "Pose":
         return {
-          ...basePayload,
-          controlnets: "openpose",
+          controlnet: "openpose", // Required
+          prompt: inputText, // Required
+          image: referenceImage, // Required
           num_inference_steps: 30,
           samples: 1,
-        } as unknown as ControlNetPayload;
+        } as ControlNetPayload;
+  
       case "Render Sketch":
         return {
-          ...basePayload,
-          model_id: "sdxl",
-          controlnets: ["scribble"],
+          model_id: "sdxl", // Required
+          controlnets: ["scribble"], // Required
+          prompt: inputText, // Required
           negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-        } as unknown as RenderSketchPayload;
+          init_images: [referenceImage], // Required
+          num_inference_steps: 30,
+          samples: 1,
+          controlnet_weights: [1.0], // Required
+        } as RenderSketchPayload;
+  
       case "Recolor":
         return {
-          ...basePayload,
-          model_id: "sdxl",
-          controlnets: ["reference-only"],
+          model_id: "sdxl", // Required
+          controlnets: ["reference-only"], // Required
+          prompt: inputText, // Required
           negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-        } as unknown as RecolorImagePayload;
+          init_images: [referenceImage], // Required
+          num_inference_steps: 30,
+          samples: 1,
+          controlnet_weights: [1.0], // Required
+        } as RecolorImagePayload;
+  
       case "Interior Design":
         return {
-          ...basePayload,
-          model_id: "sdxl",
-          controlnets: ["mlsd"],
+          model_id: "sdxl", // Required
+          controlnets: ["mlsd"], // Required
+          prompt: inputText, // Required
           negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-        } as unknown as InteriorDesignPayload;
+          init_images: [referenceImage], // Required
+          num_inference_steps: 30,
+          samples: 1,
+          controlnet_weights: [1.0], // Required
+        } as InteriorDesignPayload;
+  
       case "Logo":
         return {
-          ...basePayload,
-          logo_prompt: inputText,
+          logo_prompt: inputText, // Required
+          prompt: inputText, // Required
+          image: referenceImage, // Required
         } as GenerateLogoPayload;
+  
       default:
         toast({
           title: "Error",

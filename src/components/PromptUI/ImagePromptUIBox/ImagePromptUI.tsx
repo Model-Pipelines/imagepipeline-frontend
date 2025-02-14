@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 import { Paperclip, X, Settings, Palette } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -160,7 +161,6 @@ const ImagePromptUI = () => {
     });
   };
 
-  
   const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
@@ -240,33 +240,70 @@ const ImagePromptUI = () => {
               rows={3}
             />
           </div>
-        <Button
-          onClick={handleGenerateImage}
-          className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
-          aria-label="Generate"
-        >
-          <span className="hidden lg:inline">Generate</span>
-          <span className="lg:hidden">➜</span>
-        </Button>
+          <Button
+      onClick={handleGenerateImage}
+      disabled={isGenerating || !!generateTaskId}
+      className="h-12 w-12 md:h-auto md:w-auto md:px-6 flex items-center justify-center"
+    >
+      {isGenerating || generateTaskId ? (
+        <motion.div
+          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+        />
+      ) : (
+        <span className="hidden lg:inline">Generate</span>
+      )}
+      <span className="lg:hidden">➜</span>
+    </Button>
       </div>
 
-      {isSettingsPanelVisible && (
-        <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
-          <SettingsPanel
-            onTypeChange={(type: any) => {}}
-            paperclipImage={paperclipImage}
-            inputText={inputText}
-          />
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <PreviewDualActionButton />
         </div>
-      )}
-
-      {isColorPaletteVisible && (
-        <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
-          <CustomColorPalette />
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={toggleColorPalette}
+            className={`w-10 h-10 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
+              isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+            }`}
+            aria-label="Toggle color palette"
+          >
+            <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+            <span className={`hidden lg:ml-2 lg:inline ${selectedPalette ? "text-white" : "text-gray-700"}`}>
+              Color: {selectedPalette ? selectedPalette.name : "Auto"}
+            </span>
+          </Button>
+          <Button
+            onClick={toggleSettingsPanel}
+            className="w-10 h-10 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg"
+            aria-label="Toggle settings"
+          >
+            <Settings className="h-5 w-5 text-gray-700" />
+            <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
+          </Button>
         </div>
-      )}
-
+      </div>
     </div>
+
+    {isSettingsPanelVisible && (
+      <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+        <SettingsPanel
+          onTypeChange={(type: any) => {}}
+          paperclipImage={paperclipImage}
+          inputText={inputText}
+        />
+      </div>
+    )}
+
+    {isColorPaletteVisible && (
+      <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
+        <CustomColorPalette />
+      </div>
+    )}
+
+  </div>
   );
 };
 
