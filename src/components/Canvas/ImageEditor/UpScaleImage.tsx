@@ -1,6 +1,12 @@
 "use client";
 import React, { useCallback, useMemo, useState } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -21,7 +27,7 @@ const Upscale = () => {
     [images, selectedImageId]
   );
 
-  // Destructure status from the mutation hook and derive isLoading based on normalized status.
+  // Derive isLoading based on the normalized mutation status.
   const { mutate: upscaleImage, status } = useUpscaleImage();
   const isLoading = status.trim().toUpperCase() === "PENDING";
 
@@ -67,18 +73,20 @@ const Upscale = () => {
   }, [selectedImage, upscaleFactor, upscaleImage, toast, addTask, selectedImageId]);
 
   return (
-    <Card className="w-full">
+    // Constrain the card width instead of taking full width.
+    <Card className="max-w-md mx-auto my-4">
       <CardHeader>
         <CardTitle>Image Upscaling</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-4 h-2/3">
         <div className="space-y-2">
           <Label>Selected Image</Label>
           {selectedImage ? (
+            // Use max-w-full to let the image size naturally within the card.
             <img
               src={selectedImage.url}
               alt="Selected"
-              className="w-full h-auto rounded-md border"
+              className="max-w-full h-auto rounded-md border"
             />
           ) : (
             <p className="text-gray-500">No image selected</p>
