@@ -1,8 +1,13 @@
-// src/components/HumanEditorImage.tsx
 "use client";
 
 import React, { useCallback, useState, useMemo } from "react";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -24,26 +29,30 @@ const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElem
 );
 
 export function HumanEditorImage() {
+  // Local states for prompt, reference image, and loading indicator.
   const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Global states and hooks.
   const { selectedImageId, images } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
 
+  // Memoized selectedImage.
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
-  // Use mutation with status for loading indicator.
-  const { mutate: startHumanModification, status } = useMutation({
+  // Mutation to start human modification.
+  const { mutate: startHumanModification } = useMutation({
     mutationFn: (payload: any) => changeHuman(payload),
   });
 
-  // Normalize status; if it's "PENDING" (or with extra spaces), then we're loading.
-  const isLoading = status.trim().toUpperCase() === "PENDING";
-
+  // Handler for form submission.
   const handleSubmit = useCallback(() => {
+    // Early returns for validation.
     if (!selectedImage) {
       toast({ title: "Error", description: "Please select a base image first", variant: "destructive" });
       return;
@@ -64,33 +73,42 @@ export function HumanEditorImage() {
       seed: -1,
     };
 
+    // Set loading state.
+    setIsProcessing(true);
+
     startHumanModification(payload, {
       onSuccess: (response) => {
         if (!response.id) {
           toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
+          setIsProcessing(false);
           return;
         }
         addTask(response.id, selectedImageId!, "human");
         toast({ title: "Processing", description: "Human modification in progress..." });
+        setIsProcessing(false);
       },
       onError: (error: any) => {
         toast({ title: "Error", description: error.message || "Failed to start modification", variant: "destructive" });
+        setIsProcessing(false);
       },
     });
   }, [selectedImage, humanImage, prompt, startHumanModification, toast, addTask, selectedImageId]);
 
-  const handleHumanImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const imageUrl: string = await uploadBackendFiles(file);
-      setHumanImage(imageUrl);
-      toast({ title: "Success", description: "Reference image uploaded!" });
-    } catch (error) {
-      toast({ title: "Error", description: "Failed to upload reference image", variant: "destructive" });
-    }
-  }, [toast]);
+  // Handler for file upload.
+  const handleHumanImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      try {
+        const imageUrl: string = await uploadBackendFiles(file);
+        setHumanImage(imageUrl);
+        toast({ title: "Success", description: "Reference image uploaded!" });
+      } catch (error) {
+        toast({ title: "Error", description: "Failed to upload reference image", variant: "destructive" });
+      }
+    },
+    [toast]
+  );
 
   return (
     <Card className="w-full">
@@ -147,10 +165,10 @@ export function HumanEditorImage() {
       <CardFooter>
         <Button
           onClick={handleSubmit}
-          disabled={!selectedImage || !humanImage || !prompt.trim() || isLoading}
+          disabled={!selectedImage || !humanImage || !prompt.trim() || isProcessing}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          {isLoading ? (
+          {isProcessing ? (
             <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>
           ) : (
             "Modify Human"
