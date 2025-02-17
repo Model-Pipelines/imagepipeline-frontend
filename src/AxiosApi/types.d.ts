@@ -89,6 +89,76 @@ export interface FaceControlPayload {
   ip_adapter_scale: number[]; // Required
 }
 
+// Generate Image Payload
+export interface GenerateStyleImagePayload {
+  prompt: string; // Required
+  num_inference_steps?: number;
+  samples?: number;
+  style?: "realistic" | "anime" | "cartoon" | "indian" | "logo" | "book-cover" | "pixar" | "fashion" | "nsfw";
+  enhance_prompt?: boolean;
+  palette?: string[];
+  height?: number;
+  width?: number;
+  seed?: number;
+}
+
+// Generate Image with Upload Payload
+export interface GenerateStyleImageWithUploadPayload {
+  model_id: "sdxl";
+  prompt: string; // Required
+  num_inference_steps?: number;
+  samples?: number;
+  negative_prompt: string; // Required
+  guidance_scale: number; // Required
+  height?: number;
+  width?: number;
+  embeddings: string[]; // Required
+  scheduler: string; // Required
+  seed?: number;
+  ip_adapter_image: string[]; // Required
+  ip_adapter: string[]; // Required
+  ip_adapter_scale: number[]; // Required
+}
+
+// Generate Image with Style and Face Payload
+export interface GenerateImageWithStyleAndFacePayload {
+  model_id: string; // Required
+  prompt: string; // Required
+  num_inference_steps?: number;
+  samples?: number;
+  negative_prompt: string; // Required
+  guidance_scale: number; // Required
+  height?: number;
+  width?: number;
+  embeddings: string[]; // Required
+  scheduler: string; // Required
+  seed?: number;
+  ip_adapter_style_images: string[]; // Required
+  ip_adapter_image: string; // Required
+  ip_adapter: string[]; // Required
+  ip_adapter_scale: number[]; // Required
+}
+
+// Generate Image with Style and Reference Payload
+export interface GenerateImageWithStyleAndReferencePayload {
+  model_id: string; // Required
+  prompt: string; // Required
+  num_inference_steps?: number;
+  samples?: number;
+  controlnet: string[]; // Required
+  init_image: string[]; // Required
+  controlnet_weight: number; // Required
+  negative_prompt: string; // Required
+  guidance_scale: number; // Required
+  embeddings: string[]; // Required
+  scheduler: string; // Required
+  seed?: number;
+  ip_adapter_image: string[]; // Required [only 1 image]
+  ip_adapter: string[]; // Required
+  ip_adapter_scale: number[]; // Required
+}
+
+
 // Change Background Payload
 export interface ChangeBackgroundPayload {
   style_image?: string; // Optional (public URL for style transfer image)
