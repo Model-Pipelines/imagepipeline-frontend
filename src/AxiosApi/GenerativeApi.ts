@@ -245,6 +245,58 @@ export const getUpscaleImageStatus = async (taskId: string): Promise<any> => {
   return response.data;
 };
 
+
+/**
+ * Get Generate Face Tab Task Status face is uploaded and only face dialog is used
+ */
+export const getFaceControlStatusFaceDailog = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/sdxl/text2image/v1/status/${id}`);
+  return response.data;
+};
+
+/**
+ * Get Generate Face Tab Task Status face is uploaded and When only reference is used
+ */
+
+export const getFaceControlStatusFaceReference = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${id}`);
+  return response.data;
+};
+
+
+/**
+ * Get Generate Style Tab Task Status and When only style is selected from drop down and no reference and face is selected
+ */
+export const getStyleImageStatus = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/generate/v3/status/${id}`);
+  return response.data;
+};
+
+/**
+ * Get Generate Style Tab Task Status and style is selected using image upload and no reference and face is selected
+ */
+export const getStyleImageStatusNoReference = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/sdxl/text2image/v1/status/${id}`);
+  return response.data;
+};
+
+/**
+ * Get Generate Style Tab Task Status and When style is selected using image upload(s) and single face is selected
+ */
+export const getStyleImageStatusOneFace = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/sdxl/text2image/v1/status/${id}`);
+  return response.data;
+};
+
+/**
+ * Get Generate Style Tab Task Status and When style is selected using image upload(s) and reference is selected
+ */
+export const getStyleImageStatusReference = async (id: string): Promise<any> => {
+  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${id}`);
+  return response.data;
+};
+
+
 /**
  * Get Generate Image Task Status
  */
@@ -252,5 +304,6 @@ export const getGenerateImage = async (id: string): Promise<any> => {
   const response = await apiClient.get(`/generate/v3/status/${id}`);
   return response.data;
 };
+
 
 // End of API functions

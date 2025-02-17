@@ -29,6 +29,7 @@ import {
   RecolorImagePayload,
   InteriorDesignPayload,
   GenerateLogoPayload,
+  FaceControlPayload,
 } from "@/AxiosApi/types";
 
 import {
@@ -38,6 +39,7 @@ import {
   getInteriorDesignStatus,
   getGenerateLogoStatus,
   getGenerateImage,
+  faceControl,
 } from "@/AxiosApi/GenerativeApi";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 
@@ -237,6 +239,102 @@ const { mutateAsync: generateLogoMutate } = useGenerateLogo();
     }
   };
 
+
+  // Handle face image submission
+const handleGenerateImageByFace = async () => {
+  if (faceImages.length === 0) {
+    toast({
+      title: "Error",
+      description: "Please upload at least one face image.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Validate character positions based on the number of uploaded images
+  if (faceImages.length === 1 && selectedPositions.length !== 1) {
+    toast({
+      title: "Error",
+      description: "Please select exactly one position for a single face image.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (faceImages.length === 2 && selectedPositions.length !== 2) {
+    toast({
+      title: "Error",
+      description: "Please select exactly two positions for two face images.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (faceImages.length === 3 && selectedPositions.length !== 3) {
+    toast({
+      title: "Error",
+      description: "Please select exactly three positions for three face images.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Construct the payload for the Face Control API
+  const payload: FaceControlPayload = {
+    model_id: "sdxl", // Required
+    prompt: inputText, // Required
+    num_inference_steps: 30,
+    samples: 1,
+    negative_prompt:
+      "pixelated, low res, blurry faces, jpeg artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, deformed eyes, glitch, noise, noisy, off-center, deformed, cross-eyed, bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+    guidance_scale: 5.0,
+    height: 1024,
+    width: 1024,
+    ip_adapter_mask_images: selectedPositions.map((position) => {
+      switch (position) {
+        case "center":
+          return "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png";
+        case "left":
+          return "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png";
+        case "right":
+          return "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png";
+        default:
+          return "";
+      }
+    }),
+    embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"], // Required
+    scheduler: "DPMSolverMultistepSchedulerSDE", // Required
+    seed: -1,
+    ip_adapter_image: faceImages, // Required
+    ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"], // Required
+    ip_adapter_scale: Array(faceImages.length).fill(0.6), // Required
+  };
+
+  try {
+    const response = await faceControl(payload);
+    if (response?.task_id) {
+      setGenerateTaskId(response.task_id);
+      toast({
+        title: "Processing started",
+        description: "Your image is being generated",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "No task ID returned from the server.",
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    console.error("Error generating face image:", error);
+    toast({
+      title: "Error",
+      description: "Failed to generate face image. Please try again.",
+      variant: "destructive",
+    });
+  }
+};
+
   // Delete reference image
   const deleteReferenceImage = () => {
     setReferenceImage(null);
@@ -429,18 +527,17 @@ const { mutateAsync: generateLogoMutate } = useGenerateLogo();
 
   // Handle submit for each tab
   const handleSubmit = (tabKey: string) => {
-    switch (tabKey) {
-      case "Reference":
-        handleGenerateImageByReference();
-        break;
-      case "Face":
-        // Handle face image submission logic here
-        break;
-      default:
-        break;
-    }
-  };
-
+  switch (tabKey) {
+    case "Reference":
+      handleGenerateImageByReference();
+      break;
+    case "Face":
+      handleGenerateImageByFace();
+      break;
+    default:
+      break;
+  }
+};
   return (
     <div className="fixed p-4 bg-white/20 backdrop-blur-md text-black rounded-xl shadow-lg w-96 ring-1 ring-black/5 isolate">
       <Tabs defaultValue="Aspect-Ratio">
@@ -593,108 +690,108 @@ const { mutateAsync: generateLogoMutate } = useGenerateLogo();
         </TabsContent>
 
         <TabsContent value="Face">
-          <div className="mb-4">
-            <label
-              htmlFor="faceInput"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Upload Face Images (Max 3)
-            </label>
-            <div className="flex gap-4">
-              {[0, 1, 2].map((index) => (
-                <div key={index} className="relative">
-                  <input
-                    type="file"
-                    id={`faceInput-${index}`}
-                    accept="image/*"
-                    onChange={(e) => handleFaceImageUpload(e, index)}
-                    className="hidden"
-                  />
-                  <motion.div
-                    className="w-14 h-20 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
-                    whileHover={{ scale: 1.05, rotate: 2 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() =>
-                      document.getElementById(`faceInput-${index}`)?.click()
-                    }
-                  >
-                    {faceImages[index] ? (
-                      <>
-                        <img
-                          src={faceImages[index]}
-                          alt="Uploaded"
-                          className="w-full h-full object-cover"
-                        />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteFaceImage(index);
-                          }}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                        >
-                          <FaTimes size={12} />
-                        </button>
-                      </>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <FaUpload size={24} />
-                      </div>
-                    )}
-                  </motion.div>
-                </div>
-              ))}
-            </div>
-          </div>
+  <div className="mb-4">
+    <label
+      htmlFor="faceInput"
+      className="block text-sm font-medium text-gray-700 mb-2"
+    >
+      Upload Face Images (Max 3)
+    </label>
+    <div className="flex gap-4">
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="relative">
+          <input
+            type="file"
+            id={`faceInput-${index}`}
+            accept="image/*"
+            onChange={(e) => handleFaceImageUpload(e, index)}
+            className="hidden"
+          />
+          <motion.div
+            className="w-14 h-20 bg-gray-100 rounded-lg overflow-hidden cursor-pointer"
+            whileHover={{ scale: 1.05, rotate: 2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() =>
+              document.getElementById(`faceInput-${index}`)?.click()
+            }
+          >
+            {faceImages[index] ? (
+              <>
+                <img
+                  src={faceImages[index]}
+                  alt="Uploaded"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteFaceImage(index);
+                  }}
+                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                >
+                  <FaTimes size={12} />
+                </button>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-gray-400">
+                <FaUpload size={24} />
+              </div>
+            )}
+          </motion.div>
+        </div>
+      ))}
+    </div>
+  </div>
 
-          <div className="mb-4">
-            <label
-              htmlFor="faceInput"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Select Character Position
-            </label>
-            <div className="flex justify-center gap-4">
-              <Button
-                onClick={() => togglePosition("center")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
-                  selectedPositions.includes("center")
-                    ? "bg-yellow-500 text-white"
-                    : ""
-                }`}
-              >
-                Center
-              </Button>
-              <Button
-                onClick={() => togglePosition("left")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
-                  selectedPositions.includes("left")
-                    ? "bg-yellow-500 text-white"
-                    : ""
-                }`}
-              >
-                Left
-              </Button>
-              <Button
-                onClick={() => togglePosition("right")}
-                className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
-                  selectedPositions.includes("right")
-                    ? "bg-yellow-500 text-white"
-                    : ""
-                }`}
-              >
-                Right
-              </Button>
-            </div>
+  <div className="mb-4">
+    <label
+      htmlFor="faceInput"
+      className="block text-sm font-medium text-gray-700 mb-2"
+    >
+      Select Character Position
+    </label>
+    <div className="flex justify-center gap-4">
+      <Button
+        onClick={() => togglePosition("center")}
+        className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+          selectedPositions.includes("center")
+            ? "bg-yellow-500 text-white"
+            : ""
+        }`}
+      >
+        Center
+      </Button>
+      <Button
+        onClick={() => togglePosition("left")}
+        className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+          selectedPositions.includes("left")
+            ? "bg-yellow-500 text-white"
+            : ""
+        }`}
+      >
+        Left
+      </Button>
+      <Button
+        onClick={() => togglePosition("right")}
+        className={`bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded-md ${
+          selectedPositions.includes("right")
+            ? "bg-yellow-500 text-white"
+            : ""
+        }`}
+      >
+        Right
+      </Button>
+    </div>
 
-            <Button
-              onClick={() => handleSubmit("Face")}
-              className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 mt-4"
-            >
-              Generate
-            </Button>
-            <Toaster />
-          </div>
-        </TabsContent>
+    <Button
+      onClick={() => handleSubmit("Face")}
+      className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md flex items-center gap-2 mt-4"
+    >
+      Generate
+    </Button>
+    <Toaster />
+  </div>
+</TabsContent>
 
         <TabsContent value="Style">
           <div className="mb-4">
