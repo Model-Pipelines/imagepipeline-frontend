@@ -86,13 +86,13 @@ const Upscale = () => {
             <img
               src={selectedImage.url}
               alt="Selected"
-              className="max-w-full h-auto rounded-md border"
+              className="w-40 h-auto rounded-md border"
             />
           ) : (
             <p className="text-gray-500">No image selected</p>
           )}
         </div>
-        <div className="space-y-2">
+        {/* <div className="space-y-2">
           <Label>Upscale Factor ({upscaleFactor}x)</Label>
           <Slider
             value={[upscaleFactor]}
@@ -105,7 +105,7 @@ const Upscale = () => {
           <p className="text-sm text-gray-500">
             Higher values increase resolution but require more processing time
           </p>
-        </div>
+        </div> */}
       </CardContent>
       <CardFooter>
         <Button

@@ -148,7 +148,7 @@ export function HumanEditorImage() {
                   <img
                     src={humanImage}
                     alt="Reference preview"
-                    className="w-full h-auto rounded-md border"
+                    className="w-40 h-auto rounded-md border"
                   />
                   <button
                     onClick={() => setHumanImage(null)}

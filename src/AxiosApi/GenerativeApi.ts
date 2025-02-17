@@ -267,18 +267,7 @@ export const getGenerateLogoStatus = async (taskId: string): Promise<any> => {
 };
 
 
-// // Face Tab GET Request 
 
-
-// export const getFaceControlTaskStatus = async (taskId: string): Promise<any> => {
-//   const response = await apiClient.get(`/sdxl/text2image/v1/status/${taskId}`);
-//   return response.data;
-// };
-
-// export const getFaceControlReferenceTaskStatus = async (taskId: string): Promise<any> => {
-//   const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`);
-//   return response.data;
-// };
 
 // style Tab GET Request
 
