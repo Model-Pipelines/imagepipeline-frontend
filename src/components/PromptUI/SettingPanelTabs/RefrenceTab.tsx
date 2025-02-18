@@ -3,29 +3,37 @@ import { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageUploader from "./ImageUploader";
 import { Button } from "@/components/ui/button";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import {
-  controlNet,
-  renderSketch,
-  recolorImage,
-  interiorDesign,
-  generateLogo,
-  uploadBackendFiles,
+  useControlNet,
+  useRenderSketch,
+  useRecolorImage,
+  useInteriorDesign,
+  useGenerateLogo,
+  useUploadBackendFiles,
+} from "@/AxiosApi/TanstackQuery";
+import {
   getRenderSketchStatus,
+  getControlNetTaskStatus,
+  getRecolorImageStatus,
+  getInteriorDesignStatus,
+  getGenerateLogoStatus,
 } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
 import { toast } from "@/hooks/use-toast";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { v4 as uuidv4 } from "uuid";
+import { useMutation, useQuery } from "@tanstack/react-query";
 
 const REFERENCE_TYPES = [
-  { value: 'none', label: 'None', api: controlNet },
-  { value: 'outline', label: 'Outline', api: controlNet },
-  { value: 'depth', label: 'Depth', api: controlNet },
-  { value: 'pose', label: 'Pose', api: controlNet },
-  { value: 'sketch', label: 'Render Sketch', api: renderSketch },
-  { value: 'recolor', label: 'Recolor', api: recolorImage },
-  { value: 'interior', label: 'Interior Design', api: interiorDesign },
-  { value: 'logo', label: 'Logo', api: generateLogo },
+  { value: 'none', label: 'None', api: 'controlNet' },
+  { value: 'outline', label: 'Outline', api: 'controlNet' },
+  { value: 'depth', label: 'Depth', api: 'controlNet' },
+  { value: 'pose', label: 'Pose', api: 'controlNet' },
+  { value: 'sketch', label: 'Render Sketch', api: 'renderSketch' },
+  { value: 'recolor', label: 'Recolor', api: 'recolorImage' },
+  { value: 'interior', label: 'Interior Design', api: 'interiorDesign' },
+  { value: 'logo', label: 'Logo', api: 'generateLogo' },
 ];
 
 const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }) => {
@@ -33,11 +41,21 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
   const [referenceImage, setReferenceImage] = useState('');
   const [prompt, setPrompt] = useState('');
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const { addTask, tasks } = useGenerativeTaskStore();
+  const { addImage, images } = useImageStore();
+  const { addTask } = useGenerativeTaskStore();
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const { mutateAsync: uploadBackendFilesMutate } = useUploadBackendFiles();
+
+  // Call all hooks at the top level
+  const controlNetMutation = useControlNet();
+  const renderSketchMutation = useRenderSketch();
+  const recolorImageMutation = useRecolorImage();
+  const interiorDesignMutation = useInteriorDesign();
+  const generateLogoMutation = useGenerateLogo();
 
   const handleUpload = async (file: File) => {
     try {
-      const imageUrl = await uploadBackendFiles(file);
+      const imageUrl = await uploadBackendFilesMutate(file);
       setReferenceImage(imageUrl);
       toast({
         title: "Upload Successful",
@@ -57,7 +75,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       if (type !== 'none' && !referenceImage) {
         throw new Error("Reference image is required for this type.");
       }
-
       const selected = REFERENCE_TYPES.find(t => t.value === type);
       if (!selected) throw new Error('Invalid type');
 
@@ -66,8 +83,8 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         samples: 1,
         num_inference_steps: 30
       };
-
       let payload;
+
       switch (type) {
         case 'none':
           payload = {
@@ -100,17 +117,64 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           payload = {
             logo_prompt: prompt,
             image: referenceImage,
-            ...basePayload
+            samples: 1,
+            num_inference_steps: 30
           };
           break;
+        default:
+          throw new Error('Unsupported type');
       }
 
-      const response = await selected.api(payload);
+      // Use the appropriate mutation based on the selected type
+      let response;
+      switch (selected.api) {
+        case 'controlNet':
+          response = await controlNetMutation.mutateAsync(payload);
+          break;
+        case 'renderSketch':
+          response = await renderSketchMutation.mutateAsync(payload);
+          break;
+        case 'recolorImage':
+          response = await recolorImageMutation.mutateAsync(payload);
+          break;
+        case 'interiorDesign':
+          response = await interiorDesignMutation.mutateAsync(payload);
+          break;
+        case 'generateLogo':
+          response = await generateLogoMutation.mutateAsync(payload);
+          break;
+        default:
+          throw new Error('Invalid API name');
+      }
       return response;
     },
     onSuccess: (response) => {
       if (response.task_id) {
-        addTask(response.task_id, 'controlnet');
+        setGenerateTaskId(response.task_id);
+        let taskType;
+        switch (type) {
+          case 'none':
+          case 'outline':
+          case 'depth':
+          case 'pose':
+            taskType = 'controlnet';
+            break;
+          case 'sketch':
+            taskType = 'sketch';
+            break;
+          case 'recolor':
+            taskType = 'recolor';
+            break;
+          case 'interior':
+            taskType = 'interior';
+            break;
+          case 'logo':
+            taskType = 'logo';
+            break;
+          default:
+            taskType = 'controlnet';
+        }
+        addTask(response.task_id, taskType);
         toast({ title: "Started", description: "Image generation in progress" });
       }
     },
@@ -119,25 +183,107 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     }
   });
 
-  const { data: taskStatus } = useQuery({
-    queryKey: ['taskStatus', tasks],
+  const { data: generateTaskStatus } = useQuery({
+    queryKey: ["generateImageTask", generateTaskId],
     queryFn: async () => {
-      const task = tasks.find(t => t.type === 'controlnet');
-      if (!task) return null;
+      if (!generateTaskId) return null;
 
-      const status = await getRenderSketchStatus(task.task_id);
-      if (status.status === 'completed' && status.image_urls) {
-        setGeneratedImage(status.image_urls[0]); // Assuming the first image is the one we want to display
+      switch (type) {
+        case 'none':
+        case 'outline':
+        case 'depth':
+        case 'pose':
+          return await getControlNetTaskStatus(generateTaskId);
+        case 'sketch':
+          return await getRenderSketchStatus(generateTaskId);
+        case 'recolor':
+          return await getRecolorImageStatus(generateTaskId);
+        case 'interior':
+          return await getInteriorDesignStatus(generateTaskId);
+        case 'logo':
+          return await getGenerateLogoStatus(generateTaskId);
+        default:
+          return null;
       }
-      return status;
     },
-    enabled: tasks.length > 0,
-    refetchInterval: 5000, // Poll every 5 seconds
+    enabled: !!generateTaskId,
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
+
+  useEffect(() => {
+    if (!generateTaskStatus) return;
+
+    if (generateTaskStatus.status === "SUCCESS") {
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        addImage({
+          id: uuidv4(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: 520, height: 520 },
+          element: img,
+        });
+        setGeneratedImage(imageUrl); // Update generated image state
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
+      img.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+      };
+    } else if (generateTaskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
+      setGenerateTaskId(null);
+    }
+  }, [generateTaskStatus, addImage, images]);
 
   const handleTypeChange = (newType: string) => {
     setType(newType);
     onTypeChange(newType);
+  };
+
+  const handleGenerateImageByReference = () => {
+    mutate();
+  };
+
+  const handleSubmit = (tabKey: string) => {
+    switch (tabKey) {
+      case "Reference":
+        handleGenerateImageByReference();
+        break;
+      case "Face":
+        // handleGenerateImageByFace();
+        break;
+      default:
+        break;
+    }
   };
 
   return (
@@ -168,7 +314,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       />
 
       <Button
-        onClick={() => mutate()}
+        onClick={() => handleSubmit("Reference")}
         disabled={!type || (!referenceImage && type !== 'none') || !prompt || isPending}
         className="w-full"
       >
