@@ -70,7 +70,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     }
   };
 
-  const { mutate, isPending } = useMutation({
+  const generateMutation = useMutation({
     mutationFn: async () => {
       if (type !== 'none' && !referenceImage) {
         throw new Error("Reference image is required for this type.");
@@ -93,20 +93,50 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           };
           break;
         case 'outline':
+          payload = {
+            ...basePayload,
+            controlnet: 'canny',
+            image: referenceImage
+          };
+          break;
         case 'depth':
+          payload = {
+            ...basePayload,
+            controlnet: 'depth',
+            image: referenceImage
+          };
+          break;
         case 'pose':
           payload = {
             ...basePayload,
-            controlnet: type,
+            controlnet: 'openpose',
             image: referenceImage
           };
           break;
         case 'sketch':
+          payload = {
+            model_id: "sdxl",
+            controlnets: ["scribble"],
+            init_images: [referenceImage],
+            controlnet_weights: [1.0],
+            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+            ...basePayload
+          };
+          break;
         case 'recolor':
+          payload = {
+            model_id: "sdxl",
+            controlnets: ["reference-only"],
+            init_images: [referenceImage],
+            controlnet_weights: [1.0],
+            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+            ...basePayload
+          };
+          break;
         case 'interior':
           payload = {
             model_id: "sdxl",
-            controlnets: [type === 'sketch' ? 'scribble' : type === 'recolor' ? 'reference-only' : 'mlsd'],
+            controlnets: ["mlsd"],
             init_images: [referenceImage],
             controlnet_weights: [1.0],
             negative_prompt: "lowres, bad anatomy, worst quality, low quality",
@@ -125,7 +155,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           throw new Error('Unsupported type');
       }
 
-      // Use the appropriate mutation based on the selected type
       let response;
       switch (selected.api) {
         case 'controlNet':
@@ -146,11 +175,10 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         default:
           throw new Error('Invalid API name');
       }
-      return response;
-    },
-    onSuccess: (response) => {
-      if (response.task_id) {
-        setGenerateTaskId(response.task_id);
+
+      const taskId = response?.task_id || response?.id;
+      if (taskId) {
+        setGenerateTaskId(taskId);
         let taskType;
         switch (type) {
           case 'none':
@@ -174,9 +202,10 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           default:
             taskType = 'controlnet';
         }
-        addTask(response.task_id, taskType);
+        addTask(taskId, taskType);
         toast({ title: "Started", description: "Image generation in progress" });
       }
+      return response;
     },
     onError: (error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -184,31 +213,49 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
   });
 
   const { data: generateTaskStatus } = useQuery({
-    queryKey: ["generateImageTask", generateTaskId],
+    queryKey: ["generateImageTask", generateTaskId, type],
     queryFn: async () => {
       if (!generateTaskId) return null;
 
-      switch (type) {
-        case 'none':
-        case 'outline':
-        case 'depth':
-        case 'pose':
-          return await getControlNetTaskStatus(generateTaskId);
-        case 'sketch':
-          return await getRenderSketchStatus(generateTaskId);
-        case 'recolor':
-          return await getRecolorImageStatus(generateTaskId);
-        case 'interior':
-          return await getInteriorDesignStatus(generateTaskId);
-        case 'logo':
-          return await getGenerateLogoStatus(generateTaskId);
-        default:
-          return null;
+      let status;
+      const selected = REFERENCE_TYPES.find(t => t.value === type);
+      if (!selected) return null;
+
+      try {
+        switch (selected.api) {
+          case 'controlNet':
+            status = await getControlNetTaskStatus(generateTaskId);
+            break;
+          case 'renderSketch':
+            status = await getRenderSketchStatus(generateTaskId);
+            break;
+          case 'recolorImage':
+            status = await getRecolorImageStatus(generateTaskId);
+            break;
+          case 'interiorDesign':
+            status = await getInteriorDesignStatus(generateTaskId);
+            break;
+          case 'generateLogo':
+            status = await getGenerateLogoStatus(generateTaskId);
+            break;
+          default:
+            return null;
+        }
+        return status;
+      } catch (error) {
+        console.error('Error fetching task status:', error);
+        return null;
       }
     },
-    enabled: !!generateTaskId,
-    refetchInterval: (data) =>
-      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
+    enabled: !!generateTaskId && !!type,
+    refetchInterval: (data) => {
+      if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
+        return false;
+      }
+      return 5000;
+    },
+    staleTime: 2000, // Add stale time to prevent rapid refetches
+    cacheTime: 5000, // Add cache time
   });
 
   useEffect(() => {
@@ -242,7 +289,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           size: { width: 520, height: 520 },
           element: img,
         });
-        setGeneratedImage(imageUrl); // Update generated image state
+        setGeneratedImage(imageUrl);
         toast({ title: "Success", description: "Image generated successfully!" });
         setGenerateTaskId(null);
       };
@@ -269,14 +316,14 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     onTypeChange(newType);
   };
 
-  const handleGenerateImageByReference = () => {
-    mutate();
+  const handleGenerateImageByReference = async () => {
+    await generateMutation.mutateAsync();
   };
 
-  const handleSubmit = (tabKey: string) => {
+  const handleSubmit = async (tabKey: string) => {
     switch (tabKey) {
       case "Reference":
-        handleGenerateImageByReference();
+        await handleGenerateImageByReference();
         break;
       case "Face":
         // handleGenerateImageByFace();
@@ -315,18 +362,18 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
 
       <Button
         onClick={() => handleSubmit("Reference")}
-        disabled={!type || (!referenceImage && type !== 'none') || !prompt || isPending}
+        disabled={!type || (!referenceImage && type !== 'none') || !prompt || generateMutation.isPending}
         className="w-full"
       >
-        {isPending ? 'Generating...' : 'Generate'}
+        {generateMutation.isPending ? 'Generating...' : 'Generate'}
       </Button>
 
-      {generatedImage && (
+      {/* {generatedImage && (
         <div className="mt-4">
           <h3 className="text-lg font-semibold">Generated Image</h3>
           <img src={generatedImage} alt="Generated" className="mt-2 rounded-lg shadow-sm" />
         </div>
-      )}
+      )} */}
     </div>
   );
 };
