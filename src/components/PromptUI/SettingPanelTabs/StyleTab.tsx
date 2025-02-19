@@ -7,10 +7,16 @@ import { Input } from "@/components/ui/input";
 import {
   generateImage as generateStyle,
   faceControl,
-  getStyleImageStatus
+  getStyleImageStatus,
 } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
@@ -18,13 +24,20 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
 
 const STYLE_OPTIONS = [
-  "realistic", "anime", "cartoon", "indian",
-  "logo", "book-cover", "pixar", "fashion", "nsfw"
+  "realistic",
+  "anime",
+  "cartoon",
+  "indian",
+  "logo",
+  "book-cover",
+  "pixar",
+  "fashion",
+  "nsfw",
 ];
 
 const StyleTab = () => {
-  const [styleType, setStyleType] = useState('');
-  const [prompt, setPrompt] = useState('');
+  const [styleType, setStyleType] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const { addTask } = useGenerativeTaskStore();
   const { toast } = useToast();
@@ -32,7 +45,7 @@ const StyleTab = () => {
   const { addImage, images } = useImageStore();
 
   const [uploadSections, setUploadSections] = useState([
-    { id: 1, image: '', styleOption: '' },
+    { id: 1, image: "", styleOption: "" },
   ]);
 
   const { data: generateTaskStatus } = useQuery({
@@ -55,7 +68,8 @@ const StyleTab = () => {
     if (!generateTaskStatus) return;
 
     if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       if (!imageUrl) {
         toast({
           title: "Error",
@@ -104,8 +118,12 @@ const StyleTab = () => {
 
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
-      const images = uploadSections.filter(section => section.image).map(section => section.image);
-      if (images.length > 0) {
+      const images = uploadSections
+        .filter((section) => section.image)
+        .map((section) => section.image);
+      const style = uploadSections.find((section) => section.styleOption)?.styleOption || "";
+
+      if (images.length > 0 || style) {
         return generateStyle({
           prompt: prompt,
           num_inference_steps: 30,
@@ -113,18 +131,19 @@ const StyleTab = () => {
           height: 1024,
           width: 1024,
           samples: 1,
+          style: style, // Include the style parameter
           palette: [],
-          seed: -1
+          seed: -1,
         });
       }
     },
     onSuccess: (response) => {
       if (response?.id) {
         setGenerateTaskId(response.id);
-        addTask(response.id, 'style');
+        addTask(response.id, "style");
         toast({
           title: "Processing started",
-          description: "Your image is being generated"
+          description: "Your image is being generated",
         });
       }
     },
@@ -132,16 +151,16 @@ const StyleTab = () => {
       toast({
         title: "Error",
         description: "Failed to start generation process",
-        variant: "destructive"
+        variant: "destructive",
       });
-    }
+    },
   });
 
   const handleFaceUpload = async (file: File, id: number) => {
     try {
       const imageUrl = await uploadBackendFilesMutate(file);
-      setUploadSections(prevSections =>
-        prevSections.map(section =>
+      setUploadSections((prevSections) =>
+        prevSections.map((section) =>
           section.id === id ? { ...section, image: imageUrl } : section
         )
       );
@@ -159,16 +178,16 @@ const StyleTab = () => {
   };
 
   const handleRemoveImage = (id: number) => {
-    setUploadSections(prevSections =>
-      prevSections.map(section =>
-        section.id === id ? { ...section, image: '' } : section
+    setUploadSections((prevSections) =>
+      prevSections.map((section) =>
+        section.id === id ? { ...section, image: "" } : section
       )
     );
   };
 
   const handleStyleOptionChange = (value: string, id: number) => {
-    setUploadSections(prevSections =>
-      prevSections.map(section =>
+    setUploadSections((prevSections) =>
+      prevSections.map((section) =>
         section.id === id ? { ...section, styleOption: value } : section
       )
     );
@@ -179,13 +198,18 @@ const StyleTab = () => {
     <div className="space-y-4">
       {uploadSections.map((section) => (
         <div key={section.id} className="space-y-2">
-          <Select value={section.styleOption} onValueChange={(value) => handleStyleOptionChange(value, section.id)}>
+          <Select
+            value={section.styleOption}
+            onValueChange={(value) => handleStyleOptionChange(value, section.id)}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select style" />
             </SelectTrigger>
             <SelectContent>
-              {STYLE_OPTIONS.map(style => (
-                <SelectItem key={style} value={style}>{style}</SelectItem>
+              {STYLE_OPTIONS.map((style) => (
+                <SelectItem key={style} value={style}>
+                  {style}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -209,10 +233,12 @@ const StyleTab = () => {
 
       <Button
         onClick={() => mutate()}
-        disabled={uploadSections.every(section => !section.image && !section.styleOption) || !prompt}
+        disabled={
+          uploadSections.every((section) => !section.image && !section.styleOption) || !prompt
+        }
         className="w-full"
       >
-        {isPending ? 'Applying Style...' : 'Apply Style'}
+        {isPending ? "Applying Style..." : "Apply Style"}
       </Button>
     </div>
   );
