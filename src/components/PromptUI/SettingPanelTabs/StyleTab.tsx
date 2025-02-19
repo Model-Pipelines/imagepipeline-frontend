@@ -1,18 +1,21 @@
 // src/components/SettingPanelTabs/StyleTab.tsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
 import {
   generateImage as generateStyle,
   faceControl,
+  getStyleImageStatus
 } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { v4 as uuidv4 } from "uuid";
 
 const STYLE_OPTIONS = [
   "realistic", "anime", "cartoon", "indian",
@@ -22,48 +25,115 @@ const STYLE_OPTIONS = [
 const StyleTab = () => {
   const [styleType, setStyleType] = useState('');
   const [prompt, setPrompt] = useState('');
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const { addTask } = useGenerativeTaskStore();
   const { toast } = useToast();
   const { mutateAsync: uploadBackendFilesMutate } = useUploadBackendFiles();
+  const { addImage, images } = useImageStore();
 
   const [uploadSections, setUploadSections] = useState([
     { id: 1, image: '', styleOption: '' },
-    // { id: 2, image: '', styleOption: '' },
-    // { id: 3, image: '', styleOption: '' },
   ]);
 
-  interface Response {
-    task_id?: string;
-  }
+  const { data: generateTaskStatus } = useQuery({
+    queryKey: ["styleTask", generateTaskId],
+    queryFn: async () => {
+      if (!generateTaskId) return null;
+      const response = await getStyleImageStatus(generateTaskId);
+      return response;
+    },
+    enabled: !!generateTaskId,
+    refetchInterval: (data) => {
+      if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
+        return false;
+      }
+      return 5000;
+    },
+  });
 
-  const { mutate, isPending } = useMutation<Response>({
+  useEffect(() => {
+    if (!generateTaskStatus) return;
+
+    if (generateTaskStatus.status === "SUCCESS") {
+      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        addImage({
+          id: uuidv4(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: 520, height: 520 },
+          element: img,
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
+      img.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+      };
+    } else if (generateTaskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
+      setGenerateTaskId(null);
+    }
+  }, [generateTaskStatus, addImage, images]);
+
+  const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       const images = uploadSections.filter(section => section.image).map(section => section.image);
       if (images.length > 0) {
-        return faceControl({
-          model_id: "sdxl",
-          prompt,
-          ip_adapter_image: images,
-          ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
-          ip_adapter_scale: [0.6],
-          ip_adapter_mask_images: [],
-          embeddings: [],
-          scheduler: "EulerDiscreteScheduler"
-        });
-      } else {
         return generateStyle({
-          prompt,
+          prompt: prompt,
+          num_inference_steps: 30,
           enhance_prompt: true,
           height: 1024,
           width: 1024,
-          samples: 1
+          samples: 1,
+          palette: [],
+          seed: -1
         });
       }
     },
-    onSuccess: (response: Response) => {
-      if (response.task_id) {
-        addTask(response.task_id, 'style');
+    onSuccess: (response) => {
+      if (response?.id) {
+        setGenerateTaskId(response.id);
+        addTask(response.id, 'style');
+        toast({
+          title: "Processing started",
+          description: "Your image is being generated"
+        });
       }
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to start generation process",
+        variant: "destructive"
+      });
     }
   });
 
@@ -102,6 +172,7 @@ const StyleTab = () => {
         section.id === id ? { ...section, styleOption: value } : section
       )
     );
+    setStyleType(value);
   };
 
   return (
