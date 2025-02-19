@@ -117,3 +117,8 @@ export interface UploadFilesPayload {
   userUploadedImage: File; // Required
   maskImageUrl?: string; // Optional (Base64 string)
 }
+
+export interface FaceControlStatus {
+  status: "SUCCESS" | "FAILURE" | "PROCESSING"
+  // add other status response fields as needed
+}
