@@ -1,9 +1,9 @@
 "use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Edit, Trash2, Loader2 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useCanvasStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { Edit, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
 import ParentPrompt from "../PromptUI/ParentPrompt";
 import Sidebar from "../Sidebar/Sidebar";
 import {
@@ -22,8 +22,14 @@ const INITIAL_IMAGE_SIZE = 200;
 
 export default function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { images, selectedImageId, setSelectedImageId, updateImage, addImage } =
-    useImageStore();
+  const {
+    images,
+    selectedImageId,
+    setSelectedImageId,
+    updateImage,
+    addImage,
+    removeImage,
+  } = useImageStore();
   const {
     scale,
     offset,
@@ -64,12 +70,13 @@ export default function InfiniteCanvas() {
 
         // Calculate new position to avoid stacking
         const numImages = images.length;
-        const gridSize = Math.ceil(Math.sqrt(numImages + 1)); // Arrange in a grid
-        const spacing = 50; // Space between images
+        const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+        const spacing = 50;
 
         const newPosition = {
           x:
-            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale -
+            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) /
+            scale -
             offset.x,
           y:
             (Math.floor(numImages / gridSize) *
@@ -109,7 +116,7 @@ export default function InfiniteCanvas() {
     };
   };
 
-  // Mouse handlers
+  // Mouse and touch handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     const canvasPos = getCanvasCoords(e.clientX, e.clientY);
     handleActionStart(canvasPos);
@@ -210,9 +217,7 @@ export default function InfiniteCanvas() {
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height - dy);
           updateImage(selectedImageId, {
-            position: {
-              y: img.position.y + dy,
-            },
+            position: { y: img.position.y + dy },
             size: { width: newWidth, height: newHeight },
           });
           break;
@@ -220,18 +225,14 @@ export default function InfiniteCanvas() {
           newWidth = Math.max(50, img.size.width - dx);
           newHeight = Math.max(50, img.size.height + dy);
           updateImage(selectedImageId, {
-            position: {
-              x: img.position.x + dx,
-            },
+            position: { x: img.position.x + dx },
             size: { width: newWidth, height: newHeight },
           });
           break;
         case "se":
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height + dy);
-          updateImage(selectedImageId, {
-            size: { width: newWidth, height: newHeight },
-          });
+          updateImage(selectedImageId, { size: { width: newWidth, height: newHeight } });
           break;
       }
 
@@ -309,51 +310,45 @@ export default function InfiniteCanvas() {
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
 
-    images
-      .filter((img) => img.element && img.element.complete) // Ensure the image is loaded
-      .forEach((img) => {
-        // Draw image
-        ctx.drawImage(
-          img.element!,
-          img.position.x,
-          img.position.y,
-          img.size.width,
-          img.size.height
+    images.filter((img) => img.element && img.element.complete).forEach((img) => {
+      // Draw the image
+      ctx.drawImage(
+        img.element!,
+        img.position.x,
+        img.position.y,
+        img.size.width,
+        img.size.height
+      );
+
+      // If selected, draw border and resize handles
+      if (img.id === selectedImageId) {
+        ctx.strokeStyle = "#3b82f6";
+        ctx.lineWidth = 2 / scale;
+        ctx.strokeRect(
+          img.position.x - 2 / scale,
+          img.position.y - 2 / scale,
+          img.size.width + 4 / scale,
+          img.size.height + 4 / scale
         );
 
-        // Draw selection border and resize handles if the image is selected
-        if (img.id === selectedImageId) {
-          ctx.strokeStyle = "#3b82f6";
-          ctx.lineWidth = 2 / scale;
-          ctx.strokeRect(
-            img.position.x - 2 / scale,
-            img.position.y - 2 / scale,
-            img.size.width + 4 / scale,
-            img.size.height + 4 / scale
+        ctx.fillStyle = "#3b82f6";
+        const handles = [
+          { x: img.position.x, y: img.position.y },
+          { x: img.position.x + img.size.width, y: img.position.y },
+          { x: img.position.x, y: img.position.y + img.size.height },
+          { x: img.position.x + img.size.width, y: img.position.y + img.size.height },
+        ];
+
+        handles.forEach((handle) => {
+          ctx.fillRect(
+            handle.x - HANDLE_SIZE / (2 * scale),
+            handle.y - HANDLE_SIZE / (2 * scale),
+            HANDLE_SIZE / scale,
+            HANDLE_SIZE / scale
           );
-
-          // Draw resize handles
-          ctx.fillStyle = "#3b82f6";
-          const handles = [
-            { x: img.position.x, y: img.position.y }, // NW
-            { x: img.position.x + img.size.width, y: img.position.y }, // NE
-            { x: img.position.x, y: img.position.y + img.size.height }, // SW
-            {
-              x: img.position.x + img.size.width,
-              y: img.position.y + img.size.height,
-            }, // SE
-          ];
-
-          handles.forEach((handle) => {
-            ctx.fillRect(
-              handle.x - HANDLE_SIZE / (2 * scale),
-              handle.y - HANDLE_SIZE / (2 * scale),
-              HANDLE_SIZE / scale,
-              HANDLE_SIZE / scale
-            );
-          });
-        }
-      });
+        });
+      }
+    });
 
     ctx.restore();
     requestAnimationFrame(draw);
@@ -370,16 +365,19 @@ export default function InfiniteCanvas() {
         <Toolbar onUpload={handleUpload} />
         <ZoomControls />
         <ParentPrompt />
+
+        {/* Global Clear Storage Button */}
         <button
           onClick={() => {
             useCanvasStore.persist.clearStorage();
             useImageStore.persist.clearStorage();
-            window.location.reload(); // Reload to reset the state
+            window.location.reload();
           }}
           className="absolute top-4 right-16 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-50"
         >
           <Trash2 size={20} />
         </button>
+
         <canvas
           ref={canvasRef}
           className={cn(
@@ -396,32 +394,62 @@ export default function InfiniteCanvas() {
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         />
+
+        {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
-          <Dialog key={img.id}>
-            <DialogTrigger asChild>
-              <button
+          <div key={img.id}>
+            {(!img.element || !img.element.complete) ? (
+              <div
                 className="absolute"
                 style={{
-                  transform: `translate(
-                    ${(img.position.x + img.size.width) * scale + offset.x + 10
-                    }px,
-                    ${img.position.y * scale + offset.y - 10}px
-                  )`,
+                  transform: `translate(${(img.position.x + img.size.width) *
+                    scale +
+                    offset.x +
+                    10}px, ${img.position.y * scale + offset.y - 10}px)`,
                   zIndex: 10,
                 }}
-                onClick={() => setSelectedImageId(img.id)}
               >
-                <Edit
-                  className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors"
-                  size={20}
-                />
-              </button>
-            </DialogTrigger>
-            <DialogTitle />
-            <DialogContent>
-              {img.id === selectedImageId && <EditImageCard />}
-            </DialogContent>
-          </Dialog>
+                <Loader2 className="animate-spin" size={20} />
+              </div>
+            ) : (
+              <>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <button
+                      className="absolute"
+                      style={{
+                        transform: `translate(${(img.position.x + img.size.width) *
+                          scale +
+                          offset.x +
+                          10}px, ${img.position.y * scale + offset.y - 10}px)`,
+                        zIndex: 10,
+                      }}
+                      onClick={() => setSelectedImageId(img.id)}
+                    >
+                      <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
+                    </button>
+                  </DialogTrigger>
+                  <DialogTitle />
+                  <DialogContent>
+                    {img.id === selectedImageId && <EditImageCard />}
+                  </DialogContent>
+                </Dialog>
+                {img.id === selectedImageId && (
+                  <button
+                    onClick={() => removeImage(img.id)}
+                    className="absolute"
+                    style={{
+                      // Same X position as the edit button...
+                      transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
+                      zIndex: 10,
+                    }}
+                  >
+                    <Trash2 className="text-white bg-black rounded-full p-1 hover:bg-red-500 transition-colors" size={20} />
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         ))}
       </div>
       <ParentPrompt />

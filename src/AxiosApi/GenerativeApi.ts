@@ -377,5 +377,9 @@ export const getGenerateImage = async (id: string): Promise<any> => {
   return response.data;
 };
 
+export const getFaceControlStatus = async (taskId: string) => {
+  const response = await apiClient.get(`/face-control/status/${taskId}`);
+  return response.data;
+}
 
 // End of API functions
