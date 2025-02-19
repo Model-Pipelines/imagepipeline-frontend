@@ -1,18 +1,17 @@
 "use client"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
 import ImageUploader from "./ImageUploader"
 import { Input } from "@/components/ui/input"
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { faceControl, getFaceControlStatus } from "@/AxiosApi/GenerativeApi"
+import { useQuery } from "@tanstack/react-query"
+import { getFaceControlStatusFaceDailog } from "@/AxiosApi/GenerativeApi"
 import { toast } from "@/hooks/use-toast"
-import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery"
+import { useUploadBackendFiles, useFaceControl } from "@/AxiosApi/TanstackQuery"
 import { useImageStore } from "@/AxiosApi/ZustandImageStore"
 import { v4 as uuidv4 } from "uuid"
-import { FaceControlStatus } from "@/AxiosApi/types"
 
 const POSITION_MAP = {
   center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
@@ -28,15 +27,76 @@ const FaceTab = () => {
   const [prompt, setPrompt] = useState("")
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null)
   const { addImage, images } = useImageStore()
+  const { addTask } = useGenerativeTaskStore()
   const { mutateAsync: uploadBackendFilesMutate } = useUploadBackendFiles()
+  const { mutateAsync: faceControlMutate } = useFaceControl()
 
-  const { data: generateTaskStatus } = useQuery<FaceControlStatus>({
+  const { data: generateTaskStatus } = useQuery({
     queryKey: ["faceControlTask", generateTaskId],
-    queryFn: () => generateTaskId ? getFaceControlStatus(generateTaskId) : null,
-    enabled: !!generateTaskId,
-    refetchInterval: (data) => 
-      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
+  queryFn: async () => {
+    if (!generateTaskId) return null;
+    const response = await getFaceControlStatusFaceDailog(generateTaskId);
+    return response;
+  },
+  enabled: !!generateTaskId,
+  refetchInterval: (data) => {
+    if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
+      return false;
+    }
+    return 5000;
+  },
   })
+
+  useEffect(() => {
+    if (!generateTaskStatus) return;
+
+    if (generateTaskStatus.status === "SUCCESS") {
+      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      if (!imageUrl) {
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        addImage({
+          id: uuidv4(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: 520, height: 520 },
+          element: img,
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
+      img.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
+        setGenerateTaskId(null);
+      };
+    } else if (generateTaskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
+      setGenerateTaskId(null);
+    }
+  }, [generateTaskStatus, addImage, images]);
 
   const handleUpload = async (file: File) => {
     try {
@@ -64,7 +124,7 @@ const FaceTab = () => {
   }
 
   const handleSubmit = async () => {
-    if (faceImages.length === 0) {
+    if (faceImages.length === 0 || faceImages.length !== selectedPositions.length) {
       toast({
         title: "Error",
         description: "Please upload at least one face image.",
@@ -82,28 +142,29 @@ const FaceTab = () => {
       return
     }
 
-    const payload = {
-      model_id: "sdxl",
-      prompt,
-      num_inference_steps: 30,
-      samples: 1,
-      negative_prompt: "pixelated, low res, blurry faces, jpeg artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, deformed eyes, glitch, noise, noisy, off-center, deformed, cross-eyed, bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
-      guidance_scale: 5.0,
-      height: 1024,
-      width: 1024,
-      ip_adapter_mask_images: selectedPositions.map(pos => POSITION_MAP[pos]),
-      embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-      scheduler: "DPMSolverMultistepSchedulerSDE",
-      seed: -1,
-      ip_adapter_image: faceImages,
-      ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
-      ip_adapter_scale: Array(faceImages.length).fill(0.6)
-    }
-
     try {
-      const response = await faceControl(payload)
-      if (response?.task_id) {
-        setGenerateTaskId(response.task_id)
+      const payload = {
+        model_id: "sdxl",
+        prompt,
+        num_inference_steps: 30,
+        samples: 1,
+        negative_prompt: "pixelated, low res, blurry faces, jpeg artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, deformed eyes, glitch, noise, noisy, off-center, deformed, cross-eyed, bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+        guidance_scale: 5.0,
+        height: 1024,
+        width: 1024,
+        ip_adapter_mask_images: selectedPositions.map(pos => POSITION_MAP[pos]),
+        embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
+        scheduler: "DPMSolverMultistepSchedulerSDE",
+        seed: -1,
+        ip_adapter_image: faceImages,
+        ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
+        ip_adapter_scale: Array(faceImages.length).fill(0.6)
+      }
+
+      const response = await faceControlMutate(payload)
+      if (response?.id) { // Changed from task_id to id
+        setGenerateTaskId(response.id)
+        addTask(response.id, "face")
         toast({
           title: "Processing started",
           description: "Your image is being generated"
@@ -112,7 +173,7 @@ const FaceTab = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate face image. Please try again.",
+        description: "Failed to start generation process",
         variant: "destructive"
       })
     }
