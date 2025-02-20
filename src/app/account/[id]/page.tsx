@@ -299,3 +299,7 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+
+
+// for all images GET https://api.imagepipeline.io/user/${user.id}/images

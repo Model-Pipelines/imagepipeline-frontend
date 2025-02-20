@@ -16,6 +16,8 @@ import {
 import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
+import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
+
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
@@ -362,6 +364,7 @@ export default function InfiniteCanvas() {
     <div className="relative w-full h-full flex">
       <Sidebar />
       <div className="flex-1 relative">
+       
         <Toolbar onUpload={handleUpload} />
         <ZoomControls />
         <ParentPrompt />
@@ -397,59 +400,70 @@ export default function InfiniteCanvas() {
 
         {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
-          <div key={img.id}>
-            {(!img.element || !img.element.complete) ? (
-              <div
-                className="absolute"
-                style={{
-                  transform: `translate(${(img.position.x + img.size.width) *
-                    scale +
-                    offset.x +
-                    10}px, ${img.position.y * scale + offset.y - 10}px)`,
-                  zIndex: 10,
-                }}
-              >
-                <Loader2 className="animate-spin" size={20} />
-              </div>
-            ) : (
-              <>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <button
-                      className="absolute"
-                      style={{
-                        transform: `translate(${(img.position.x + img.size.width) *
-                          scale +
-                          offset.x +
-                          10}px, ${img.position.y * scale + offset.y - 10}px)`,
-                        zIndex: 10,
-                      }}
-                      onClick={() => setSelectedImageId(img.id)}
-                    >
-                      <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
-                    </button>
-                  </DialogTrigger>
-                  <DialogTitle />
-                  <DialogContent>
-                    {img.id === selectedImageId && <EditImageCard />}
-                  </DialogContent>
-                </Dialog>
-                {img.id === selectedImageId && (
-                  <button
-                    onClick={() => removeImage(img.id)}
-                    className="absolute"
-                    style={{
-                      // Same X position as the edit button...
-                      transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
-                      zIndex: 10,
-                    }}
-                  >
-                    <Trash2 className="text-white bg-black rounded-full p-1 hover:bg-red-500 transition-colors" size={20} />
-                  </button>
-                )}
-              </>
-            )}
-          </div>
+  <div key={img.id}>
+    {(!img.element || !img.element.complete) ? (
+      <div
+        className="absolute"
+        style={{
+          transform: `translate(${(img.position.x + img.size.width) *
+            scale +
+            offset.x +
+            10}px, ${img.position.y * scale + offset.y - 10}px)`,
+          zIndex: 10,
+        }}
+      >
+        <Loader2 className="animate-spin" size={20} />
+      </div>
+    ) : (
+      <>
+        <Dialog>
+          <DialogTrigger asChild>
+            <button
+              className="absolute"
+              style={{
+                transform: `translate(${(img.position.x + img.size.width) *
+                  scale +
+                  offset.x +
+                  10}px, ${img.position.y * scale + offset.y - 10}px)`,
+                zIndex: 10,
+              }}
+              onClick={() => setSelectedImageId(img.id)}
+            >
+              <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
+            </button>
+          </DialogTrigger>
+          <DialogTitle />
+          <DialogContent>
+            {img.id === selectedImageId && <EditImageCard />}
+          </DialogContent>
+        </Dialog>
+        {img.id === selectedImageId && (
+          <>
+            <button
+              onClick={() => removeImage(img.id)}
+              className="absolute"
+              style={{
+                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
+                zIndex: 10,
+              }}
+            >
+              <Trash2 className="text-white bg-black rounded-full p-1 hover:bg-red-500 transition-colors" size={20} />
+            </button>
+            <div
+              className="absolute"
+              style={{
+                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 50}px)`,
+                zIndex: 10,
+              }}
+            >
+              <DropdownMenuBar />
+            </div>
+          </>
+        )}
+      </>
+    )}
+  </div>
+))}
         ))}
       </div>
       <ParentPrompt />
