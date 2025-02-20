@@ -20,8 +20,24 @@ import {
   Crop, 
   X 
 } from "lucide-react";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 
 const DropdownMenuBar = () => {
+  const {
+    images,
+    selectedImageId,
+    removeImage,
+    downloadImage,
+    updateImage,
+  } = useImageStore();
+
+  const handleDraw = () => {
+    if (selectedImageId) {
+      // Add your draw logic here
+      console.log("Draw action triggered for image:", selectedImageId);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -29,15 +45,24 @@ const DropdownMenuBar = () => {
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56">
         <DropdownMenuGroup>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem 
+            onClick={() => selectedImageId && downloadImage(selectedImageId)} 
+            className="cursor-pointer"
+          >
             Download
             <Download className="w-4 h-4 ml-auto" />
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem 
+            onClick={() => selectedImageId && removeImage(selectedImageId)} 
+            className="cursor-pointer"
+          >
             Delete
             <Trash2 className="w-4 h-4 ml-auto" />
           </DropdownMenuItem>
-          <DropdownMenuItem className="cursor-pointer">
+          <DropdownMenuItem 
+            onClick={handleDraw} 
+            className="cursor-pointer"
+          >
             Draw
             <Brush className="w-4 h-4 ml-auto" />
           </DropdownMenuItem>

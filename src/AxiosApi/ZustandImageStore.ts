@@ -17,6 +17,7 @@ interface ImageState {
   updateImage: (id: string, updates: Partial<Image>) => void;
   setSelectedImageId: (id: string | null) => void;
   initializeImages: () => Promise<void>; // Function to re-create image elements
+  downloadImage: (id: string) => void;
 }
 
 export const useImageStore = create<ImageState>()(
@@ -26,10 +27,9 @@ export const useImageStore = create<ImageState>()(
         images: [],
         selectedImageId: null,
 
-        // Updated: addImage now uses the properties passed to it
+        // Add an image if it doesn't already exist
         addImage: (image) =>
           set((state) => {
-            // Prevent duplicates by checking if the image already exists
             if (state.images.some((img) => img.id === image.id)) return state;
             return {
               images: [...state.images, image],
@@ -61,7 +61,7 @@ export const useImageStore = create<ImageState>()(
           await Promise.all(
             currentImages.map(async (img) => {
               if (!img.element) {
-                const element = new Image();
+                const element = document.createElement("img"); // Corrected new Image()
                 await new Promise<void>((resolve, reject) => {
                   element.onload = () => resolve();
                   element.onerror = (err) => {
@@ -79,13 +79,20 @@ export const useImageStore = create<ImageState>()(
             })
           );
         },
+
+        // Download an image
+        downloadImage: (id) => {
+          const image = get().images.find((img) => img.id === id);
+          if (image && image.url) {
+            window.open(image.url, "_blank"); // Opens image in a new tab
+          }
+        },
       }),
       {
         name: "ImageStore", // Key for localStorage
         partialize: (state) => ({
           ...state,
-          // Exclude element from persistence to avoid serialization issues
-          images: state.images.map(({ element, ...rest }) => rest),
+          images: state.images.map(({ element, ...rest }) => rest), // Exclude element from persistence
         }),
       }
     )
