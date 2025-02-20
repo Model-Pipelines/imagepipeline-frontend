@@ -416,7 +416,7 @@ export default function InfiniteCanvas() {
       </div>
     ) : (
       <>
-        <Dialog>
+        {/* <Dialog>
           <DialogTrigger asChild>
             <button
               className="absolute"
@@ -436,7 +436,7 @@ export default function InfiniteCanvas() {
           <DialogContent>
             {img.id === selectedImageId && <EditImageCard />}
           </DialogContent>
-        </Dialog>
+        </Dialog> */}
         {img.id === selectedImageId && (
           <>
             {/* <button
@@ -452,7 +452,7 @@ export default function InfiniteCanvas() {
             <div
               className="absolute"
               style={{
-                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
+                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
                 zIndex: 10,
               }}
             >

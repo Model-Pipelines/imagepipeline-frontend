@@ -18,7 +18,8 @@ import {
   Trash2, 
   Brush, 
   Crop, 
-  X 
+  X,
+  ImagePlus
 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -69,8 +70,9 @@ const DropdownMenuBar = () => {
       onSelect={(e) => e.preventDefault()} // Prevent closing
       className="cursor-pointer"
     >
-      Draw
-      <Brush className="w-4 h-4 ml-auto" />
+      Edit Image
+      <ImagePlus className="w-4 h-4 ml-auto" />
+      
     </DropdownMenuItem>
   </DialogTrigger>
   <DialogTitle />
