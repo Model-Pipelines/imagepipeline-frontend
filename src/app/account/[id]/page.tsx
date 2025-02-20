@@ -34,17 +34,9 @@ export default function ProfilePage() {
   const [subLoading, setSubLoading] = useState(true);
   const [subError, setSubError] = useState('');
   const [isImagesLoading, setIsImagesLoading] = useState(true);
-  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
-
-  const dummyImages = [
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop",
-  ];
+  const itemsPerPage = 8;
 
   useEffect(() => {
     const fetchSubDetails = async () => {
@@ -69,13 +61,29 @@ export default function ProfilePage() {
       }
     };
 
-    const timer = setTimeout(() => {
-      setGeneratedImages(dummyImages);
-      setIsImagesLoading(false);
-    }, 1500);
+    const fetchImages = async () => {
+      try {
+        if (!userId) return; // Ensure userId is available
+        const token = await getToken();
+        const response = await axios.get(
+          `https://api.imagepipeline.io/user/${userId}/images`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        setGeneratedImages(response.data);
+      } catch (err) {
+        console.error('Failed to fetch images:', err);
+      } finally {
+        setIsImagesLoading(false);
+      }
+    };
 
     fetchSubDetails();
-    return () => clearTimeout(timer);
+    fetchImages();
   }, [userId, getToken]); // Add userId and getToken to dependency array
 
   if (!user) {
@@ -96,7 +104,6 @@ export default function ProfilePage() {
   const email = user.primaryEmailAddress?.emailAddress;
   const fullName = `${user.firstName} ${user.lastName}`;
   const username = user.username || (email ? email.split("@")[0] : "Not set");
-  const itemsPerPage = 5;
   const totalPages = Math.ceil(generatedImages.length / itemsPerPage);
   const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
@@ -145,7 +152,7 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Tokens Remaining</p>
-                  <p>{subscription?.token_remaining || 0}</p>
+                  <p>{subscription?.tokens_remaining || 0}</p>
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Model Trainings</p>
@@ -157,7 +164,11 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-gray-500 dark:text-gray-400">Plan Status</p>
-                  <p>{subscription?.plan_active ? "Active" : "Inactive"}</p>
+                  <p>{subscription?.plan ? "Active" : "Inactive"}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400">Plan Expiry Date</p>
+                  <p>{subscription?.plan_expiry_date || 0}</p>
                 </div>
               </div>
             )}
@@ -211,7 +222,7 @@ export default function ProfilePage() {
                   <CardContent className="p-0">
                     <div className="relative h-32">
                       <ImageWithSkeleton
-                        src={img}
+                        src={img.download_url}
                         alt={`Generated image ${i + 1}`}
                         fill
                         className="object-cover rounded-md"
@@ -299,7 +310,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-
-
-
-// for all images GET https://api.imagepipeline.io/user/${user.id}/images

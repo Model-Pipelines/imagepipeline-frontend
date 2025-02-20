@@ -1,6 +1,5 @@
 
 import { BackgroundTaskPoller } from "@/components/Canvas/ImageEditor/BackgroundPoller";
-import DropdownMenuBar from "@/components/Canvas/ImageEditor/DropdownMenuBar/DropdownMenuBar";
 import InfiniteCanvas from "@/components/Canvas/InfiniteCanvas";
 
 
