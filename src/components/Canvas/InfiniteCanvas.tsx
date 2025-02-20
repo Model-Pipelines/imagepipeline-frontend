@@ -439,7 +439,7 @@ export default function InfiniteCanvas() {
         </Dialog>
         {img.id === selectedImageId && (
           <>
-            <button
+            {/* <button
               onClick={() => removeImage(img.id)}
               className="absolute"
               style={{
@@ -448,11 +448,11 @@ export default function InfiniteCanvas() {
               }}
             >
               <Trash2 className="text-white bg-black rounded-full p-1 hover:bg-red-500 transition-colors" size={20} />
-            </button>
+            </button> */}
             <div
               className="absolute"
               style={{
-                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 50}px)`,
+                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
                 zIndex: 10,
               }}
             >

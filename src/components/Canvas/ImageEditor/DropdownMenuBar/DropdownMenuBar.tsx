@@ -21,6 +21,8 @@ import {
   X 
 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { EditImageCard } from "../EditImageCard";
 
 const DropdownMenuBar = () => {
   const {
@@ -59,13 +61,23 @@ const DropdownMenuBar = () => {
             Delete
             <Trash2 className="w-4 h-4 ml-auto" />
           </DropdownMenuItem>
-          <DropdownMenuItem 
-            onClick={handleDraw} 
-            className="cursor-pointer"
-          >
-            Draw
-            <Brush className="w-4 h-4 ml-auto" />
-          </DropdownMenuItem>
+          
+          <Dialog>
+  <DialogTrigger asChild>
+    <DropdownMenuItem 
+      onClick={handleDraw} 
+      onSelect={(e) => e.preventDefault()} // Prevent closing
+      className="cursor-pointer"
+    >
+      Draw
+      <Brush className="w-4 h-4 ml-auto" />
+    </DropdownMenuItem>
+  </DialogTrigger>
+  <DialogTitle />
+  <DialogContent>
+    {selectedImageId && <EditImageCard />}
+  </DialogContent>
+</Dialog>
         </DropdownMenuGroup>
 
         <DropdownMenuGroup>
