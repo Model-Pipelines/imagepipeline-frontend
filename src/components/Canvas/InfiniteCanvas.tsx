@@ -17,6 +17,7 @@ import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
+import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
 
 const HANDLE_SIZE = 8;
@@ -365,7 +366,7 @@ export default function InfiniteCanvas() {
       <Sidebar />
       <div className="flex-1 relative">
        
-        <Toolbar onUpload={handleUpload} />
+        <Toolbar onUpload={handleUpload}  />
         <ZoomControls />
         <ParentPrompt />
 
@@ -401,70 +402,38 @@ export default function InfiniteCanvas() {
         {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
   <div key={img.id}>
+    {/* Render ShinyGradientSkeletonHorizontal if image is not loaded */}
     {(!img.element || !img.element.complete) ? (
       <div
         className="absolute"
         style={{
-          transform: `translate(${(img.position.x + img.size.width) *
-            scale +
-            offset.x +
-            10}px, ${img.position.y * scale + offset.y - 10}px)`,
+          transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
+          width: `${img.size.width * scale}px`,
+          height: `${img.size.height * scale}px`,
           zIndex: 10,
         }}
       >
-        <Loader2 className="animate-spin" size={20} />
+        <ShinyGradientSkeletonHorizontal />
       </div>
     ) : (
       <>
-        {/* <Dialog>
-          <DialogTrigger asChild>
-            <button
-              className="absolute"
-              style={{
-                transform: `translate(${(img.position.x + img.size.width) *
-                  scale +
-                  offset.x +
-                  10}px, ${img.position.y * scale + offset.y - 10}px)`,
-                zIndex: 10,
-              }}
-              onClick={() => setSelectedImageId(img.id)}
-            >
-              <Edit className="text-white bg-black rounded-full p-1 hover:bg-blue-500 transition-colors" size={20} />
-            </button>
-          </DialogTrigger>
-          <DialogTitle />
-          <DialogContent>
-            {img.id === selectedImageId && <EditImageCard />}
-          </DialogContent>
-        </Dialog> */}
+        {/* Render image and associated UI elements */}
         {img.id === selectedImageId && (
-          <>
-            {/* <button
-              onClick={() => removeImage(img.id)}
-              className="absolute"
-              style={{
-                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y + 20}px)`,
-                zIndex: 10,
-              }}
-            >
-              <Trash2 className="text-white bg-black rounded-full p-1 hover:bg-red-500 transition-colors" size={20} />
-            </button> */}
-            <div
-              className="absolute"
-              style={{
-                transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
-                zIndex: 10,
-              }}
-            >
-              <DropdownMenuBar />
-            </div>
-          </>
+          <div
+            className="absolute"
+            style={{
+              transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
+              zIndex: 10,
+            }}
+          >
+            <DropdownMenuBar />
+          </div>
         )}
       </>
     )}
   </div>
 ))}
-        ))}
+        
       </div>
       <ParentPrompt />
     </div>
