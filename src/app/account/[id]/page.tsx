@@ -220,13 +220,16 @@ export default function ProfilePage() {
                 >
                   <CardContent className="p-0">
                     <div className="relative h-32">
-                      <ImageWithSkeleton
+                      {/* <ImageWithSkeleton
                         src={img.download_url}
                         alt={`Generated image ${i + 1}`}
                         fill
                         className="object-cover rounded-md"
-                      />
+                      /> */}
+
+                      <img src={img.download_url} alt={`Generated image ${i + 1}`} />
                     </div>
+
                   </CardContent>
                 </Card>
               ))}

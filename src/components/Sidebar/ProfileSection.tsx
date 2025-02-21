@@ -66,8 +66,8 @@ export function ProfileSection() {
       </div>
       <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
-      {/* Plan Info */}
-      <div className="p-4">
+      {/* Plan Info - Hidden on mobile and tablet */}
+      <div className="p-4 md:block hidden">
         <div className="flex justify-between text-sm">
           <span className="font-medium text-gray-800 dark:text-gray-200">
             Free
@@ -89,7 +89,7 @@ export function ProfileSection() {
       <div className="p-4 flex flex-col gap-2">
         <Link
           href="/help"
-          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200"
+          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 md:block hidden"
         >
           <HelpCircle className="h-4 w-4" />
           Help & Documentation

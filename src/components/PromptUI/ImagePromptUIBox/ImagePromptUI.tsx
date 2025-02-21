@@ -1,54 +1,55 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
-import { Paperclip, X, Settings, Palette } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { useImageStore } from "@/AxiosApi/ZustandImageStore"
-import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery"
-import ImageUploadLoader from "../ImageUploadLoader"
-import SettingsPanel from "../SettingsPanel"
-import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete"
-import PreviewDualActionButton from "../ToggleVisibilityButton"
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { Paperclip, X, Settings, Palette } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import ImageUploadLoader from "../ImageUploadLoader";
+import SettingsPanel from "../SettingsPanel";
+import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
+import PreviewDualActionButton from "../ToggleVisibilityButton";
 
-import type { GenerateImagePayload } from "@/AxiosApi/types"
-import { getGenerateImage } from "@/AxiosApi/GenerativeApi"
-import { useQuery } from "@tanstack/react-query"
-import { v4 as uuidv4 } from "uuid"
+import type { GenerateImagePayload } from "@/AxiosApi/types";
+import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
+import { useQuery } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
 
 // Define PaletteType
 type PaletteType = {
-  name: string
-  colors: string[]
-}
+  name: string;
+  colors: string[];
+};
 
 const ImagePromptUI = () => {
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
-  const [selectedPalette, setSelectedPalette] = useState<PaletteType | null>(null)
-  const [inputText, setInputText] = useState("")
-  const [paperclipImage, setPaperclipImage] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [selectedPalette, setSelectedPalette] = useState<PaletteType | null>(null);
+  const [inputText, setInputText] = useState("");
+  const [paperclipImage, setPaperclipImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Add missing toggle functions
-  const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible)
-  const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible)
+  const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
+  const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
 
   // "default", "controlnet", "renderSketch", "recolor", "logo"
   const [generationType, setGenerationType] = useState<"default" | "controlnet" | "renderSketch" | "recolor" | "logo">(
     "default",
-  )
+  );
 
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null)
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set()); // Track generating images
 
-  const { toast } = useToast()
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const { addImage, images } = useImageStore()
+  const { toast } = useToast();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const { addImage, images } = useImageStore();
 
-  const { mutateAsync: uploadBackendFile } = useUploadBackendFiles()
-  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage()
+  const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
+  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage();
 
   // Poll the generate image task status using React Query.
   const { data: generateTaskStatus } = useQuery({
@@ -56,60 +57,63 @@ const ImagePromptUI = () => {
     queryFn: () => getGenerateImage(generateTaskId!),
     enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
-  })
+  });
 
   // Handle updates to the generate image task status.
   useEffect(() => {
-    if (!generateTaskStatus) return
+    if (!generateTaskStatus) return;
 
     if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url
+      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       if (!imageUrl) {
         toast({
           title: "Error",
           description: "Image URL not found",
           variant: "destructive",
-        })
-        setGenerateTaskId(null)
-        return
+        });
+        setGenerateTaskId(null);
+        return;
       }
 
-      const img = new Image()
-      img.src = imageUrl
+      const img = new Image();
+      img.src = imageUrl;
       img.onload = () => {
         // Slight offset from the last image
-        const lastImage = images[images.length - 1]
+        const lastImage = images[images.length - 1];
         const newPosition = lastImage
           ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 }
+          : { x: 50, y: 60 };
 
         addImage({
           id: uuidv4(),
           url: imageUrl,
           position: newPosition,
-          size: { width: 520, height: 520 },
+          size: { width: 200, height: 200 },
           element: img,
-        })
-        toast({ title: "Success", description: "Image generated successfully!" })
-        setGenerateTaskId(null)
-      }
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+        setGeneratingImages((prev) => new Set(prev)); // Remove from generatingImages
+      };
       img.onerror = () => {
         toast({
           title: "Error",
           description: "Failed to load generated image",
           variant: "destructive",
-        })
-        setGenerateTaskId(null)
-      }
+        });
+        setGenerateTaskId(null);
+        setGeneratingImages((prev) => new Set(prev)); // Remove from generatingImages
+      };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
         title: "Error",
         description: generateTaskStatus.error || "Image generation failed",
         variant: "destructive",
-      })
-      setGenerateTaskId(null)
+      });
+      setGenerateTaskId(null);
+      setGeneratingImages((prev) => new Set(prev)); // Remove from generatingImages
     }
-  }, [generateTaskStatus, addImage, images, toast])
+  }, [generateTaskStatus, addImage, images, toast]);
 
   const handleGenerateImage = () => {
     // Ensure prompt is not empty
@@ -118,13 +122,13 @@ const ImagePromptUI = () => {
         title: "Error",
         description: "Please enter a description",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     // Immediately clear the input text and file preview for a better UX.
-    setInputText("")
-    setPaperclipImage(null)
+    setInputText("");
+    setPaperclipImage(null);
 
     // Build the payload exactly as the API expects.
     const payload: GenerateImagePayload = {
@@ -136,7 +140,11 @@ const ImagePromptUI = () => {
       height: 1024,
       width: 1024,
       seed: -1, // API docs show default seed is -1
-    }
+    };
+
+    // Generate a unique ID for the new image
+    const newImageId = uuidv4();
+    setGeneratingImages((prev) => new Set(prev).add(newImageId)); // Add to generatingImages
 
     generateImage(payload, {
       onSuccess: (response) => {
@@ -145,51 +153,56 @@ const ImagePromptUI = () => {
             title: "Error",
             description: "Missing task ID in response",
             variant: "destructive",
-          })
-          return
+          });
+          return;
         }
-        setGenerateTaskId(response.id)
+        setGenerateTaskId(response.id);
         toast({
           title: "Processing started",
           description: "Your image is being generated",
-        })
+        });
       },
       onError: (error) => {
         toast({
           title: "Generation Failed",
           description: error instanceof Error ? error.message : "Failed to generate image",
           variant: "destructive",
-        })
+        });
+        setGeneratingImages((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(newImageId);
+          return newSet;
+        });
       },
-    })
-  }
+    });
+  };
 
   const handleFileUpload = async (file: File) => {
     try {
-      setIsUploading(true)
+      setIsUploading(true);
       // Upload the file and get its URL.
-      const imageUrl: string = await uploadBackendFile(file)
-      if (!imageUrl) throw new Error("Failed to upload image")
-      setPaperclipImage(imageUrl)
+      const imageUrl: string = await uploadBackendFile(file);
+      if (!imageUrl) throw new Error("Failed to upload image");
+      setPaperclipImage(imageUrl);
       toast({
         title: "Upload Successful",
         description: "Image added to canvas",
-      })
+      });
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
   // Add missing file input handling
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const handlePaperclipClick = () => fileInputRef.current?.click()
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePaperclipClick = () => fileInputRef.current?.click();
 
   return (
     <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
@@ -301,8 +314,7 @@ const ImagePromptUI = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ImagePromptUI
-
+export default ImagePromptUI;

@@ -1,13 +1,11 @@
 "use client"
 import { useState } from "react"
-import { Menu, HelpCircle, Users, Trash2, LogOut,KeyRound  } from "lucide-react"
-
+import { Menu, HelpCircle, Users, Trash2, LogOut, KeyRound } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { motion, AnimatePresence } from "framer-motion"
 import { ThemeSwitcher } from "./ThemeSwitcher"
 import { ProfileSection } from "./ProfileSection"
-import { ProfileFooter } from "./ProfileFooter"
 
 export default function MobileAccountDropdown() {
   const [isOpen, setIsOpen] = useState(false)
@@ -29,44 +27,15 @@ export default function MobileAccountDropdown() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
-            className="fixed top-14 left-24 -z-[100]"
+            className="fixed top-14 right-4 -z-[100] md:top-14 md:right-4"
           >
             <Card className="w-80 rounded-lg shadow-lg overflow-hidden bg-white/10 dark:bg-gray-800/10 backdrop-blur-lg border border-white/20 dark:border-gray-700/20">
               <div className="bg-white/40 dark:bg-gray-800/40 backdrop-blur-md">
                 {/* Profile Section */}
                 <ProfileSection />
-
-                {/* Menu Items */}
-                <CardContent className="py-2">
-                  <div className="flex flex-col gap-2">
-                    {/* <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <HelpCircle className="h-4 w-4" />
-                      Help & documentation
-                    </button>
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <KeyRound className="h-4 w-4" />
-                      API Key
-                    </button> */}
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                      <Trash2 className="h-4 w-4" />
-                      Delete account
-                    </button>
-
-                    <button className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400">
-                    <LogOut className="h-4 w-4" />
-                    Sign out{" "}
-                  </button>
-
-
-                  </div>
-                </CardContent>
-
                 <Separator className="bg-white/20 dark:bg-gray-700/20" />
                 {/* Theme Selector */}
                 <ThemeSwitcher />
-
-                {/* Footer Links */}
-                {/* <ProfileFooter /> */}
               </div>
             </Card>
           </motion.div>
@@ -75,5 +44,3 @@ export default function MobileAccountDropdown() {
     </div>
   )
 }
-
-
