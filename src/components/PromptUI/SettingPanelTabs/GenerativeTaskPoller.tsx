@@ -1,5 +1,5 @@
-// src/components/GenerativeTaskPoller.tsx
 "use client";
+
 import { useQuery } from "@tanstack/react-query";
 import {
   getControlNetTaskStatus,
@@ -7,18 +7,20 @@ import {
   getRecolorImageStatus,
   getInteriorDesignStatus,
   getGenerateLogoStatus,
-  getGenerateImage
+  getFaceControlStatusFaceDailog,
+  getStyleImageStatus,
 } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { toast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
 const TaskProcessor = ({ taskId }: { taskId: string }) => {
   const { tasks, updateTask, removeTask } = useGenerativeTaskStore();
   const { images, addImage } = useImageStore();
   const task = tasks[taskId];
+  const hasProcessedRef = useRef(false); // Track if task has been processed
 
   if (!task) return null;
 
@@ -26,28 +28,38 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
     queryKey: ["generativeTask", taskId],
     queryFn: async () => {
       switch (task.type) {
-        case 'controlnet': return getControlNetTaskStatus(taskId);
-        case 'sketch': return getRenderSketchStatus(taskId);
-        case 'recolor': return getRecolorImageStatus(taskId);
-        case 'interior': return getInteriorDesignStatus(taskId);
-        case 'logo': return getGenerateLogoStatus(taskId);
-        case 'face': return getGenerateImage(taskId);
-        case 'style': return getGenerateImage(taskId);
-        default: return getGenerateImage(taskId);
+        case "controlnet":
+          return getControlNetTaskStatus(taskId);
+        case "sketch":
+          return getRenderSketchStatus(taskId);
+        case "recolor":
+          return getRecolorImageStatus(taskId);
+        case "interior":
+          return getInteriorDesignStatus(taskId);
+        case "logo":
+          return getGenerateLogoStatus(taskId);
+        case "face":
+          return getFaceControlStatusFaceDailog(taskId);
+        case "style":
+          return getStyleImageStatus(taskId);
+        default:
+          throw new Error(`Unknown task type: ${task.type}`);
       }
     },
-    refetchInterval: 5000,
-    enabled: task.status === 'PENDING',
+    enabled: task.status === "PENDING",
+    refetchInterval: (data) => (data?.status === "PENDING" ? 5000 : false),
   });
 
   useEffect(() => {
-    if (!data) return;
+    if (!data || hasProcessedRef.current) return;
 
     updateTask(taskId, data);
 
-    if (data.status === 'SUCCESS') {
+    if (data.status === "SUCCESS") {
+      hasProcessedRef.current = true; // Mark as processed
+      removeTask(taskId); // Remove task first to prevent re-processing
       const imageUrl = data.download_urls?.[0] || data.image_url;
-      if (imageUrl && !images.some(img => img.url === imageUrl)) {
+      if (imageUrl && !images.some((img) => img.url === imageUrl)) {
         const img = new Image();
         img.src = imageUrl;
         img.onload = () => {
@@ -63,20 +75,18 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
             size: { width: 520, height: 520 },
             element: img,
           });
-
           toast({ title: "Success", description: `${task.type} generation complete!` });
-          removeTask(taskId);
+        };
+        img.onerror = () => {
+          toast({ title: "Error", description: "Failed to load image", variant: "destructive" });
         };
       }
-    } else if (data.status === 'FAILURE') {
-      toast({
-        title: "Error",
-        description: data.error || "Generation failed",
-        variant: "destructive"
-      });
+    } else if (data.status === "FAILURE") {
+      hasProcessedRef.current = true; // Mark as processed
       removeTask(taskId);
+      toast({ title: "Error", description: data.error || "Generation failed", variant: "destructive" });
     }
-  }, [data, taskId, task.type]);
+  }, [data, taskId, task.type, addImage, images, removeTask, updateTask]);
 
   return null;
 };

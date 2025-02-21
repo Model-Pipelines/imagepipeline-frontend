@@ -1,87 +1,71 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { motion } from "framer-motion"
-import { Paperclip, X, Settings, Palette } from "lucide-react"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { useImageStore } from "@/AxiosApi/ZustandImageStore"
-import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery"
-import ImageUploadLoader from "../ImageUploadLoader"
-import SettingsPanel from "../SettingsPanel"
-import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete"
-import PreviewDualActionButton from "../ToggleVisibilityButton"
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { Paperclip, X, Settings, Palette, Wand2, Globe, Lock } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import ImageUploadLoader from "../ImageUploadLoader";
+import SettingsPanel from "../SettingsPanel";
+import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
+import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 
-import type { GenerateImagePayload } from "@/AxiosApi/types"
-import { getGenerateImage } from "@/AxiosApi/GenerativeApi"
-import { useQuery } from "@tanstack/react-query"
-import { v4 as uuidv4 } from "uuid"
-
-// Define PaletteType
-type PaletteType = {
-  name: string
-  colors: string[]
-}
+import type { GenerateImagePayload } from "@/AxiosApi/types";
+import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
+import { useQuery } from "@tanstack/react-query";
+import { v4 as uuidv4 } from "uuid";
+import { cn } from "@/lib/utils";
 
 const ImagePromptUI = () => {
-  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false)
-  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false)
-  const [selectedPalette, setSelectedPalette] = useState<PaletteType | null>(null)
-  const [inputText, setInputText] = useState("")
-  const [paperclipImage, setPaperclipImage] = useState<string | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
+  const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
 
-  // Add missing toggle functions
-  const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible)
-  const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible)
+  const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
+  const { toast } = useToast();
+  const textAreaRef = useRef<HTMLTextAreaElement>(null);
+  const { addImage, images } = useImageStore();
+  const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
+  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage();
 
-  // "default", "controlnet", "renderSketch", "recolor", "logo"
-  const [generationType, setGenerationType] = useState<"default" | "controlnet" | "renderSketch" | "recolor" | "logo">(
-    "default",
-  )
+  const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
+  const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
 
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null)
-
-  const { toast } = useToast()
-  const textAreaRef = useRef<HTMLTextAreaElement>(null)
-  const { addImage, images } = useImageStore()
-
-  const { mutateAsync: uploadBackendFile } = useUploadBackendFiles()
-  const { mutate: generateImage, isPending: isGenerating } = useGenerateImage()
-
-  // Poll the generate image task status using React Query.
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["generateImageTask", generateTaskId],
     queryFn: () => getGenerateImage(generateTaskId!),
     enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
-  })
+  });
 
-  // Handle updates to the generate image task status.
   useEffect(() => {
-    if (!generateTaskStatus) return
+    if (!generateTaskStatus) return;
 
     if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url
+      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       if (!imageUrl) {
-        toast({
-          title: "Error",
-          description: "Image URL not found",
-          variant: "destructive",
-        })
-        setGenerateTaskId(null)
-        return
+        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
+        setGenerateTaskId(null);
+        return;
       }
 
-      const img = new Image()
-      img.src = imageUrl
+      const img = new Image();
+      img.src = imageUrl;
       img.onload = () => {
-        // Slight offset from the last image
-        const lastImage = images[images.length - 1]
+        const lastImage = images[images.length - 1];
         const newPosition = lastImage
           ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 }
+          : { x: 50, y: 60 };
 
         addImage({
           id: uuidv4(),
@@ -89,119 +73,123 @@ const ImagePromptUI = () => {
           position: newPosition,
           size: { width: 520, height: 520 },
           element: img,
-        })
-        toast({ title: "Success", description: "Image generated successfully!" })
-        setGenerateTaskId(null)
-      }
+        });
+        toast({ title: "Success", description: "Image generated successfully!" });
+        setGenerateTaskId(null);
+      };
       img.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to load generated image",
-          variant: "destructive",
-        })
-        setGenerateTaskId(null)
-      }
+        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
+        setGenerateTaskId(null);
+      };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
         title: "Error",
         description: generateTaskStatus.error || "Image generation failed",
         variant: "destructive",
-      })
-      setGenerateTaskId(null)
+      });
+      setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast])
+  }, [generateTaskStatus, addImage, images, toast]);
 
   const handleGenerateImage = () => {
-    // Ensure prompt is not empty
-    if (!inputText.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a description",
-        variant: "destructive",
-      })
-      return
+    if (!text.trim()) {
+      toast({ title: "Error", description: "Please enter a description", variant: "destructive" });
+      return;
     }
 
-    // Immediately clear the input text and file preview for a better UX.
-    setInputText("")
-    setPaperclipImage(null)
+    setImageUrl(null);
 
-    // Build the payload exactly as the API expects.
     const payload: GenerateImagePayload = {
-      prompt: inputText.trim(),
-      num_inference_steps: 30, // Per your API docs
+      prompt: text.trim(),
+      num_inference_steps: 30,
       samples: 1,
-      enhance_prompt: true, // or false
-      palette: [], // or your chosen color hex array
+      enhance_prompt: true,
+      palette: hex_color,
       height: 1024,
       width: 1024,
-      seed: -1, // API docs show default seed is -1
-    }
+      seed: -1,
+    };
 
     generateImage(payload, {
       onSuccess: (response) => {
         if (!response.id) {
-          toast({
-            title: "Error",
-            description: "Missing task ID in response",
-            variant: "destructive",
-          })
-          return
+          toast({ title: "Error", description: "Missing task ID in response", variant: "destructive" });
+          return;
         }
-        setGenerateTaskId(response.id)
-        toast({
-          title: "Processing started",
-          description: "Your image is being generated",
-        })
+        setGenerateTaskId(response.id);
+        toast({ title: "Processing started", description: "Your image is being generated" });
       },
       onError: (error) => {
         toast({
           title: "Generation Failed",
           description: error instanceof Error ? error.message : "Failed to generate image",
           variant: "destructive",
-        })
+        });
       },
-    })
-  }
+    });
+  };
 
   const handleFileUpload = async (file: File) => {
     try {
-      setIsUploading(true)
-      // Upload the file and get its URL.
-      const imageUrl: string = await uploadBackendFile(file)
-      if (!imageUrl) throw new Error("Failed to upload image")
-      setPaperclipImage(imageUrl)
-      toast({
-        title: "Upload Successful",
-        description: "Image added to canvas",
-      })
+      setIsUploading(true);
+      const imageUrl: string = await uploadBackendFile(file);
+      if (!imageUrl) throw new Error("Failed to upload image");
+      setImageUrl(imageUrl);
+      toast({ title: "Upload Successful", description: "Image added to canvas" });
     } catch (error) {
-      console.error("Upload error:", error)
+      console.error("Upload error:", error);
       toast({
         title: "Upload Failed",
         description: error instanceof Error ? error.message : "Failed to upload image",
         variant: "destructive",
-      })
+      });
     } finally {
-      setIsUploading(false)
+      setIsUploading(false);
     }
-  }
+  };
 
-  // Add missing file input handling
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const handlePaperclipClick = () => fileInputRef.current?.click()
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handlePaperclipClick = () => fileInputRef.current?.click();
+
+  const getButtonText = () => {
+    const defaultEmberColors = ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"].join(",");
+    const palettes = [
+      { name: "Ember", colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"] },
+      { name: "Fresh", colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"] },
+      { name: "Jungle", colors: ["#006400", "#228B22", "#32CD32", "#90EE90", "#FFFFFF"] },
+      { name: "Magic", colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"] },
+    ];
+
+    const currentColors = hex_color.join(",");
+    if (currentColors === defaultEmberColors && selectedPaletteName === "Ember") {
+      return "Default";
+    }
+
+    for (const palette of palettes) {
+      if (palette.colors.join(",") === currentColors) {
+        return palette.name;
+      }
+    }
+
+    if (hex_color.some(color => color !== "#FFFFFF" && color !== "#000000")) {
+      return "Custom";
+    }
+
+    return selectedPaletteName;
+  };
+
+  const buttonText = getButtonText();
 
   return (
     <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
       <div className="flex flex-col gap-4">
-        {/* File Preview - remains unchanged */}
-        {(isUploading || paperclipImage) && (
+        {(isUploading || image_url) && (
           <div className="relative mt-4 z-[100]">
             <div className="flex flex-wrap gap-2">
-              <ImageUploadLoader imagePreview={paperclipImage} isUploading={isUploading} />
+              <ImageUploadLoader imagePreview={image_url} isUploading={isUploading} />
               {!isUploading && (
                 <button
-                  onClick={() => setPaperclipImage(null)}
+                  onClick={() => setImageUrl(null)}
                   className="absolute top-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
                 >
                   <X size={16} />
@@ -211,7 +199,6 @@ const ImagePromptUI = () => {
           </div>
         )}
 
-        {/* Input Section */}
         <div className="flex items-center gap-2">
           <div className="relative flex-grow">
             <input
@@ -229,7 +216,7 @@ const ImagePromptUI = () => {
             </button>
             <Textarea
               ref={textAreaRef}
-              value={inputText}
+              value={text}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Describe what you want to generate..."
               className="w-full pl-10 pr-2 bg-slate-50 dark:bg-gray-700 resize-none rounded-lg"
@@ -239,9 +226,8 @@ const ImagePromptUI = () => {
           <Button
             onClick={handleGenerateImage}
             disabled={isGenerating || !!generateTaskId}
-            className={`h-12 w-12 sm:w-auto sm:px-6 flex-shrink-0 flex items-center justify-center rounded-full sm:rounded-lg ${
-              isGenerating || generateTaskId ? "bg-blue-500 hover:bg-blue-500" : ""
-            }`}
+            className={`h-12 w-12 sm:w-auto sm:px-6 flex-shrink-0 flex items-center justify-center rounded-full sm:rounded-lg ${isGenerating || generateTaskId ? "bg-blue-500 hover:bg-blue-500" : ""
+              }`}
           >
             {isGenerating || generateTaskId ? (
               <motion.div
@@ -260,26 +246,73 @@ const ImagePromptUI = () => {
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <PreviewDualActionButton />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-10 w-10 rounded-md border border-gray-300",
+                      magic_prompt ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
+                      "hover:bg-blue-50"
+                    )}
+                    onClick={toggleMagicPrompt}
+                    aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
+                  >
+                    <motion.div
+                      animate={magic_prompt ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                    >
+                      <Wand2 className="h-5 w-5" />
+                    </motion.div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{magic_prompt ? "Magic prompt is on" : "Magic prompt is off"}</p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                      "h-10 w-10 rounded-md border border-gray-300",
+                      isPublic ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
+                      "hover:bg-blue-50"
+                    )}
+                    onClick={togglePublic}
+                    aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
+                  >
+                    <motion.div
+                      animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                    >
+                      {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                    </motion.div>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
           <div className="flex items-center gap-2">
             <Button
               onClick={toggleColorPalette}
-              className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
-                isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-              }`}
+              className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                }`}
               aria-label="Toggle color palette"
             >
-              <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-black"}`} />
-              <span className={`hidden lg:ml-2 lg:inline ${selectedPalette ? "text-white" : "text-gray-700"}`}>
-                Color: {selectedPalette ? selectedPalette.name : "Auto"}
-              </span>
+              <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+              <span className="ml-2 truncate">{buttonText}</span>
             </Button>
             <Button
               onClick={toggleSettingsPanel}
-              className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
-                isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-              }`}
+              className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                }`}
               aria-label="Toggle settings"
             >
               <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-white" : "text-black"}`} />
@@ -291,7 +324,12 @@ const ImagePromptUI = () => {
 
       {isSettingsPanelVisible && (
         <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
-          <SettingsPanel onTypeChange={(type: any) => {}} paperclipImage={paperclipImage} inputText={inputText} />
+          <SettingsPanel
+            onTypeChange={(type: any) => { }}
+            paperclipImage={image_url}
+            inputText={text}
+            onClose={() => setIsSettingsPanelVisible(false)}
+          />
         </div>
       )}
 
@@ -301,8 +339,7 @@ const ImagePromptUI = () => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default ImagePromptUI
-
+export default ImagePromptUI;

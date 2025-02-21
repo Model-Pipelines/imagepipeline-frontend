@@ -1,46 +1,28 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 
 interface ColorPalette {
   name: string;
   colors: string[];
+  image?: string | null;
 }
 
 const defaultPalettes: ColorPalette[] = [
-  {
-    name: "Ember",
-    colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
-  },
-  {
-    name: "Fresh",
-    colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"],
-  },
-  {
-    name: "Jungle",
-    colors: ["#006400", "#228B22", "#32CD32", "#90EE90"],
-  },
-  {
-    name: "Magic",
-    colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"],
-  },
+  { name: "Ember", colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"] },
+  { name: "Fresh", colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"] },
+  { name: "Jungle", colors: ["#006400", "#228B22", "#32CD32", "#90EE90"] },
+  { name: "Magic", colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"] },
 ];
 
-function ColorSpectrum({
-  onColorSelect,
-}: {
-  onColorSelect: (color: string) => void;
-}) {
+function ColorSpectrum({ onColorSelect }: { onColorSelect: (color: string) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -74,20 +56,14 @@ function ColorSpectrum({
   }, []);
 
   const handleColorPick = (
-    event:
-      | React.MouseEvent<HTMLCanvasElement>
-      | React.TouchEvent<HTMLCanvasElement>
+    event: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>
   ) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x =
-      ("touches" in event ? event.touches[0].clientX : event.clientX) -
-      rect.left;
-    const y =
-      ("touches" in event ? event.touches[0].clientY : event.clientY) -
-      rect.top;
+    const x = ("touches" in event ? event.touches[0].clientX : event.clientX) - rect.left;
+    const y = ("touches" in event ? event.touches[0].clientY : event.clientY) - rect.top;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -104,7 +80,7 @@ function ColorSpectrum({
       ref={canvasRef}
       width={256}
       height={150}
-      className="w-full h-[150px] cursor-crosshair rounded-md"
+      className="w-full h-[150px] cursor-crosshair rounded-md border border-gray-300"
       onMouseDown={() => setIsDragging(true)}
       onMouseUp={() => setIsDragging(false)}
       onMouseLeave={() => setIsDragging(false)}
@@ -118,20 +94,42 @@ function ColorSpectrum({
 }
 
 export default function CustomColorPalette() {
-  const [selectedPalette, setSelectedPalette] = useState<ColorPalette>(
-    defaultPalettes[0]
-  );
-  const [customColors, setCustomColors] = useState<string[]>(
-    Array(5).fill("#FFFFFF")
-  );
+  const {
+    text,
+    image_url,
+    magic_prompt,
+    hex_color,
+    selectedPaletteName,
+    paletteImages,
+    updateSetting,
+    setPaletteImage,
+  } = useSettingPanelStore();
+
+  const [customColors, setCustomColors] = useState<string[]>(Array(5).fill("#FFFFFF"));
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null);
   const [inputValue, setInputValue] = useState<string>("");
   const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(true);
 
-  const handlePaletteSelect = (palette: ColorPalette) => {
-    setSelectedPalette(palette);
-  };
+  useEffect(() => {
+    if (!isVisible && selectedPaletteName !== "custom") {
+      const resetColors = Array(5).fill("#FFFFFF");
+      setCustomColors(resetColors);
+    }
+  }, [isVisible, selectedPaletteName]);
+
+  const handlePaletteSelect = useCallback((palette: ColorPalette) => {
+    const newColors = palette.name === "custom" ? customColors : palette.colors.concat(Array(5).fill("#FFFFFF")).slice(0, 5);
+    if (image_url) {
+      const currentEmberImage = paletteImages["Ember"];
+      if (palette.name !== "Ember" && currentEmberImage) {
+        setPaletteImage(palette.name, currentEmberImage);
+        setPaletteImage("Ember", null);
+      }
+      setPaletteImage("Ember", image_url);
+    }
+    updateSetting(text, image_url, magic_prompt, newColors, palette.name);
+  }, [customColors, image_url, magic_prompt, paletteImages, setPaletteImage, text, updateSetting]);
 
   const handleColorSelect = (color: string) => {
     if (activeColorIndex !== null) {
@@ -142,10 +140,7 @@ export default function CustomColorPalette() {
     }
   };
 
-  const handleColorInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    index: number
-  ) => {
+  const handleColorInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
     const newValue = e.target.value;
     setInputValue(newValue.toUpperCase());
 
@@ -161,7 +156,7 @@ export default function CustomColorPalette() {
 
   const handleInputBlur = (index: number) => {
     let finalColor = customColors[index];
-    if (finalColor.length < 4) {
+    if (finalColor.length < 4 || !/^#[0-9A-F]{6}$/i.test(finalColor)) {
       finalColor = "#FFFFFF";
     }
     const updatedColors = [...customColors];
@@ -172,64 +167,74 @@ export default function CustomColorPalette() {
 
   const closePopover = () => {
     setOpenPopoverIndex(null);
+    setActiveColorIndex(null);
   };
 
-  // Increase z-index on the card so it overlays other content.
   return (
     isVisible && (
-      <Card className="fixed z-[1000] w-[300px] bg-white/20 backdrop-blur-md text-white">
+      <Card className="fixed z-[1000] w-[320px] bg-white/90 backdrop-blur-md shadow-lg rounded-xl border border-gray-200">
         <CardContent className="p-4">
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-2 right-2 hover:bg-gray-200"
+            className="absolute top-2 right-2 hover:bg-gray-100 rounded-full"
             onClick={() => setIsVisible(false)}
+            aria-label="Close palette"
           >
-            <X className="h-4 w-4 text-black" />
+            <X className="h-4 w-4 text-gray-700" />
           </Button>
-          <h2 className="mb-4 text-lg text-black font-semibold">
-            Color Palette
-          </h2>
-          <ScrollArea className="h-[300px] pr-4">
-            <div className="space-y-4">
+          <h2 className="mb-4 text-lg text-gray-800 font-medium">Color Palette</h2>
+          <ScrollArea className="h-[300px] pr-2">
+            <div className="space-y-2">
               {defaultPalettes.map((palette) => (
                 <div key={palette.name} className="space-y-2">
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-between text-left text-black font-normal py-2 px-3",
-                      selectedPalette.name === palette.name && "bg-yellow-500"
+                      "w-full justify-between py-3 px-4 text-gray-800 font-medium rounded-md",
+                      selectedPaletteName === palette.name
+                        ? "bg-blue-100 border border-blue-500 text-blue-700"
+                        : "bg-slate-100 hover:bg-blue-50 hover:shadow-sm"
                     )}
                     onClick={() => handlePaletteSelect(palette)}
+                    aria-label={`Select ${palette.name} palette`}
                   >
                     <span>{palette.name}</span>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-1">
                       {palette.colors.map((color, index) => (
                         <div
                           key={index}
-                          className="h-5 w-5 rounded-sm"
+                          className="h-4 w-4 rounded-full border border-gray-200"
                           style={{ backgroundColor: color }}
                           title={color}
                         />
                       ))}
                     </div>
                   </Button>
+                  {paletteImages[palette.name] && (
+                    <img
+                      src={paletteImages[palette.name]!}
+                      alt={`${palette.name} image`}
+                      className="w-10 h-10 object-cover rounded-md ml-4"
+                    />
+                  )}
                 </div>
               ))}
 
-              <div className="space-y-2 text-black">
+              <div className="space-y-2">
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-between text-left font-normal py-2 px-3",
-                    "custom" === selectedPalette.name && "bg-yellow-500"
+                    "w-full justify-between py-3 px-4 text-gray-800 font-medium rounded-md",
+                    selectedPaletteName === "custom"
+                      ? "bg-blue-100 border border-blue-500 text-blue-700"
+                      : "bg-slate-100 hover:bg-blue-50 hover:shadow-sm"
                   )}
-                  onClick={() =>
-                    setSelectedPalette({ name: "custom", colors: customColors })
-                  }
+                  onClick={() => handlePaletteSelect({ name: "custom", colors: customColors })}
+                  aria-label="Select custom palette"
                 >
                   <span>Custom</span>
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1">
                     {customColors.map((color, index) => (
                       <Popover
                         key={index}
@@ -243,14 +248,12 @@ export default function CustomColorPalette() {
                         }}
                       >
                         <PopoverTrigger asChild>
-                          {/* Use a div with role="button" instead of a button to avoid nested buttons */}
                           <div
                             role="button"
                             tabIndex={0}
                             className={cn(
-                              "h-5 w-5 rounded-sm transition-all hover:scale-105",
-                              activeColorIndex === index &&
-                              "ring-1 ring-yellow-500"
+                              "h-4 w-4 rounded-full border border-gray-200 transition-all hover:scale-110",
+                              activeColorIndex === index && "ring-2 ring-blue-500"
                             )}
                             style={{ backgroundColor: color }}
                             onClick={(e) => {
@@ -258,38 +261,35 @@ export default function CustomColorPalette() {
                             }}
                           >
                             {color === "#FFFFFF" && (
-                              <Plus className="h-4 w-4 mx-auto text-zinc-400" />
+                              <Plus className="h-3 w-3 mx-auto text-gray-500" />
                             )}
                           </div>
                         </PopoverTrigger>
-                        <PopoverContent className="w-64 p-2 bg-yellow-500 border-zinc-800">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="font-medium">Pick a Color</span>
+                        <PopoverContent className="w-72 p-4 bg-gray-100 border border-gray-200 shadow-md rounded-lg">
+                          <div className="flex justify-between items-center mb-3">
+                            <span className="font-medium text-gray-800">Pick a Color</span>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 p-0 hover:bg-yellow-600 text-black"
+                              className="h-6 w-6 p-0 hover:bg-gray-200 text-gray-600"
                               onClick={closePopover}
+                              aria-label="Close color picker"
                             >
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
                           <ColorSpectrum onColorSelect={handleColorSelect} />
-                          <div className="mt-2 flex justify-between items-center">
+                          <div className="mt-3 flex justify-between items-center">
                             <div
-                              className="w-8 h-8 rounded-md border border-zinc-700"
+                              className="w-8 h-8 rounded-md border border-gray-300"
                               style={{ backgroundColor: customColors[index] }}
                             />
                             <input
                               type="text"
-                              value={
-                                activeColorIndex === index
-                                  ? inputValue
-                                  : customColors[index]
-                              }
+                              value={activeColorIndex === index ? inputValue : customColors[index]}
                               onChange={(e) => handleColorInputChange(e, index)}
                               onBlur={() => handleInputBlur(index)}
-                              className="ml-2 w-24 text-sm text-zinc-700 bg-white border border-zinc-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                              className="ml-3 w-28 text-sm text-gray-700 bg-white border border-gray-300 rounded-md px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                         </PopoverContent>
@@ -297,6 +297,7 @@ export default function CustomColorPalette() {
                     ))}
                   </div>
                 </Button>
+
               </div>
             </div>
           </ScrollArea>

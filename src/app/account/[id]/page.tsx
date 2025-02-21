@@ -3,13 +3,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, LogOut, ImageOff } from "lucide-react";
+import { ArrowRight, LogOut, ImageOff, Home } from "lucide-react"; // Added Home icon
 import { useUser, useClerk, useAuth } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import { fetchSubscriptionDetails, fetchUserImages } from "@/services/AccountServices"; // Adjust path
+import Link from "next/link"; // Added for navigation
 
 function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
   const [loaded, setLoaded] = useState(false);
@@ -21,7 +22,7 @@ function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string
         alt={alt}
         {...props}
         className={`${className} ${!loaded ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover rounded-md`}
-        onLoad={() => setLoaded(true)} // Changed to onLoad for <img>
+        onLoad={() => setLoaded(true)}
       />
     </div>
   );
@@ -56,7 +57,7 @@ export default function ProfilePage() {
     enabled: !!userId,
   });
 
-  // Images Query
+  // Images Query (sorted by latest)
   const {
     data: generatedImages = [],
     isLoading: isImagesLoading,
@@ -66,7 +67,9 @@ export default function ProfilePage() {
     queryFn: async () => {
       if (!userId) throw new Error("User ID not available");
       const token = await fetchToken();
-      return fetchUserImages(userId, token);
+      const images = await fetchUserImages(userId, token);
+      // Sort by created_at in descending order (latest first)
+      return images.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     },
     enabled: !!userId,
   });
@@ -96,10 +99,18 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sm:p-6 md:p-8 lg:p-12">
       <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold">Account Settings</h1>
-        <Button variant="secondary" size="sm" onClick={() => signOut()}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" asChild>
+            <Link href="/">
+              <Home className="mr-2 h-4 w-4" />
+              Go to Home
+            </Link>
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => signOut()}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
       </div>
 
       <section className="mb-10 flex justify-center">
@@ -168,7 +179,6 @@ export default function ProfilePage() {
         <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Card className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative h-40 sm:h-48">
-              {/* Retained Next.js Image here since it’s a static URL */}
               <img
                 src="https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop"
                 alt="Promotion"
@@ -189,7 +199,7 @@ export default function ProfilePage() {
       <section className="mb-10">
         <h2 className="text-lg sm:text-xl font-semibold mb-4">Your Generated Images</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          You have generated {generatedImages.length} images.
+          You have generated {generatedImages.length} images (latest first).
         </p>
         {isImagesLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">

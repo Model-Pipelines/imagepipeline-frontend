@@ -118,3 +118,14 @@ canvas {
     display: none !important; /* Hide it on mobile */
   }
 }
+
+
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -21,11 +21,11 @@ export interface DescribeImagePayload {
 export interface ControlNetPayload {
   controlnet: "canny" | "depth" | "openpose"; // Required
   prompt: string;
-  image: string;
+  image: string | null;
   num_inference_steps?: number;
   samples?: number;
 }
- 
+
 
 // Render Sketch Payload
 export interface RenderSketchPayload {
@@ -33,7 +33,7 @@ export interface RenderSketchPayload {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_images: string[]; 
+  init_images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
@@ -45,7 +45,7 @@ export interface RecolorImagePayload {
   controlnets: string[];
   prompt: string;
   negative_prompt: string;
-  init_images: string[]; 
+  init_images: string[];
   num_inference_steps?: number;
   samples?: number;
   controlnet_weights: number[];
