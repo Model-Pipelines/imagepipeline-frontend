@@ -203,43 +203,39 @@ export default function InfiniteCanvas() {
 
       let newWidth = img.size.width;
       let newHeight = img.size.height;
+      let newX = img.position.x;
+      let newY = img.position.y;
 
       switch (resizeHandle) {
         case "nw":
           newWidth = Math.max(50, img.size.width - dx);
           newHeight = Math.max(50, img.size.height - dy);
-          updateImage(selectedImageId, {
-            position: {
-              x: img.position.x + dx,
-              y: img.position.y + dy,
-            },
-            size: { width: newWidth, height: newHeight },
-          });
+          newX = img.position.x + dx;
+          newY = img.position.y + dy;
           break;
         case "ne":
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height - dy);
-          updateImage(selectedImageId, {
-            position: { y: img.position.y + dy },
-            size: { width: newWidth, height: newHeight },
-          });
+          newY = img.position.y + dy;
           break;
         case "sw":
           newWidth = Math.max(50, img.size.width - dx);
           newHeight = Math.max(50, img.size.height + dy);
-          updateImage(selectedImageId, {
-            position: { x: img.position.x + dx },
-            size: { width: newWidth, height: newHeight },
-          });
+          newX = img.position.x + dx;
           break;
         case "se":
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height + dy);
-          updateImage(selectedImageId, {
-            size: { width: newWidth, height: newHeight },
-          });
           break;
       }
+
+      updateImage(selectedImageId, {
+        position: {
+          x: newX,
+          y: newY,
+        },
+        size: { width: newWidth, height: newHeight },
+      });
 
       setActionStart(canvasPos);
     }

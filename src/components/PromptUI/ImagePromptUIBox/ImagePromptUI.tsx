@@ -13,6 +13,7 @@ import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import PreviewDualActionButton from "../ToggleVisibilityButton";
 
+
 import type { GenerateImagePayload } from "@/AxiosApi/types";
 import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
@@ -239,6 +240,7 @@ const ImagePromptUI = () => {
               aria-label="Upload image"
             >
               <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              
             </button>
             <Textarea
               ref={textAreaRef}
