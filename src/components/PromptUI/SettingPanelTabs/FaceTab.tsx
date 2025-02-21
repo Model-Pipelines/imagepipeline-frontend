@@ -33,18 +33,18 @@ const FaceTab = () => {
 
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["faceControlTask", generateTaskId],
-  queryFn: async () => {
-    if (!generateTaskId) return null;
-    const response = await getFaceControlStatusFaceDailog(generateTaskId);
-    return response;
-  },
-  enabled: !!generateTaskId,
-  refetchInterval: (data) => {
-    if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
-      return false;
-    }
-    return 5000;
-  },
+    queryFn: async () => {
+      if (!generateTaskId) return null;
+      const response = await getFaceControlStatusFaceDailog(generateTaskId);
+      return response;
+    },
+    enabled: !!generateTaskId,
+    refetchInterval: (data) => {
+      if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
+        return false;
+      }
+      return 5000;
+    },
   })
 
   useEffect(() => {
@@ -181,24 +181,26 @@ const FaceTab = () => {
 
   return (
     <div className="space-y-4">
-      {[0, 1, 2].map((index) => (
-        faceImages[index] !== undefined ? (
-          <div key={index} className="relative">
+      <div className="flex flex-row gap-4">
+        {[0, 1, 2].map((index) => (
+          faceImages[index] !== undefined ? (
+            <div key={index} className="relative">
+              <ImageUploader
+                image={faceImages[index]}
+                onUpload={handleUpload}
+                onRemove={() => setFaceImages(prev => prev.filter((_, i) => i !== index))}
+              />
+            </div>
+          ) : faceImages.length < 3 && (
             <ImageUploader
-              image={faceImages[index]}
+              key={index}
+              image=""
               onUpload={handleUpload}
-              onRemove={() => setFaceImages(prev => prev.filter((_, i) => i !== index))}
+              onRemove={() => {}}
             />
-          </div>
-        ) : faceImages.length < 3 && (
-          <ImageUploader
-            key={index}
-            image=""
-            onUpload={handleUpload}
-            onRemove={() => {}}
-          />
-        )
-      ))}
+          )
+        ))}
+      </div>
 
       <div className="flex gap-2">
         {(Object.keys(POSITION_MAP) as Position[]).map((position) => (

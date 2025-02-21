@@ -13,6 +13,8 @@ import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import PreviewDualActionButton from "../ToggleVisibilityButton";
 
+import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
+
 
 import type { GenerateImagePayload } from "@/AxiosApi/types";
 import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
@@ -48,6 +50,7 @@ const ImagePromptUI = () => {
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
+  const { aspectRatio, customHeight, customWidth } = useAspectRatioStore();
 
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
   const { mutate: generateImage, isPending: isGenerating } = useGenerateImage();
@@ -131,6 +134,20 @@ const ImagePromptUI = () => {
     setInputText("");
     setPaperclipImage(null);
 
+    let height = 1024;
+    let width = 1024;
+    
+    if (customHeight && customWidth) {
+      height = customHeight;
+      width = customWidth;
+    } else {
+      const [ratioWidth, ratioHeight] = aspectRatio.split(':').map(Number);
+      height = 1024;
+      width = Math.round((1024 * ratioWidth) / ratioHeight);
+    }
+
+
+
     // Build the payload exactly as the API expects.
     const payload: GenerateImagePayload = {
       prompt: inputText.trim(),
@@ -138,8 +155,8 @@ const ImagePromptUI = () => {
       samples: 1,
       enhance_prompt: true, // or false
       palette: [], // or your chosen color hex array
-      height: 1024,
-      width: 1024,
+      height,
+      width,
       seed: -1, // API docs show default seed is -1
     };
 

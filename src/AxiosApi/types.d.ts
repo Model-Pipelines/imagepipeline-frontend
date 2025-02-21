@@ -17,6 +17,7 @@ export interface DescribeImagePayload {
   input_image: string; // Required
 }
 
+
 // ControlNet Payload (Outline, Depth, Pose)
 export interface ControlNetPayload {
   controlnet: "canny" | "depth" | "openpose"; // Required
