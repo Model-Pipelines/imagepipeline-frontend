@@ -235,6 +235,14 @@ export const getControlNetTaskStatus = async (taskId: string): Promise<any> => {
 };
 
 /**
+ * Get Describe Image Task Status
+ */
+export const getDescribeImageStatus = async (taskId: string): Promise<any> => {
+  const response = await apiClient.get(`/image2prompt/v1/status/${taskId}`);
+  return response.data;
+};
+
+/**
  * Get Render Sketch Task Status
  */
 export const getRenderSketchStatus = async (taskId: string): Promise<any> => {

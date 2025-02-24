@@ -13,11 +13,13 @@ import {
   upscaleImage,
   uploadFiles,
   uploadBackendFiles,
+  describeImage,
 } from "@/AxiosApi/GenerativeApi";
 import {
   ChangeBackgroundPayload,
   ChangeHumanPayload,
   ControlNetPayload,
+  DescribeImagePayload,
   FaceControlPayload,
   GenerateImagePayload,
   GenerateLogoPayload,
@@ -72,6 +74,12 @@ export const useUploadBackendFiles = createMutation<File>(
 export const useGenerateImage = createMutation<GenerateImagePayload>(
   'generateImage',
   generateImage
+);
+
+//describe image 
+export const useDescribeImage = createMutation<DescribeImagePayload>(
+  'describeImage',
+  describeImage
 );
 
 export const useControlNet = createMutation<ControlNetPayload>(
