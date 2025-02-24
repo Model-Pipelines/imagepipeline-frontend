@@ -19,7 +19,8 @@ import {
   Brush, 
   Crop, 
   X,
-  ImagePlus
+  ImagePlus,
+  Hourglass
 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -83,22 +84,31 @@ const DropdownMenuBar = () => {
         </DropdownMenuGroup>
 
         <DropdownMenuGroup>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">New Feature</DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem className="cursor-pointer">
-                  Canvas Draw
-                  <Brush className="w-4 h-4 ml-auto" />
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
-                  Image Stretching
-                  <Crop className="w-4 h-4 ml-auto" />
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-        </DropdownMenuGroup>
+  <DropdownMenuSub>
+    <DropdownMenuSubTrigger className="cursor-pointer">
+      <div></div>
+      <Hourglass /> Coming Soon
+    </DropdownMenuSubTrigger>
+    <DropdownMenuPortal>
+      <DropdownMenuSubContent>
+        <DropdownMenuItem 
+          className="cursor-not-allowed opacity-50" 
+          disabled
+        >
+          Canvas Draw
+          <Brush className="w-4 h-4 ml-auto" />
+        </DropdownMenuItem>
+        <DropdownMenuItem 
+          className="cursor-not-allowed opacity-50" 
+          disabled
+        >
+          Image Stretching
+          <Crop className="w-4 h-4 ml-auto" />
+        </DropdownMenuItem>
+      </DropdownMenuSubContent>
+    </DropdownMenuPortal>
+  </DropdownMenuSub>
+</DropdownMenuGroup>
 
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer">

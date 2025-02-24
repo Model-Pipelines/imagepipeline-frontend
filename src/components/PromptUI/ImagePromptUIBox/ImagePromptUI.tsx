@@ -3,14 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { Paperclip, X, Settings, Palette, Wand2, Globe, Lock } from "lucide-react";
+import {  X, Settings, Palette, Globe,Lock,Wand2,ScanEye} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useGenerateImage, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
@@ -24,6 +18,7 @@ import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ImagePromptUI = () => {
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
@@ -71,7 +66,7 @@ const ImagePromptUI = () => {
           id: uuidv4(),
           url: imageUrl,
           position: newPosition,
-          size: { width: 520, height: 520 },
+          size: { width: 200, height: 200 },
           element: img,
         });
         toast({ title: "Success", description: "Image generated successfully!" });
@@ -212,7 +207,8 @@ const ImagePromptUI = () => {
               className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
               aria-label="Upload image"
             >
-              <Paperclip className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              
             </button>
             <Textarea
               ref={textAreaRef}

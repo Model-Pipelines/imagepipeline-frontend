@@ -19,7 +19,6 @@ import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
 import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
-
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
 
@@ -51,6 +50,8 @@ export default function InfiniteCanvas() {
   const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(
     null
   );
+  //for to track generating images
+  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
 
   // Initialize images on mount
   useEffect(() => {
@@ -78,13 +79,12 @@ export default function InfiniteCanvas() {
 
         const newPosition = {
           x:
-            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) /
-            scale -
+            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale -
             offset.x,
           y:
             (Math.floor(numImages / gridSize) *
               (INITIAL_IMAGE_SIZE + spacing)) /
-            scale -
+              scale -
             offset.y,
         };
 
@@ -203,41 +203,39 @@ export default function InfiniteCanvas() {
 
       let newWidth = img.size.width;
       let newHeight = img.size.height;
+      let newX = img.position.x;
+      let newY = img.position.y;
 
       switch (resizeHandle) {
         case "nw":
           newWidth = Math.max(50, img.size.width - dx);
           newHeight = Math.max(50, img.size.height - dy);
-          updateImage(selectedImageId, {
-            position: {
-              x: img.position.x + dx,
-              y: img.position.y + dy,
-            },
-            size: { width: newWidth, height: newHeight },
-          });
+          newX = img.position.x + dx;
+          newY = img.position.y + dy;
           break;
         case "ne":
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height - dy);
-          updateImage(selectedImageId, {
-            position: { y: img.position.y + dy },
-            size: { width: newWidth, height: newHeight },
-          });
+          newY = img.position.y + dy;
           break;
         case "sw":
           newWidth = Math.max(50, img.size.width - dx);
           newHeight = Math.max(50, img.size.height + dy);
-          updateImage(selectedImageId, {
-            position: { x: img.position.x + dx },
-            size: { width: newWidth, height: newHeight },
-          });
+          newX = img.position.x + dx;
           break;
         case "se":
           newWidth = Math.max(50, img.size.width + dx);
           newHeight = Math.max(50, img.size.height + dy);
-          updateImage(selectedImageId, { size: { width: newWidth, height: newHeight } });
           break;
       }
+
+      updateImage(selectedImageId, {
+        position: {
+          x: newX,
+          y: newY,
+        },
+        size: { width: newWidth, height: newHeight },
+      });
 
       setActionStart(canvasPos);
     }
@@ -313,45 +311,50 @@ export default function InfiniteCanvas() {
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
 
-    images.filter((img) => img.element && img.element.complete).forEach((img) => {
-      // Draw the image
-      ctx.drawImage(
-        img.element!,
-        img.position.x,
-        img.position.y,
-        img.size.width,
-        img.size.height
-      );
-
-      // If selected, draw border and resize handles
-      if (img.id === selectedImageId) {
-        ctx.strokeStyle = "#3b82f6";
-        ctx.lineWidth = 2 / scale;
-        ctx.strokeRect(
-          img.position.x - 2 / scale,
-          img.position.y - 2 / scale,
-          img.size.width + 4 / scale,
-          img.size.height + 4 / scale
+    images
+      .filter((img) => img.element && img.element.complete)
+      .forEach((img) => {
+        // Draw the image
+        ctx.drawImage(
+          img.element!,
+          img.position.x,
+          img.position.y,
+          img.size.width,
+          img.size.height
         );
 
-        ctx.fillStyle = "#3b82f6";
-        const handles = [
-          { x: img.position.x, y: img.position.y },
-          { x: img.position.x + img.size.width, y: img.position.y },
-          { x: img.position.x, y: img.position.y + img.size.height },
-          { x: img.position.x + img.size.width, y: img.position.y + img.size.height },
-        ];
-
-        handles.forEach((handle) => {
-          ctx.fillRect(
-            handle.x - HANDLE_SIZE / (2 * scale),
-            handle.y - HANDLE_SIZE / (2 * scale),
-            HANDLE_SIZE / scale,
-            HANDLE_SIZE / scale
+        // If selected, draw border and resize handles
+        if (img.id === selectedImageId) {
+          ctx.strokeStyle = "#3b82f6";
+          ctx.lineWidth = 2 / scale;
+          ctx.strokeRect(
+            img.position.x - 2 / scale,
+            img.position.y - 2 / scale,
+            img.size.width + 4 / scale,
+            img.size.height + 4 / scale
           );
-        });
-      }
-    });
+
+          ctx.fillStyle = "#3b82f6";
+          const handles = [
+            { x: img.position.x, y: img.position.y },
+            { x: img.position.x + img.size.width, y: img.position.y },
+            { x: img.position.x, y: img.position.y + img.size.height },
+            {
+              x: img.position.x + img.size.width,
+              y: img.position.y + img.size.height,
+            },
+          ];
+
+          handles.forEach((handle) => {
+            ctx.fillRect(
+              handle.x - HANDLE_SIZE / (2 * scale),
+              handle.y - HANDLE_SIZE / (2 * scale),
+              HANDLE_SIZE / scale,
+              HANDLE_SIZE / scale
+            );
+          });
+        }
+      });
 
     ctx.restore();
     requestAnimationFrame(draw);
@@ -365,8 +368,7 @@ export default function InfiniteCanvas() {
     <div className="relative w-full h-full flex">
       <Sidebar />
       <div className="flex-1 relative">
-       
-        <Toolbar onUpload={handleUpload}  />
+        <Toolbar onUpload={handleUpload} />
         <ZoomControls />
         <ParentPrompt />
 
@@ -402,8 +404,8 @@ export default function InfiniteCanvas() {
         {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
   <div key={img.id}>
-    {/* Render ShinyGradientSkeletonHorizontal if image is not loaded */}
-    {(!img.element || !img.element.complete) ? (
+    {/* Render ShinyGradientSkeletonHorizontal if image is not loaded or is being generated */}
+    {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
       <div
         className="absolute"
         style={{
@@ -415,25 +417,21 @@ export default function InfiniteCanvas() {
       >
         <ShinyGradientSkeletonHorizontal />
       </div>
-    ) : (
-      <>
-        {/* Render image and associated UI elements */}
-        {img.id === selectedImageId && (
-          <div
-            className="absolute"
-            style={{
-              transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
-              zIndex: 10,
-            }}
-          >
-            <DropdownMenuBar />
-          </div>
-        )}
-      </>
+    )}
+    {/* Render image and associated UI elements */}
+    {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
+      <div
+        className="absolute"
+        style={{
+          transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
+          zIndex: 10,
+        }}
+      >
+        <DropdownMenuBar />
+      </div>
     )}
   </div>
 ))}
-        
       </div>
       <ParentPrompt />
     </div>
