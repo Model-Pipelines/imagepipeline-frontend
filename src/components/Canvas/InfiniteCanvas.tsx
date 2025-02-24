@@ -372,18 +372,6 @@ export default function InfiniteCanvas() {
         <ZoomControls />
         <ParentPrompt />
 
-        {/* Global Clear Storage Button */}
-        <button
-          onClick={() => {
-            useCanvasStore.persist.clearStorage();
-            useImageStore.persist.clearStorage();
-            window.location.reload();
-          }}
-          className="absolute top-4 right-16 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 z-50"
-        >
-          <Trash2 size={20} />
-        </button>
-
         <canvas
           ref={canvasRef}
           className={cn(
