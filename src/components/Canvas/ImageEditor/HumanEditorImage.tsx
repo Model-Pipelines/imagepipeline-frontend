@@ -18,6 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
   <input
@@ -112,52 +120,68 @@ export function HumanEditorImage() {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Human Modification</CardTitle>
-      </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="description">Modification Description</Label>
-          <Input
-            id="description"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe the desired changes..."
-          />
-        </div>
-        <div className="flex flex-col md:flex-row gap-6">
-          <div className="flex-1 space-y-2">
-            <Label>Base Image</Label>
-            {selectedImage ? (
-              <img
-                src={selectedImage.url}
-                alt="Selected base"
-                className="w-full h-auto rounded-md border"
-              />
-            ) : (
-              <p className="text-gray-500">No base image selected</p>
-            )}
+        {/* Description with info icon */}
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-medium">Human Editor</h3>
+            <InfoTooltip content="Edit human subjects in your images with advanced AI face and body modifications. Upload a reference image and describe the desired changes to modify facial features while maintaining natural looks." />
           </div>
-          <div className="flex-1 space-y-2">
-            <Label>Reference Image</Label>
-            <div className="flex flex-col gap-4">
-              {!humanImage ? (
-                <FileInput onChange={handleHumanImageUpload} />
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Label htmlFor="description">Modification Description</Label>
+              <InfoTooltip content="Describe the changes you want to make to the person" />
+            </div>
+            <Input
+              id="description"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe the desired changes..."
+            />
+          </div>
+          <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Base Image</Label>
+                <InfoTooltip content="The main image containing the person to modify" />
+              </div>
+              {selectedImage ? (
+                <img
+                  src={selectedImage.url}
+                  alt="Selected base"
+                  className="w-full h-auto rounded-md border"
+                />
               ) : (
-                <div className="relative">
-                  <img
-                    src={humanImage}
-                    alt="Reference preview"
-                    className="w-40 h-auto rounded-md border"
-                  />
-                  <button
-                    onClick={() => setHumanImage(null)}
-                    className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
-                  >
-                    <X className="w-4 h-4 text-gray-700" />
-                  </button>
-                </div>
+                <p className="text-gray-500">No base image selected</p>
               )}
+            </div>
+            <div className="flex-1 space-y-2">
+              <div className="flex items-center gap-2">
+                <Label>Reference Image</Label>
+                <InfoTooltip content="Upload a reference image to guide the modifications" />
+              </div>
+              <div className="flex flex-col gap-4">
+                {!humanImage ? (
+                  <FileInput onChange={handleHumanImageUpload} />
+                ) : (
+                  <div className="relative">
+                    <img
+                      src={humanImage}
+                      alt="Reference preview"
+                      className="w-40 h-auto rounded-md border"
+                    />
+                    <button
+                      onClick={() => setHumanImage(null)}
+                      className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
+                    >
+                      <X className="w-4 h-4 text-gray-700" />
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

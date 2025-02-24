@@ -15,6 +15,14 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
+import { HelpCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 const Upscale = () => {
   const [upscaleFactor, setUpscaleFactor] = useState<number>(2);
@@ -73,16 +81,20 @@ const Upscale = () => {
   }, [selectedImage, upscaleFactor, upscaleImage, toast, addTask, selectedImageId]);
 
   return (
-    // Constrain the card width instead of taking full width.
     <Card className="max-w-md mx-auto my-4">
-      <CardHeader>
-        <CardTitle>Image Upscaling</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-4 h-2/3">
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between border-b pb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-medium">Image Upscaling</h3>
+            <InfoTooltip content="Enhance your image quality using advanced AI upscaling. This tool automatically upscales your image to 2x resolution while preserving details and reducing artifacts. Perfect for improving image clarity and preparing for large format printing." />
+          </div>
+        </div>
         <div className="space-y-2">
-          <Label>Selected Image</Label>
+          <div className="flex items-center gap-2">
+            <Label>Selected Image</Label>
+            <InfoTooltip content="The image you want to upscale to higher resolution" />
+          </div>
           {selectedImage ? (
-            // Use max-w-full to let the image size naturally within the card.
             <img
               src={selectedImage.url}
               alt="Selected"
@@ -92,20 +104,6 @@ const Upscale = () => {
             <p className="text-gray-500">No image selected</p>
           )}
         </div>
-        {/* <div className="space-y-2">
-          <Label>Upscale Factor ({upscaleFactor}x)</Label>
-          <Slider
-            value={[upscaleFactor]}
-            min={1}
-            max={4}
-            step={1}
-            onValueChange={(value) => setUpscaleFactor(value[0])}
-            className="w-full"
-          />
-          <p className="text-sm text-gray-500">
-            Higher values increase resolution but require more processing time
-          </p>
-        </div> */}
       </CardContent>
       <CardFooter>
         <Button
