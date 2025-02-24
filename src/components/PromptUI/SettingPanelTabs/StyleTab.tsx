@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
+import { Info } from "lucide-react";
 
 const STYLE_OPTIONS = [
   "realistic",
@@ -34,6 +35,26 @@ const STYLE_OPTIONS = [
   "fashion",
   "nsfw",
 ];
+
+// Add component descriptions
+const COMPONENT_DESCRIPTIONS = {
+  styleSelector: "Choose from predefined artistic styles or upload your own style image",
+  styleUploader: "Upload an image to use as a style reference",
+  prompt: "Describe how you want the style to be applied",
+  applyButton: "Apply the selected style to generate a new image"
+};
+
+const InfoButton = ({ description }: { description: string }) => (
+  <div className="relative inline-block ml-2 group">
+    <Info 
+      size={16} 
+      className="text-gray-500 hover:text-gray-700 cursor-help"
+    />
+    <div className="absolute hidden group-hover:block bg-black text-white text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
+      {description}
+    </div>
+  </div>
+);
 
 const StyleTab = () => {
   const [styleType, setStyleType] = useState("");
@@ -198,6 +219,10 @@ const StyleTab = () => {
     <div className="space-y-4">
       {uploadSections.map((section) => (
         <div key={section.id} className="space-y-2">
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-medium">Style Selection</h3>
+            <InfoButton description="Choose a predefined style or upload your own style image" />
+          </div>
           <Select
             value={section.styleOption}
             onValueChange={(value) => handleStyleOptionChange(value, section.id)}
@@ -215,7 +240,10 @@ const StyleTab = () => {
           </Select>
 
           <div className="space-y-2">
-            <label>Or upload style image:</label>
+            <div className="flex items-center">
+              <label>Style Image</label>
+              <InfoButton description="Upload an image to use as a style reference" />
+            </div>
             <ImageUploader
               image={section.image}
               onUpload={async (file: File) => handleFaceUpload(file, section.id)}
@@ -225,6 +253,10 @@ const StyleTab = () => {
         </div>
       ))}
 
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Style Description</h3>
+        <InfoButton description="Describe how you want the style to be applied to your image" />
+      </div>
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
@@ -233,9 +265,7 @@ const StyleTab = () => {
 
       <Button
         onClick={() => mutate()}
-        disabled={
-          uploadSections.every((section) => !section.image && !section.styleOption) || !prompt
-        }
+        disabled={uploadSections.every((section) => !section.image && !section.styleOption) || !prompt}
         className="w-full"
       >
         {isPending ? "Applying Style..." : "Apply Style"}

@@ -10,18 +10,25 @@ interface SettingsPanelProps {
   onTypeChange: (type: string) => void;
   paperclipImage: string | null;
   inputText: string;
-  onClose: () => void; // Added close function prop
+  onClose: () => void;
 }
+
+// Simplified tab labels
+const TAB_LABELS = {
+  "Aspect-Ratio": "Aspect Ratio",
+  "Reference": "Reference",
+  "Face": "Face",
+  "Style": "Style"
+};
 
 const SettingsPanel = ({
   onTypeChange,
   paperclipImage,
   inputText,
-  onClose, // Receive close function
+  onClose,
 }: SettingsPanelProps) => {
   return (
     <div className="fixed p-4 bg-white/20 backdrop-blur-md text-black rounded-xl shadow-lg w-96 ring-1 ring-black/5 isolate">
-      {/* Close Button */}
       <button
         onClick={onClose}
         className="absolute top-3 right-3 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
@@ -31,10 +38,11 @@ const SettingsPanel = ({
 
       <Tabs defaultValue="Aspect-Ratio">
         <TabsList>
-          <TabsTrigger value="Aspect-Ratio">Aspect Ratio</TabsTrigger>
-          <TabsTrigger value="Reference">Reference</TabsTrigger>
-          <TabsTrigger value="Face">Face</TabsTrigger>
-          <TabsTrigger value="Style">Style</TabsTrigger>
+          {Object.entries(TAB_LABELS).map(([value, label]) => (
+            <TabsTrigger key={value} value={value}>
+              {label}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
         <TabsContent value="Aspect-Ratio">
@@ -44,8 +52,6 @@ const SettingsPanel = ({
         <TabsContent value="Reference">
           <ReferenceTab
             onTypeChange={onTypeChange}
-            inputText={inputText}
-            paperclipImage={paperclipImage}
           />
         </TabsContent>
 

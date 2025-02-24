@@ -6,8 +6,80 @@ import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
 import { useAspectRatioStore, calculateDimensions } from "@/AxiosApi/ZustandAspectRatioStore";
 import { useToast } from "@/hooks/use-toast";
+import { Info } from "lucide-react";
 
 const aspectRatios = ["1:1", "9:16", "3:4", "4:3", "16:9", "21:9"];
+
+// Add component descriptions
+const COMPONENT_DESCRIPTIONS = {
+  presetRatios: "Quick select common aspect ratios for your images",
+  customDimensions: "Enter custom width and height values (64px to 1440px)",
+  heightInput: "Set image height in pixels (min: 64px, max: 1440px)",
+  widthInput: "Set image width in pixels (min: 64px, max: 1440px)",
+  saveButton: "Save and apply the selected dimensions to your image"
+};
+
+const COMPONENT_INFO = {
+  presetRatios: {
+    title: "Preset Ratios",
+    description: "Quick select common aspect ratios for your images"
+  },
+  customDimensions: {
+    title: "Custom Dimensions",
+    description: "Enter specific width and height values (64px to 1440px)"
+  },
+  heightInput: {
+    title: "Height",
+    description: "Set image height in pixels (min: 64px, max: 1440px)"
+  },
+  widthInput: {
+    title: "Width", 
+    description: "Set image width in pixels (min: 64px, max: 1440px)"
+  }
+};
+
+const InfoButton = ({ description }: { description: string }) => (
+  <div className="relative inline-block ml-2 group">
+    <Info 
+      size={16} 
+      className="text-gray-500 hover:text-gray-700 cursor-help"
+    />
+    <div className="absolute hidden group-hover:block bg-black text-white text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
+      {description}
+    </div>
+  </div>
+);
+
+const DimensionInput = ({ 
+  label, 
+  id, 
+  value, 
+  onChange,
+  description 
+}: { 
+  label: string;
+  id: string;
+  value: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  description: string;
+}) => (
+  <div className="flex flex-col items-start w-1/2">
+    <div className="flex items-center">
+      <Label htmlFor={id} className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+        {label}
+      </Label>
+      <InfoButton description={description} />
+    </div>
+    <Input
+      type="number"
+      id={id}
+      name={id}
+      value={value}
+      onChange={onChange}
+      className="w-full text-sm p-2 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:text-gray-200"
+    />
+  </div>
+);
 
 const AspectRatioTab = () => {
   const { 
@@ -97,6 +169,10 @@ const AspectRatioTab = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Preset Ratios</h3>
+        <InfoButton description="Quick select common aspect ratios for your images" />
+      </div>
       <div className="grid grid-cols-3 gap-2">
         {aspectRatios.map((ratio) => (
           <Button
@@ -114,6 +190,10 @@ const AspectRatioTab = () => {
         ))}
       </div>
 
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Custom Dimensions</h3>
+        <InfoButton description="Enter custom width and height values (64px to 1440px)" />
+      </div>
       <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
         <div className="flex items-center justify-between space-x-4">
           <DimensionInput 
@@ -121,6 +201,7 @@ const AspectRatioTab = () => {
             id="height" 
             value={height}
             onChange={(e) => handleDimensionChange(e.target.value, 'height')}
+            description="Set image height in pixels (min: 64px, max: 1440px)"
           />
           <span className="text-xl font-bold text-gray-400">×</span>
           <DimensionInput 
@@ -128,6 +209,7 @@ const AspectRatioTab = () => {
             id="width" 
             value={width}
             onChange={(e) => handleDimensionChange(e.target.value, 'width')}
+            description="Set image width in pixels (min: 64px, max: 1440px)"
           />
         </div>
       </div>
@@ -141,31 +223,5 @@ const AspectRatioTab = () => {
     </div>
   );
 };
-
-const DimensionInput = ({ 
-  label, 
-  id, 
-  value, 
-  onChange 
-}: { 
-  label: string; 
-  id: string; 
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <div className="flex flex-col items-start w-1/2">
-    <Label htmlFor={id} className="text-sm font-semibold text-gray-700 dark:text-gray-200">
-      {label}
-    </Label>
-    <Input
-      type="number"
-      id={id}
-      name={id}
-      value={value}
-      onChange={onChange}
-      className="w-full text-sm p-2 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:text-gray-200"
-    />
-  </div>
-);
 
 export default AspectRatioTab;

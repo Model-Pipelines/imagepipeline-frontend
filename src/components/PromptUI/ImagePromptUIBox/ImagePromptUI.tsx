@@ -314,7 +314,7 @@ const ImagePromptUI = () => {
 
   return (
     <>
-      <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
+      <div className="relative bg-white dark:bg-[#1B1B1D] p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
         <div className="flex flex-col gap-4">
           {(isUploading || image_url) && (
             <div className="relative mt-4 z-[100]">
@@ -381,7 +381,7 @@ const ImagePromptUI = () => {
                 value={text}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Describe what you want to generate..."
-                className="w-full pl-10 pr-2 bg-slate-50 dark:bg-gray-700 resize-none rounded-lg"
+                className="w-full pl-10 pr-2 bg-slate-50 dark:bg-[#2A2A2D] resize-none rounded-lg"
                 rows={3}
               />
             </div>
@@ -419,9 +419,9 @@ const ImagePromptUI = () => {
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-10 w-10 rounded-md border border-gray-300",
-                        magic_prompt ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
-                        "hover:bg-blue-50"
+                        "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
+                        magic_prompt ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
+                        "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80"
                       )}
                       onClick={toggleMagicPrompt}
                       aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
@@ -444,9 +444,9 @@ const ImagePromptUI = () => {
                     variant="outline"
                     size="icon"
                     className={cn(
-                      "h-10 w-10 rounded-md border border-gray-300",
-                      isPublic ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
-                      "hover:bg-blue-50",
+                      "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
+                      isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
+                      "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
                       !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
                     )}
                     onClick={handleTogglePublic}

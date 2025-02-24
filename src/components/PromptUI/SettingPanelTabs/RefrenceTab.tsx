@@ -24,6 +24,7 @@ import { toast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { Info } from "lucide-react";
 
 const REFERENCE_TYPES = [
   { value: 'none', label: 'None', api: 'controlNet' },
@@ -35,6 +36,26 @@ const REFERENCE_TYPES = [
   { value: 'interior', label: 'Interior Design', api: 'interiorDesign' },
   { value: 'logo', label: 'Logo', api: 'generateLogo' },
 ];
+
+// Add component descriptions
+const COMPONENT_DESCRIPTIONS = {
+  typeSelector: "Choose the type of reference-based generation",
+  imageUploader: "Upload a reference image to guide the generation",
+  prompt: "Describe how you want to transform or use the reference",
+  generateButton: "Generate a new image based on your reference and settings"
+};
+
+const InfoButton = ({ description }: { description: string }) => (
+  <div className="relative inline-block ml-2 group">
+    <Info 
+      size={16} 
+      className="text-gray-500 hover:text-gray-700 cursor-help"
+    />
+    <div className="absolute hidden group-hover:block bg-black text-white text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
+      {description}
+    </div>
+  </div>
+);
 
 const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }) => {
   const [type, setType] = useState('none');
@@ -335,7 +356,14 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
 
   return (
     <div className="space-y-4">
-      <Select value={type} onValueChange={handleTypeChange}>
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Reference Type</h3>
+        <InfoButton description="Choose how you want to use the reference image" />
+      </div>
+      <Select 
+        value={type} 
+        onValueChange={handleTypeChange}
+      >
         <SelectTrigger>
           <SelectValue placeholder="Select type" />
         </SelectTrigger>
@@ -347,13 +375,23 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       </Select>
 
       {type !== 'none' && (
-        <ImageUploader
-          image={referenceImage}
-          onUpload={handleUpload}
-          onRemove={() => setReferenceImage('')}
-        />
+        <>
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-medium">Reference Image</h3>
+            <InfoButton description="Upload an image to use as reference for generation" />
+          </div>
+          <ImageUploader
+            image={referenceImage}
+            onUpload={handleUpload}
+            onRemove={() => setReferenceImage('')}
+          />
+        </>
       )}
 
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Image Description</h3>
+        <InfoButton description="Describe how you want to transform or use the reference" />
+      </div>
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}

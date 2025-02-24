@@ -1,10 +1,16 @@
 import { CardFooter } from "@/components/ui/card";
-import { IoMdMail } from "react-icons/io";
-import { FaDiscord } from "react-icons/fa";
+import { Mail, Headset } from "lucide-react";
 import { Button } from "../ui/button";
 import { Grip } from "lucide-react";
 import { useCanvasStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export function ProfileFooter() {
   const {
@@ -38,20 +44,39 @@ export function ProfileFooter() {
 
       {/* Right Section: Icons */}
       <div className="flex gap-2 cursor-default">
-        <a
-          href="#"
-          aria-label="Contact via Email"
-          className="cursor-pointer text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors duration-200"
-        >
-          <IoMdMail size={20} />
-        </a>
-        <a
-          href="#"
-          aria-label="Join Discord"
-          className="cursor-pointer text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors duration-200"
-        >
-          <FaDiscord size={20} />
-        </a>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="mailto:support@imagepipeline.io"
+                className="cursor-pointer text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors duration-200"
+              >
+                <Mail size={20} />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Send us mail</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="https://cal.com/imagepipeline/demo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors duration-200"
+              >
+                <Headset size={20} />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Book a call</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </CardFooter>
   );

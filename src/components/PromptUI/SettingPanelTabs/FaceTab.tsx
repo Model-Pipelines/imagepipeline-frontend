@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast"
 import { useUploadBackendFiles, useFaceControl } from "@/AxiosApi/TanstackQuery"
 import { useImageStore } from "@/AxiosApi/ZustandImageStore"
 import { v4 as uuidv4 } from "uuid"
+import { Info } from "lucide-react"
 
 const POSITION_MAP = {
   center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
@@ -20,6 +21,27 @@ const POSITION_MAP = {
 } as const
 
 type Position = keyof typeof POSITION_MAP
+
+// Add component descriptions
+const COMPONENT_DESCRIPTIONS = {
+  imageUploader: "Upload up to 3 face images to use as reference",
+  positionButtons: "Select where each face should appear in the generated image",
+  prompt: "Describe the scene or context for the faces",
+  generateButton: "Generate a new image using the uploaded faces and positions"
+};
+
+// Add InfoButton component
+const InfoButton = ({ description }: { description: string }) => (
+  <div className="relative inline-block ml-2 group">
+    <Info 
+      size={16} 
+      className="text-gray-500 hover:text-gray-700 cursor-help"
+    />
+    <div className="absolute hidden group-hover:block bg-black text-white text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
+      {description}
+    </div>
+  </div>
+);
 
 const FaceTab = () => {
   const [faceImages, setFaceImages] = useState<string[]>([])
@@ -181,6 +203,10 @@ const FaceTab = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Face Images</h3>
+        <InfoButton description="Upload up to 3 face images that you want to include in the generated image" />
+      </div>
       <div className="flex flex-row gap-4">
         {[0, 1, 2].map((index) => (
           faceImages[index] !== undefined ? (
@@ -202,6 +228,10 @@ const FaceTab = () => {
         ))}
       </div>
 
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Face Positions</h3>
+        <InfoButton description="Select where each uploaded face should appear in the final image" />
+      </div>
       <div className="flex gap-2">
         {(Object.keys(POSITION_MAP) as Position[]).map((position) => (
           <Button
@@ -214,6 +244,10 @@ const FaceTab = () => {
         ))}
       </div>
 
+      <div className="flex items-center mb-2">
+        <h3 className="text-sm font-medium">Scene Description</h3>
+        <InfoButton description="Describe the scene or context where you want the faces to appear" />
+      </div>
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}

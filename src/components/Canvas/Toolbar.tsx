@@ -115,11 +115,11 @@ export default function Toolbar({ onDownload, onUpload }: ToolbarProps) {
   };
 
   return (
-    <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+    <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
       {/* Upload Button */}
       <label className="cursor-pointer">
         <Button
-          className="bg-gray-300 hover:bg-gray-400"
+          className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
           size="icon"
           title="Upload Image"
           asChild
@@ -142,12 +142,12 @@ export default function Toolbar({ onDownload, onUpload }: ToolbarProps) {
         size="icon"
         onClick={handleReset}
         title="Reset Canvas"
-        className="bg-red-500 hover:bg-red-600 border-none"
+        className="bg-red-500 dark:bg-red-900/20 hover:bg-red-600 dark:hover:bg-red-900/30 border-none"
       >
         <RotateCcw className="h-4 w-4 text-white" />
       </Button>
       {/* Download Button */}
-      <Button
+      {/* <Button
         variant="outline"
         size="icon"
         onClick={onDownload}
@@ -155,7 +155,7 @@ export default function Toolbar({ onDownload, onUpload }: ToolbarProps) {
         className="bg-gray-300 hover:bg-gray-400 border-none"
       >
         <Download className="h-4 w-4" color="white" />
-      </Button>
+      </Button> */}
     </div>
   );
 }
