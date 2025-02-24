@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import {  X, Settings, Palette, Globe,Lock,Wand2,ScanEye} from "lucide-react";
+import { X, Settings, Palette, Globe, Lock, Wand2, ScanEye } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
@@ -12,7 +12,6 @@ import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
-
 import type { GenerateImagePayload } from "@/AxiosApi/types";
 import { getGenerateImage } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +24,7 @@ const ImagePromptUI = () => {
   const [isColorPaletteVisible, setIsColorPaletteVisible] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const [showDescribeButton, setShowDescribeButton] = useState(false);
 
   const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
   const { toast } = useToast();
@@ -130,6 +130,7 @@ const ImagePromptUI = () => {
       const imageUrl: string = await uploadBackendFile(file);
       if (!imageUrl) throw new Error("Failed to upload image");
       setImageUrl(imageUrl);
+      setShowDescribeButton(true);
       toast({ title: "Upload Successful", description: "Image added to canvas" });
     } catch (error) {
       console.error("Upload error:", error);
@@ -180,15 +181,39 @@ const ImagePromptUI = () => {
       <div className="flex flex-col gap-4">
         {(isUploading || image_url) && (
           <div className="relative mt-4 z-[100]">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 items-center">
               <ImageUploadLoader imagePreview={image_url} isUploading={isUploading} />
               {!isUploading && (
-                <button
-                  onClick={() => setImageUrl(null)}
-                  className="absolute top-0 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
-                >
-                  <X size={16} />
-                </button>
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Button
+                      onClick={() => {
+                        toast({ title: "Describe Image", description: "Describe image functionality goes here" })
+                      }}
+                      className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      as={motion.button}
+                    >
+                      <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                        Describe Image
+                      </motion.span>
+                    </Button>
+                  </motion.div>
+                  <button
+                    onClick={() => {
+                      setImageUrl(null)
+                      setShowDescribeButton(false)
+                    }}
+                    className="absolute top-0 left-20 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                  >
+                    <X size={16} />
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -202,13 +227,13 @@ const ImagePromptUI = () => {
               ref={fileInputRef}
               onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
             />
+            
             <button
               onClick={handlePaperclipClick}
               className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
               aria-label="Upload image"
             >
               <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              
             </button>
             <Textarea
               ref={textAreaRef}
@@ -219,17 +244,19 @@ const ImagePromptUI = () => {
               rows={3}
             />
           </div>
-          <Button
+          <motion.button
             onClick={handleGenerateImage}
             disabled={isGenerating || !!generateTaskId}
-            className={`h-12 w-12 sm:w-auto sm:px-6 flex-shrink-0 flex items-center justify-center rounded-full sm:rounded-lg ${isGenerating || generateTaskId ? "bg-blue-500 hover:bg-blue-500" : ""
-              }`}
+            className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
+              ${isGenerating || generateTaskId ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             {isGenerating || generateTaskId ? (
               <motion.div
                 className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
                 animate={{ rotate: 360 }}
-                transition={{ repeat: Number.POSITIVE_INFINITY, duration: 1, ease: "linear" }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
               />
             ) : (
               <>
@@ -237,8 +264,10 @@ const ImagePromptUI = () => {
                 <span className="sm:hidden">➜</span>
               </>
             )}
-          </Button>
+          </motion.button>
         </div>
+
+        
 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
