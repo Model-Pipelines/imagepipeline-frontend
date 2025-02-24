@@ -1,12 +1,10 @@
 "use client";
 export const runtime = 'edge';
-import { SignIn } from "@clerk/nextjs";
-
-
+import { SignUp } from "@clerk/nextjs";
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-
+import Link from "next/link";
 
 const cards = [
   {
@@ -48,7 +46,7 @@ const cards = [
 
 export default function Page() {
   return (
-    <div className="bg-black min-h-screen w-full overflow-hidden flex flex-col items-center justify-center relative">
+    <div className="bg-[#191A27] min-h-screen w-full overflow-hidden flex flex-col items-center justify-center relative">
       {/* Glowing orb effect */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -96,31 +94,47 @@ export default function Page() {
         transition={{ delay: 2, duration: 1 }}
         className="relative z-20 mb-32"
       >
-
-        <SignIn
+        <SignUp
           appearance={{
             elements: {
               rootBox: 'w-full',
-              card: 'bg-transparent shadow-none space-y-0', // Changed space-y
-              headerTitle: 'text-white text-3xl font-bold',
-              headerSubtitle: 'hidden', // Hide subtitle
-              socialButtonsBlockButton: 'border-white/20 hover:bg-white/10',
+              card: 'bg-black shadow-none space-y-0',
+              headerTitle: 'text-white text-3xl font-bold', // Main heading
+              headerSubtitle: 'text-gray-400 text-sm mt-2', // Subheading
+              socialButtonsBlockButton: 'bg-gray-800 border-gray-600 hover:bg-gray-700 text-white', // Greyish background for social buttons
               socialButtonsBlockButtonText: 'text-white',
-              dividerText: 'hidden', // Hide "or continue with"
-              formHeader: 'hidden', // Hide email/password header
-              formFieldRow: 'hidden', // Hide all form fields
-              formButtonPrimary: 'hidden', // Hide email submit button
-              footerActionText: 'text-white text-center', // Modified footer
-              footerActionLink: 'text-cyan-200 hover:text-white',
-              socialButtons: 'flex flex-col gap-4', // Better button spacing
-              socialButtonsBlockButton__github: 'order-1', // GitHub first
-              socialButtonsBlockButton__google: 'order-2',// Google second
-              logoBox: 'rounded-full overflow-hidden w-16 h-16 mx-auto border-2 border-white/20',
+              dividerText: 'hidden',
+              formHeader: 'hidden',
+              formFieldRow: 'hidden',
+              formButtonPrimary: 'bg-gray-800 hover:bg-gray-700 text-white', // Greyish background for primary button
+              socialButtons: 'flex flex-col gap-4',
+              socialButtonsBlockButton__github: 'order-1 bg-gray-800 border-gray-600',
+              socialButtonsBlockButton__google: 'order-2 bg-gray-800 border-gray-600',
+              logoBox: 'rounded-full overflow-hidden w-16 h-16 mx-auto border-2 border-gray-600',
               logoImage: 'object-cover',
-            }
+              footer: 'hidden',
+              footerAction: 'hidden',
+            },
+            layout: {
+              socialButtonsPlacement: 'bottom',
+              showOptionalFields: false,
+            },
+            variables: {
+              colorPrimary: '#4F46E5', // Optional: Adjust primary color if needed
+            },
           }}
+          path="/sign-up"
+          routing="path"
+          signInUrl="/sign-in"
+          afterSignUpUrl="/dashboard"
         />
-
+        {/* Custom "Have an account? Sign in" link */}
+        <div className="text-white text-center mt-4">
+          <span>Have an account? </span>
+          <Link href="/sign-in" className="text-blue-400 hover:text-blue-300">
+            Sign in
+          </Link>
+        </div>
       </motion.div>
 
       {/* Fan Cards */}
