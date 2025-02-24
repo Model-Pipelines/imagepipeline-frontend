@@ -15,12 +15,12 @@ export function ThemeSwitcher() {
   ];
 
   return (
-    <Card className="border-none shadow-none">
+    <Card className="border-none shadow-none cursor-default">
       <CardContent className="py-2">
         {/* Wrap the buttons with AnimatedBackground */}
         <AnimatedBackground
           defaultValue={THEMES.find((t) => t.id === theme)?.id || "light"}
-          className="rounded-lg "
+          className="rounded-lg cursor-default"
           transition={{
             type: "spring",
             bounce: 0.2,
@@ -28,16 +28,17 @@ export function ThemeSwitcher() {
           }}
           enableHover
         >
-          <div className="flex justify-between gap-4 p-1">
+          <div className="flex justify-between gap-4 p-1 cursor-default">
             {THEMES.map(({ id, label, icon }) => (
               <button
                 key={id}
                 data-id={id}
                 onClick={() => setTheme(id)}
-                className={`flex-1 text-center text-sm font-medium px-3 py-2 rounded transition-all duration-300 ${theme === id
-                  ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  : "text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
-                  }`}
+                className={`flex-1 text-center text-sm font-medium px-3 py-2 rounded transition-all duration-300 cursor-pointer ${
+                  theme === id
+                    ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                    : "text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                }`}
               >
                 {icon} {label}
               </button>

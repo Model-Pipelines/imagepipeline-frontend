@@ -1,7 +1,7 @@
 import { HelpCircle, Zap, User, LogOut } from "lucide-react";
 import { useClerk, useUser } from "@clerk/nextjs";
 import Link from "next/link";
-import { Skeleton } from "@/components/ui/skeleton"; // Adjust the import path as needed
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ProfileSection() {
   const { user } = useUser();
@@ -67,7 +67,7 @@ export function ProfileSection() {
       <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
       {/* Plan Info - Hidden on mobile and tablet */}
-      <div className="p-4 md:block hidden">
+      <div className="p-4 md:block hidden cursor-default">
         <div className="flex justify-between text-sm">
           <span className="font-medium text-gray-800 dark:text-gray-200">
             Free
@@ -76,9 +76,7 @@ export function ProfileSection() {
             10 credits left
           </span>
         </div>
-        <button
-          className="mt-3 w-full rounded-md border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 py-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors duration-200 flex items-center justify-center gap-2"
-        >
+        <button className="mt-3 w-full rounded-md border border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20 py-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer">
           <Zap className="h-4 w-4" />
           Upgrade plan
         </button>
@@ -86,24 +84,27 @@ export function ProfileSection() {
       <div className="h-px bg-gray-200 dark:bg-gray-700" />
 
       {/* Footer Section */}
-      <div className="p-4 flex flex-col gap-2">
+      <div className="p-4 flex flex-col gap-2 cursor-default">
         <Link
-          href="/help"
-          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 md:block hidden"
+          href="https://docs.imagepipeline.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 cursor-pointer"
         >
           <HelpCircle className="h-4 w-4" />
           Help & Documentation
         </Link>
+
         <Link
           href={`/account/${uniqueName}`}
-          className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 transition-colors duration-200"
+          className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 transition-colors duration-200 cursor-pointer"
         >
           <User className="h-4 w-4" />
           Profile
         </Link>
         <button
           onClick={() => signOut()}
-          className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 transition-colors duration-200"
+          className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 hover:text-red-800 transition-colors duration-200 cursor-pointer"
         >
           <LogOut className="h-4 w-4" />
           Sign out
