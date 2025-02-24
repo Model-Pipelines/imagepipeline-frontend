@@ -18,6 +18,7 @@ interface SettingPanelStore {
   setImageUrl: (imageUrl: string | null) => void;
   toggleMagicPrompt: () => void;
   togglePublic: () => void; // New action
+  setIsPublic: (value: boolean) => void;
 }
 
 export const useSettingPanelStore = create<SettingPanelStore>()(
@@ -26,7 +27,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       text: "",
       image_url: null,
       magic_prompt: false,
-      isPublic: false, // Default to private
+      isPublic: true, // Default to public for free users
       hex_color: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
       selectedPaletteName: "Ember",
       paletteImages: {
@@ -56,7 +57,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           text: "",
           image_url: null,
           magic_prompt: false,
-          isPublic: false,
+          isPublic: true,
           hex_color: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
           selectedPaletteName: "Ember",
           paletteImages: { Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
@@ -72,6 +73,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       setImageUrl: (imageUrl) => set(() => ({ image_url: imageUrl })),
       toggleMagicPrompt: () => set((state) => ({ magic_prompt: !state.magic_prompt })),
       togglePublic: () => set((state) => ({ isPublic: !state.isPublic })),
+      setIsPublic: (value) => set({ isPublic: value }),
     }),
     {
       name: "settings-storage",

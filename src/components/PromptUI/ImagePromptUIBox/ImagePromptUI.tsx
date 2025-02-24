@@ -19,7 +19,9 @@ import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
-import UpgradePopup from "@/components/upgradePopup/UpgradePopup";
+import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
+import { useUser } from "@clerk/nextjs";
+import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 
 
 const ImagePromptUI = () => {
@@ -28,6 +30,7 @@ const ImagePromptUI = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
+  const { user } = useUser();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
   const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
@@ -80,6 +83,7 @@ const ImagePromptUI = () => {
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
   });
 
+  const { openUpgradePopup } = useUpgradePopupStore();
 
   // Add effect to handle describe task status
   useEffect(() => {
@@ -198,10 +202,16 @@ const ImagePromptUI = () => {
     });
   };
 
+  // Add subscription check function
+  const isFreePlan = () => {
+    // You can adjust this based on your subscription logic
+    return !subscription || subscription.plan_name === "Free";
+  };
+
   // Modified toggle public handler
   const handleTogglePublic = () => {
-    if (!isPublic && !canMakePrivate(subscription?.plan_name)) {
-      setShowUpgradePopup(true);
+    if (!isPublic && isFreePlan()) {
+      openUpgradePopup();
       return;
     }
     togglePublic();
@@ -303,202 +313,204 @@ const ImagePromptUI = () => {
   const buttonText = getButtonText();
 
   return (
-    <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
-      <div className="flex flex-col gap-4">
-        {(isUploading || image_url) && (
-          <div className="relative mt-4 z-[100]">
-            <div className="flex flex-wrap gap-2 items-center">
-              <ImageUploadLoader imagePreview={image_url} isUploading={isUploading} />
-              {!isUploading && (
+    <>
+      <div className="relative bg-white dark:bg-gray-800 p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
+        <div className="flex flex-col gap-4">
+          {(isUploading || image_url) && (
+            <div className="relative mt-4 z-[100]">
+              <div className="flex flex-wrap gap-2 items-center">
+                <ImageUploadLoader imagePreview={image_url} isUploading={isUploading} />
+                {!isUploading && (
+                  <>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <Button
+        onClick={handleDescribeImage}
+        className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
+        disabled={!image_url || !!describeTaskId}
+      >
+        {describeTaskId ? (
+          <motion.div
+            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          />
+        ) : (
+          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+            Describe Image
+          </motion.span>
+        )}
+      </Button>
+                    </motion.div>
+                    <button
+                      onClick={() => {
+                        setImageUrl(null)
+                        setShowDescribeButton(false)
+                      }}
+                      className="absolute top-0 left-20 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                    >
+                      <X size={16} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <div className="relative flex-grow">
+              <input
+                type="file"
+                hidden
+                ref={fileInputRef}
+                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+              />
+              
+              <button
+                onClick={handlePaperclipClick}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
+                aria-label="Upload image"
+              >
+                <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+              <Textarea
+                ref={textAreaRef}
+                value={text}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Describe what you want to generate..."
+                className="w-full pl-10 pr-2 bg-slate-50 dark:bg-gray-700 resize-none rounded-lg"
+                rows={3}
+              />
+            </div>
+            <motion.button
+              onClick={handleGenerateImage}
+              disabled={isGenerating || !!generateTaskId}
+              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
+                ${isGenerating || generateTaskId ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isGenerating || generateTaskId ? (
+                <motion.div
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                />
+              ) : (
                 <>
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <Button
-      onClick={handleDescribeImage}
-      className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
-      disabled={!image_url || !!describeTaskId}
-    >
-      {describeTaskId ? (
-        <motion.div
-          className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-        />
-      ) : (
-        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-          Describe Image
-        </motion.span>
-      )}
-    </Button>
-                  </motion.div>
-                  <button
-                    onClick={() => {
-                      setImageUrl(null)
-                      setShowDescribeButton(false)
-                    }}
-                    className="absolute top-0 left-20 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
-                  >
-                    <X size={16} />
-                  </button>
+                  <span className="hidden sm:inline">Generate</span>
+                  <span className="sm:hidden">➜</span>
                 </>
               )}
-            </div>
+            </motion.button>
           </div>
-        )}
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-grow">
-            <input
-              type="file"
-              hidden
-              ref={fileInputRef}
-              onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-            />
-            
-            <button
-              onClick={handlePaperclipClick}
-              className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
-              aria-label="Upload image"
-            >
-              <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            </button>
-            <Textarea
-              ref={textAreaRef}
-              value={text}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="Describe what you want to generate..."
-              className="w-full pl-10 pr-2 bg-slate-50 dark:bg-gray-700 resize-none rounded-lg"
-              rows={3}
-            />
-          </div>
-          <motion.button
-            onClick={handleGenerateImage}
-            disabled={isGenerating || !!generateTaskId}
-            className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
-              ${isGenerating || generateTaskId ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            {isGenerating || generateTaskId ? (
-              <motion.div
-                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                animate={{ rotate: 360 }}
-                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-              />
-            ) : (
-              <>
-                <span className="hidden sm:inline">Generate</span>
-                <span className="sm:hidden">➜</span>
-              </>
-            )}
-          </motion.button>
-        </div>
+          
 
-        
-
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <TooltipProvider>
-              <Tooltip>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "h-10 w-10 rounded-md border border-gray-300",
+                        magic_prompt ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
+                        "hover:bg-blue-50"
+                      )}
+                      onClick={toggleMagicPrompt}
+                      aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
+                    >
+                      <motion.div
+                        animate={magic_prompt ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        <Wand2 className="h-5 w-5" />
+                      </motion.div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{magic_prompt ? "Magic prompt is on" : "Magic prompt is off"}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="outline"
                     size="icon"
                     className={cn(
                       "h-10 w-10 rounded-md border border-gray-300",
-                      magic_prompt ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
-                      "hover:bg-blue-50"
+                      isPublic ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
+                      "hover:bg-blue-50",
+                      !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
                     )}
-                    onClick={toggleMagicPrompt}
-                    aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
+                    onClick={handleTogglePublic}
+                    aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
                   >
                     <motion.div
-                      animate={magic_prompt ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                      animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
                       transition={{ duration: 0.5, ease: "easeInOut" }}
                     >
-                      <Wand2 className="h-5 w-5" />
+                      {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
                     </motion.div>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{magic_prompt ? "Magic prompt is on" : "Magic prompt is off"}</p>
+                  {!canMakePrivate(subscription?.plan_name) && !isPublic ? (
+                    <p>Upgrade to make images private</p>
+                  ) : (
+                    <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
+                  )}
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className={cn(
-                    "h-10 w-10 rounded-md border border-gray-300",
-                    isPublic ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700",
-                    "hover:bg-blue-50",
-                    !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
-                  )}
-                  onClick={handleTogglePublic}
-                  aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
-                >
-                  <motion.div
-                    animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
-                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                  >
-                    {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-                  </motion.div>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                {!canMakePrivate(subscription?.plan_name) && !isPublic ? (
-                  <p>Upgrade to make images private</p>
-                ) : (
-                  <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
-                )}
-              </TooltipContent>
-            </Tooltip>
-            </TooltipProvider>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={toggleColorPalette}
-              className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                }`}
-              aria-label="Toggle color palette"
-            >
-              <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
-              <span className="ml-2 truncate">{buttonText}</span>
-            </Button>
-            <Button
-              onClick={toggleSettingsPanel}
-              className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                }`}
-              aria-label="Toggle settings"
-            >
-              <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-white" : "text-black"}`} />
-              <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
-            </Button>
+              </TooltipProvider>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={toggleColorPalette}
+                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                  }`}
+                aria-label="Toggle color palette"
+              >
+                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+                <span className="ml-2 truncate">{buttonText}</span>
+              </Button>
+              <Button
+                onClick={toggleSettingsPanel}
+                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+                aria-label="Toggle settings"
+              >
+                <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-white" : "text-black"}`} />
+                <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
+              </Button>
+            </div>
           </div>
         </div>
+
+        {isSettingsPanelVisible && (
+          <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
+            <SettingsPanel
+              onTypeChange={(type: any) => { }}
+              paperclipImage={image_url}
+              inputText={text}
+              onClose={() => setIsSettingsPanelVisible(false)}
+            />
+          </div>
+        )}
+
+        {isColorPaletteVisible && (
+          <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
+            <CustomColorPalette />
+          </div>
+        )}
       </div>
-
-      {isSettingsPanelVisible && (
-        <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
-          <SettingsPanel
-            onTypeChange={(type: any) => { }}
-            paperclipImage={image_url}
-            inputText={text}
-            onClose={() => setIsSettingsPanelVisible(false)}
-          />
-        </div>
-      )}
-
-      {isColorPaletteVisible && (
-        <div className="absolute z-50 transform translate-x-[400px] -translate-y-[420px]">
-          <CustomColorPalette />
-        </div>
-      )}
-    </div>
+    </>
   );
 };
 export default ImagePromptUI;
