@@ -66,11 +66,12 @@ const ImagePromptUI = () => {
 
   const canMakePrivate = (planName?: string) => {
     const allowedPlans = [
-      "Starter",
-      "Professional",
+      "BASIC",
+      "STANDARD",
       "Unlimited",
-      "Basic Enterprise",
-      "Premium Enterprise"
+      "SUPERCHARGE",
+      "EPBASIC",
+      "EPSTANDARD"
     ];
     return planName && allowedPlans.includes(planName);
   };
@@ -205,7 +206,7 @@ const ImagePromptUI = () => {
   // Add subscription check function
   const isFreePlan = () => {
     // You can adjust this based on your subscription logic
-    return !subscription || subscription.plan_name === "Free";
+    return !subscription || subscription.plan_name === "FREE";
   };
 
   // Modified toggle public handler
