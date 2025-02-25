@@ -45,8 +45,8 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
 
               {/* Content */}
               <div className="text-center space-y-2">
-                <h2 className="text-xl font-semibold text-gray-900">Upgrade to make images private</h2>
-                <p className="text-gray-600 text-sm">Get more control over your content with our premium plans</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-300">Upgrade to make images private</h2>
+                <p className="text-gray-600 text-sm dark:text-slate-300">Get more control over your content with our premium plans</p>
               </div>
 
               {/* Buttons */}

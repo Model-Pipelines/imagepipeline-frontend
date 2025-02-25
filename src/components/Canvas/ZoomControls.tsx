@@ -1,5 +1,4 @@
 'use client';
-
 import { Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCanvasStore } from '@/lib/store';
@@ -16,9 +15,7 @@ export default function ZoomControls() {
   };
 
   return (
-    <div className="zoomcontrol absolute bottom-4 right-4 z-10 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2 md:flex hidden">
-
-
+    <div className="zoomcontrol absolute bottom-4 right-4 z-10 bg-background/90 dark:bg-background/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2 md:flex hidden">
       <Button
         variant="outline"
         size="icon"
@@ -27,7 +24,7 @@ export default function ZoomControls() {
       >
         <Minus className="h-4 w-4" />
       </Button>
-      <div className="px-2 flex items-center min-w-[4rem] justify-center font-mono text-sm">
+      <div className="px-2 flex items-center min-w-[4rem] justify-center font-mono text-sm text-foreground dark:text-foreground">
         {Math.round(scale * 100)}%
       </div>
       <Button
