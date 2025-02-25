@@ -66,28 +66,24 @@ const ImagePromptUI = () => {
       (data?.status === "SUCCESS" || data?.status === "FAILURE") ? false : 5000,
   });
 
-
-  const { data: subscription } = useQuery({
-    queryKey: ['subscription'],
-    queryFn: async () => {
-      // Implement your subscription fetch logic here
-      // Return the subscription details including plan_name
-    },
-  });
-
-  const canMakePrivate = (planName?: string) => {
+  const canMakePrivate = () => {
     const allowedPlans = [
       "BASIC",
       "STANDARD",
-      "Unlimited",
       "SUPERCHARGE",
+      "EPTRIAL",
       "EPBASIC",
       "EPSTANDARD"
     ];
+    const planName = user?.subscription?.plan_name;
     return planName && allowedPlans.includes(planName);
   };
 
-  
+  const isFreePlan = () => {
+    const planName = user?.subscription?.plan_name;
+    return !planName || planName === "FREE";
+  };
+
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["generateImageTask", generateTaskId],
     queryFn: () => getGenerateImage(generateTaskId!),
@@ -212,13 +208,6 @@ const ImagePromptUI = () => {
     });
   };
 
-  // Add subscription check function
-  const isFreePlan = () => {
-    // You can adjust this based on your subscription logic
-    return !subscription || subscription.plan_name === "FREE";
-  };
-
-  // Modified toggle public handler
   const handleTogglePublic = () => {
     if (!isPublic && isFreePlan()) {
       openUpgradePopup();
@@ -249,7 +238,6 @@ const ImagePromptUI = () => {
   };
 
   
-  // Add the describe image handler
   const handleDescribeImage = () => {
     if (!image_url) {
       toast({
@@ -469,7 +457,7 @@ const ImagePromptUI = () => {
                       "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
                       isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
                       "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
-                      !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
+                      !canMakePrivate() && !isPublic && "opacity-50 cursor-not-allowed"
                     )}
                     onClick={handleTogglePublic}
                     aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
@@ -483,7 +471,7 @@ const ImagePromptUI = () => {
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  {!canMakePrivate(subscription?.plan_name) && !isPublic ? (
+                  {!canMakePrivate() && !isPublic ? (
                     <p>Upgrade to make images private</p>
                   ) : (
                     <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>

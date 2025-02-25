@@ -120,9 +120,9 @@ export default function ProfilePage() {
   const totalPages = Math.ceil(generatedImages.length / itemsPerPage);
   const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
-  const deleteUser = async = () =>{
-    //need delete user functionality over here 
-  }
+  // const deleteUser = async = () =>{
+  //   //need delete user functionality over here 
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white px-4 py-6 sm:px-6 md:px-8 lg:px-12">
@@ -427,18 +427,18 @@ export default function ProfilePage() {
 
         {/* Delete Account */}
         <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-600 dark:text-red-400">Danger Zone</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-600 dark:text-red-400">Delete Account</h2>
           <Card className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 shadow-sm">
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">Delete Account</p>
+                  {/* <p className="text-sm font-semibold text-red-600 dark:text-red-400">Delete Account</p> */}
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Permanently remove your account and all associated data.
                   </p>
                 </div>
                 <Button
-                onClick={deleteUser}
+                // onClick={deleteUser}
                   variant="destructive"
                   size="sm"
                   className="bg-red-600 dark:bg-red-700 text-white hover:bg-red-700 dark:hover:bg-red-800"
