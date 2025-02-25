@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { X, Settings, Palette, Globe, Lock, Wand2, ScanEye } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -33,7 +33,18 @@ const ImagePromptUI = () => {
   const { user } = useUser();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
 
-  const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
+  const { 
+    text, 
+    image_url, 
+    magic_prompt, 
+    isPublic, 
+    hex_color, 
+    selectedPaletteName, 
+    setInputText: setInputTextStore,
+    setImageUrl, 
+    toggleMagicPrompt, 
+    togglePublic 
+  } = useSettingPanelStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
@@ -86,31 +97,29 @@ const ImagePromptUI = () => {
 
   const { openUpgradePopup } = useUpgradePopupStore();
 
-  // Add effect to handle describe task status
+  const animateTextToTextarea = (description: string) => {
+    const words = description.split(' ');
+    let currentIndex = 0;
+    
+    const animateText = () => {
+      if (currentIndex < words.length) {
+        const currentText = words.slice(0, currentIndex + 1).join(' ');
+        setInputTextStore(currentText);
+        currentIndex++;
+        setTimeout(animateText, 100);
+      }
+    };
+
+    setInputTextStore('');
+    setTimeout(animateText, 100);
+  };
+
   useEffect(() => {
     if (!describeTaskStatus) return;
 
-    if (describeTaskStatus.status === "SUCCESS") {
-      const description = describeTaskStatus.description;
-      
-      // Animate the text into the textarea
-      const words = description.split(' ');
-      let currentIndex = 0;
-
-      const animateText = () => {
-        if (currentIndex < words.length) {
-          setInputText(prev => 
-            prev + (prev ? ' ' : '') + words[currentIndex]
-          );
-          currentIndex++;
-          setTimeout(animateText, 100); // Adjust timing as needed
-        }
-        setDescribeTaskId(null);
-      };
-
-      setInputText(''); // Clear existing text
-      animateText();
-
+    if (describeTaskStatus.status === "SUCCESS" && describeTaskStatus.prompt) {
+      animateTextToTextarea(describeTaskStatus.prompt);
+      setDescribeTaskId(null);
     } else if (describeTaskStatus.status === "FAILURE") {
       toast({
         title: "Error",
@@ -119,7 +128,7 @@ const ImagePromptUI = () => {
       });
       setDescribeTaskId(null);
     }
-  }, [describeTaskStatus, setInputText, toast]);
+  }, [describeTaskStatus, toast, setInputTextStore]);
 
 
   useEffect(() => {
@@ -251,6 +260,8 @@ const ImagePromptUI = () => {
       return;
     }
 
+    setInputTextStore('');
+    
     describeImageMutation(
       { input_image: image_url },
       {
@@ -340,7 +351,11 @@ const ImagePromptUI = () => {
             transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
           />
         ) : (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+          <motion.span 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            transition={{ delay: 0.1 }}
+          >
             Describe Image
           </motion.span>
         )}
@@ -377,14 +392,20 @@ const ImagePromptUI = () => {
               >
                 <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               </button>
-              <Textarea
-                ref={textAreaRef}
-                value={text}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Describe what you want to generate..."
-                className="w-full pl-10 pr-2 bg-slate-50 dark:bg-[#2A2A2D] resize-none rounded-lg"
-                rows={3}
-              />
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Textarea
+                  ref={textAreaRef}
+                  value={text}
+                  onChange={(e) => setInputTextStore(e.target.value)}
+                  placeholder="Describe what you want to generate..."
+                  className="w-full pl-10 pr-2 bg-slate-50 dark:bg-[#2A2A2D] resize-none rounded-lg"
+                  rows={3}
+                />
+              </motion.div>
             </div>
             <motion.button
               onClick={handleGenerateImage}

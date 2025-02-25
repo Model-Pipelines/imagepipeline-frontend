@@ -15,6 +15,7 @@ import {
   GenerateStyleImageWithUploadPayload,
   GenerateImageWithStyleAndFacePayload,
   GenerateImageWithStyleAndReferencePayload,
+  DescribeImageResponse,
 } from "./types";
 
 /**
@@ -98,11 +99,10 @@ export const generateImage = async (data: GenerateImagePayload): Promise<any> =>
   return response.data;
 };
 
-
 /**
  * Describe Image
  */
-export const describeImage = async (data: DescribeImagePayload): Promise<any> => {
+export const describeImage = async (data: DescribeImagePayload): Promise<{ id: string }> => {
   const response = await apiClient.post('/image2prompt/v1', data);
   return response.data;
 };
@@ -114,7 +114,6 @@ export const controlNet = async (data: ControlNetPayload): Promise<any> => {
   const response = await apiClient.post('/control/v1', data);
   return response.data;
 };
-
 
 /**
  * Render Sketch
@@ -156,12 +155,10 @@ export const faceControl = async (data: FaceControlPayload): Promise<any> => {
   return response.data;
 };
 
-
 export const faceControlReference = async (data: FaceControlPayload) : Promise<any> => {
   const response = await apiClient.post('/sdxl/controlnet/v1', data);
   return response.data;
 }
-
 
 // Style 
 // When only style is selected from drop down and no reference and face is selected
@@ -171,14 +168,12 @@ export const styleControlNoReference = async (data:GenerateStyleImagePayload ) :
   return response.data;
 }
 
-
 // When only style is selected using image upload and no reference and face is selected
 
 export const styleControlFaceNoReference = async (data: GenerateStyleImageWithUploadPayload ) : Promise<any> => {
   const response = await apiClient.post('/sdxl/text2image/v1', data);
   return response.data;
 }
-
 
 // When style is selected using image upload(s) and single face is selected
 
@@ -187,15 +182,12 @@ export const styleControlSingleFace = async (data: GenerateImageWithStyleAndFace
   return response.data;
 }
 
-
 // When style is selected using image upload(s) and reference is selected
 
 export const styleControlFaceReference = async (data: GenerateImageWithStyleAndReferencePayload ) : Promise<any> => {
   const response = await apiClient.post('/sdxl/controlnet/v1', data);
   return response.data;
 }
-
-
 
 /**
  * Change Background
@@ -237,7 +229,7 @@ export const getControlNetTaskStatus = async (taskId: string): Promise<any> => {
 /**
  * Get Describe Image Task Status
  */
-export const getDescribeImageStatus = async (taskId: string): Promise<any> => {
+export const getDescribeImageStatus = async (taskId: string): Promise<DescribeImageResponse> => {
   const response = await apiClient.get(`/image2prompt/v1/status/${taskId}`);
   return response.data;
 };
@@ -274,16 +266,12 @@ export const getGenerateLogoStatus = async (taskId: string): Promise<any> => {
   return response.data;
 };
 
-
-
-
 // style Tab GET Request
 
 export const getStyleControlNoReferenceTaskStatus = async (taskId: string): Promise<any> => {
   const response = await apiClient.get(`/generate/v3/${taskId}`);
   return response.data;
 };
-
 
 export const getStyleControlFaceNoReferenceTaskStatus = async (taskId: string): Promise<any> => {
   const response = await apiClient.get(`/sdxl/text2image/v1/${taskId}`);
@@ -299,8 +287,6 @@ export const getStyleControlFaceReferenceTaskStatus = async (taskId: string): Pr
   const response = await apiClient.get(`/sdxl/controlnet/v1/${taskId}`);
   return response.data;
 };
-
-
 
 /**
  * Get Background Task Status
@@ -326,7 +312,6 @@ export const getUpscaleImageStatus = async (taskId: string): Promise<any> => {
   return response.data;
 };
 
-
 /**
  * Get Generate Face Tab Task Status face is uploaded and only face dialog is used
  */
@@ -343,7 +328,6 @@ export const getFaceControlStatusFaceReference = async (id: string): Promise<any
   const response = await apiClient.get(`/sdxl/controlnet/v1/status/${id}`);
   return response.data;
 };
-
 
 /**
  * Get Generate Style Tab Task Status and When only style is selected from drop down and no reference and face is selected
@@ -376,7 +360,6 @@ export const getStyleImageStatusReference = async (id: string): Promise<any> => 
   const response = await apiClient.get(`/sdxl/controlnet/v1/status/${id}`);
   return response.data;
 };
-
 
 /**
  * Get Generate Image Task Status
