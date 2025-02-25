@@ -28,18 +28,18 @@ export function ProfileFooter() {
     <CardFooter className="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400 cursor-default">
       {/* Left Section: Terms and Privacy */}
       <div className="flex gap-4 mb-2 sm:mb-0 cursor-default">
-        <a
-          href="#"
+        <Link
+          href="https://www.imagepipeline.io/terms"
           className="cursor-pointer hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200"
         >
           Terms
-        </a>
-        <a
-          href="#"
+        </Link>
+        <Link
+          href="https://www.imagepipeline.io/privacy"
           className="cursor-pointer hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200"
         >
           Privacy
-        </a>
+        </Link>
       </div>
 
       {/* Right Section: Icons */}
@@ -64,7 +64,7 @@ export function ProfileFooter() {
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href="https://cal.com/imagepipeline/demo"
+                href="https://cal.com/imagepipeline/30min"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="cursor-pointer text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-300 transition-colors duration-200"

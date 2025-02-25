@@ -6,7 +6,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { ClerkProvider } from '@clerk/nextjs';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import ReactQueryProvider from "@/store/TanstackQuery";
-import { UpgradePopupPortal } from "@/components/upgradePopup/UpgradePopupPortal";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -23,10 +22,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
           <ReactQueryProvider>
             <Provider>{children}</Provider>
-            <ReactQueryDevtools />
+
           </ReactQueryProvider>
           <Toaster />
-          <UpgradePopupPortal />
         </body>
       </html>
     </ClerkProvider>

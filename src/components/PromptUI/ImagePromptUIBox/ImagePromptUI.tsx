@@ -7,13 +7,13 @@ import { X, Settings, Palette, Globe, Lock, Wand2, ScanEye } from "lucide-react"
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { useGenerateImage, useUploadBackendFiles,useDescribeImage } from "@/AxiosApi/TanstackQuery";
+import { useGenerateImage, useUploadBackendFiles, useDescribeImage } from "@/AxiosApi/TanstackQuery";
 import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import type { GenerateImagePayload } from "@/AxiosApi/types";
-import { getGenerateImage,describeImage, getDescribeImageStatus } from "@/AxiosApi/GenerativeApi";
+import { getGenerateImage, describeImage, getDescribeImageStatus } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -51,7 +51,7 @@ const ImagePromptUI = () => {
     queryKey: ["describeImageTask", describeTaskId],
     queryFn: () => getDescribeImageStatus(describeTaskId!),
     enabled: !!describeTaskId,
-    refetchInterval: (data) => 
+    refetchInterval: (data) =>
       (data?.status === "SUCCESS" || data?.status === "FAILURE") ? false : 5000,
   });
 
@@ -75,7 +75,7 @@ const ImagePromptUI = () => {
     return planName && allowedPlans.includes(planName);
   };
 
-  
+
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["generateImageTask", generateTaskId],
     queryFn: () => getGenerateImage(generateTaskId!),
@@ -91,14 +91,14 @@ const ImagePromptUI = () => {
 
     if (describeTaskStatus.status === "SUCCESS") {
       const description = describeTaskStatus.description;
-      
+
       // Animate the text into the textarea
       const words = description.split(' ');
       let currentIndex = 0;
 
       const animateText = () => {
         if (currentIndex < words.length) {
-          setInputText(prev => 
+          setInputText(prev =>
             prev + (prev ? ' ' : '') + words[currentIndex]
           );
           currentIndex++;
@@ -178,8 +178,8 @@ const ImagePromptUI = () => {
       samples: 1,
       enhance_prompt: true,
       palette: hex_color,
-      height: height, 
-      width:  width,  
+      height: height,
+      width: width,
       seed: -1,
     };
 
@@ -238,7 +238,7 @@ const ImagePromptUI = () => {
     }
   };
 
-  
+
   // Add the describe image handler
   const handleDescribeImage = () => {
     if (!image_url) {
@@ -328,22 +328,22 @@ const ImagePromptUI = () => {
                       transition={{ duration: 0.3 }}
                     >
                       <Button
-        onClick={handleDescribeImage}
-        className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
-        disabled={!image_url || !!describeTaskId}
-      >
-        {describeTaskId ? (
-          <motion.div
-            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          />
-        ) : (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
-            Describe Image
-          </motion.span>
-        )}
-      </Button>
+                        onClick={handleDescribeImage}
+                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
+                        disabled={!image_url || !!describeTaskId}
+                      >
+                        {describeTaskId ? (
+                          <motion.div
+                            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          />
+                        ) : (
+                          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                            Describe Image
+                          </motion.span>
+                        )}
+                      </Button>
                     </motion.div>
                     <button
                       onClick={() => {
@@ -368,7 +368,7 @@ const ImagePromptUI = () => {
                 ref={fileInputRef}
                 onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
               />
-              
+
               <button
                 onClick={handlePaperclipClick}
                 className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
@@ -388,7 +388,7 @@ const ImagePromptUI = () => {
             <motion.button
               onClick={handleGenerateImage}
               disabled={isGenerating || !!generateTaskId}
-              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
+              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg
                 ${isGenerating || generateTaskId ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
@@ -408,7 +408,7 @@ const ImagePromptUI = () => {
             </motion.button>
           </div>
 
-          
+
 
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
@@ -439,55 +439,70 @@ const ImagePromptUI = () => {
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
-                      isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
-                      "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
-                      !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
-                    )}
-                    onClick={handleTogglePublic}
-                    aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
-                  >
-                    <motion.div
-                      animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
+                        isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
+                        "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
+                        !canMakePrivate(subscription?.plan_name) && !isPublic && "opacity-50 cursor-not-allowed"
+                      )}
+                      onClick={handleTogglePublic}
+                      aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
                     >
-                      {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-                    </motion.div>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {!canMakePrivate(subscription?.plan_name) && !isPublic ? (
-                    <p>Upgrade to make images private</p>
-                  ) : (
-                    <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
-                  )}
-                </TooltipContent>
-              </Tooltip>
+                      <motion.div
+                        animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                      </motion.div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {!canMakePrivate(subscription?.plan_name) && !isPublic ? (
+                      <p>Upgrade to make images private</p>
+                    ) : (
+                      <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               </TooltipProvider>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 onClick={toggleColorPalette}
-                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
-                  }`}
+                className={cn(
+                  "w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left",
+                  isColorPaletteVisible
+                    ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                    : "bg-secondary hover:bg-secondary/80 text-muted-foreground"
+                )}
                 aria-label="Toggle color palette"
               >
-                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+                <Palette className={cn("h-5 w-5", isColorPaletteVisible && "text-primary-foreground")} />
                 <span className="ml-2 truncate">{buttonText}</span>
               </Button>
               <Button
                 onClick={toggleSettingsPanel}
-                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
-                  }`}
+                className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg",
+                  isSettingsPanelVisible
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-secondary hover:bg-secondary/80"
+                )}
                 aria-label="Toggle settings"
               >
-                <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-white" : "text-black"}`} />
-                <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
+                <Settings
+                  className={cn(
+                    "h-5 w-5",
+                    isSettingsPanelVisible
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
+                  )}
+                />
+                <span className="hidden lg:ml-2 lg:inline text-slate-500">Settings</span>
               </Button>
             </div>
           </div>

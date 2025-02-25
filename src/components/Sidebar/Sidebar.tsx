@@ -12,7 +12,7 @@ const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
   const [activeIcon, setActiveIcon] = useState<string | null>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
-  const isTablet = useMediaQuery("(max-width: 1024px)"); 
+  const isTablet = useMediaQuery("(max-width: 1024px)");
 
   const handleIconClick = (type: string) => {
     setActiveIcon((prev) => (prev === type ? null : type));
@@ -27,7 +27,7 @@ const Sidebar: FC = () => {
 
   const renderSidebarContent = () => (
     <>
-      <Link href="#" aria-label="Logo">
+      <Link href="/" aria-label="Logo">
         <div className="p-2 rounded-md text-black dark:text-white font-bold">LOGO</div>
       </Link>
 
@@ -35,11 +35,10 @@ const Sidebar: FC = () => {
         {sidebarItems.map((item) => (
           <div
             key={item.type}
-            className={`p-2 rounded-md cursor-pointer ${
-              activeIcon === item.type
+            className={`p-2 rounded-md cursor-pointer ${activeIcon === item.type
                 ? "bg-purple-800 dark:bg-gray-700 text-white"
                 : "hover:bg-purple-800 hover:text-white dark:hover:bg-gray-700 text-purple-700 dark:text-white"
-            }`}
+              }`}
             onClick={() => handleIconClick(item.type)}
             aria-label={item.label}
           >
@@ -63,19 +62,17 @@ const Sidebar: FC = () => {
         {sidebarItems.map((item, idx) => (
           <div
             key={idx}
-            className={`flex items-center justify-center p-2 rounded-full cursor-pointer transition-all duration-200 ${
-              activeIcon === item.type
+            className={`flex items-center justify-center p-2 rounded-full cursor-pointer transition-all duration-200 ${activeIcon === item.type
                 ? "bg-yellow-500 dark:bg-gray-700 scale-110" // Scale and color change on active
                 : "bg-transparent hover:bg-gray-200 dark:hover:bg-neutral-700" // Transparent background by default
-            }`}
+              }`}
             onClick={() => handleIconClick(item.type)}
           >
             <item.icon
-              className={`h-6 w-6 ${
-                activeIcon === item.type
+              className={`h-6 w-6 ${activeIcon === item.type
                   ? "text-white" // White icon for active state
                   : "text-black dark:text-white" // Default icon color
-              }`}
+                }`}
             />
           </div>
         ))}
@@ -83,22 +80,22 @@ const Sidebar: FC = () => {
 
       {/* AccountDropdown on the right */}
       <div className="p-2 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-neutral-700">
-      {/* Render MobileAccountDropdown on screens smaller than md (768px) */}
-      <div className="md:hidden">
-        <MobileAccountDropdown />
-      </div>
+        {/* Render MobileAccountDropdown on screens smaller than md (768px) */}
+        <div className="md:hidden">
+          <MobileAccountDropdown />
+        </div>
 
-      {/* Render AccountDropdown on screens larger than or equal to md (768px) */}
-      <div className="hidden md:block">
-        <AccountDropdown />
+        {/* Render AccountDropdown on screens larger than or equal to md (768px) */}
+        <div className="hidden md:block">
+          <AccountDropdown />
+        </div>
       </div>
-    </div>
     </div>
   );
 
   return (
     <>
-      {isMobile || isTablet? (
+      {isMobile || isTablet ? (
         renderMobileDock()
       ) : (
         <div className="flex flex-col bg-purple-700/20 dark:bg-purple-800 items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">

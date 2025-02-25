@@ -84,7 +84,7 @@ export default function InfiniteCanvas() {
           y:
             (Math.floor(numImages / gridSize) *
               (INITIAL_IMAGE_SIZE + spacing)) /
-              scale -
+            scale -
             offset.y,
         };
 
@@ -370,12 +370,11 @@ export default function InfiniteCanvas() {
       <div className="flex-1 relative">
         <Toolbar onUpload={handleUpload} />
         <ZoomControls />
-        <ParentPrompt />
 
         <canvas
           ref={canvasRef}
           className={cn(
-            "absolute inset-0 bg-white dark:bg-[#181603] touch-none",
+            "absolute inset-0 bg-white dark:bg-black/25 touch-none",
             isDragging ? "cursor-grabbing" : "cursor-grab",
             isResizing ? "cursor-nwse-resize" : ""
           )}
@@ -391,35 +390,35 @@ export default function InfiniteCanvas() {
 
         {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
-  <div key={img.id}>
-    {/* Render ShinyGradientSkeletonHorizontal if image is not loaded or is being generated */}
-    {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
-      <div
-        className="absolute"
-        style={{
-          transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
-          width: `${img.size.width * scale}px`,
-          height: `${img.size.height * scale}px`,
-          zIndex: 10,
-        }}
-      >
-        <ShinyGradientSkeletonHorizontal />
-      </div>
-    )}
-    {/* Render image and associated UI elements */}
-    {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
-      <div
-        className="absolute"
-        style={{
-          transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
-          zIndex: 10,
-        }}
-      >
-        <DropdownMenuBar />
-      </div>
-    )}
-  </div>
-))}
+          <div key={img.id}>
+            {/* Render ShinyGradientSkeletonHorizontal if image is not loaded or is being generated */}
+            {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
+              <div
+                className="absolute"
+                style={{
+                  transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
+                  width: `${img.size.width * scale}px`,
+                  height: `${img.size.height * scale}px`,
+                  zIndex: 10,
+                }}
+              >
+                <ShinyGradientSkeletonHorizontal />
+              </div>
+            )}
+            {/* Render image and associated UI elements */}
+            {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
+              <div
+                className="absolute"
+                style={{
+                  transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
+                  zIndex: 10,
+                }}
+              >
+                <DropdownMenuBar />
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       <ParentPrompt />
     </div>
