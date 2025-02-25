@@ -426,13 +426,14 @@ export default function ProfilePage() {
         </motion.section>
 
         {/* Delete Account */}
-        <section>
+
+        {/* <section>
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-red-600 dark:text-red-400">Delete Account</h2>
           <Card className="bg-white dark:bg-gray-800 border border-red-200 dark:border-red-700 shadow-sm">
             <CardContent className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                  {/* <p className="text-sm font-semibold text-red-600 dark:text-red-400">Delete Account</p> */}
+                 
                   <p className="text-sm text-gray-500 dark:text-gray-400">
                     Permanently remove your account and all associated data.
                   </p>
@@ -448,7 +449,8 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
-        </section>
+        </section> */}
+        
       </main>
     </div>
   );
