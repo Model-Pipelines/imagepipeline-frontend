@@ -2,17 +2,36 @@
 "use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { ArrowRight, LogOut, ImageOff, Home } from "lucide-react"; // Added Home icon
 import { useUser, useClerk, useAuth } from "@clerk/nextjs";
+import { NextResponse } from 'next/server'
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
-import { fetchSubscriptionDetails, fetchUserImages } from "@/services/AccountServices"; // Adjust path
+import {
+  fetchSubscriptionDetails,
+  fetchUserImages,
+} from "@/services/AccountServices"; // Adjust path
 import Link from "next/link"; // Added for navigation
 
-function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
+function ImageWithSkeleton({
+  src,
+  alt,
+  className = "",
+  ...props
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
   const [loaded, setLoaded] = useState(false);
   return (
     <div className="relative h-full w-full">
@@ -21,7 +40,9 @@ function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string
         src={src}
         alt={alt}
         {...props}
-        className={`${className} ${!loaded ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover rounded-md`}
+        className={`${className} ${
+          !loaded ? "opacity-0" : "opacity-100"
+        } transition-opacity duration-300 object-cover rounded-md`}
         onLoad={() => setLoaded(true)}
       />
     </div>
@@ -69,7 +90,10 @@ export default function ProfilePage() {
       const token = await fetchToken();
       const images = await fetchUserImages(userId, token);
       // Sort by created_at in descending order (latest first)
-      return images.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      return images.sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
     },
     enabled: !!userId,
   });
@@ -93,7 +117,22 @@ export default function ProfilePage() {
   const fullName = `${user.firstName} ${user.lastName}`;
   const username = user.username || (email ? email.split("@")[0] : "Not set");
   const totalPages = Math.ceil(generatedImages.length / itemsPerPage);
-  const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const currentImages = generatedImages.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
+
+  const deleteUser = async () =>{
+    try {
+      const client = await clerkClient()
+      await client.users.deleteUser(userId)
+      return NextResponse.json({ message: 'User deleted' })
+      
+    } catch (error) {
+      console.log(error)
+      return NextResponse.json({ error: 'Error deleting user' })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white p-4 sm:p-6 md:p-8 lg:p-12">
@@ -122,7 +161,10 @@ export default function ProfilePage() {
         >
           <Avatar className="w-20 h-20 sm:w-24 sm:h-24 mb-4 mx-auto">
             <AvatarImage src={avatarUrl} alt="Profile" />
-            <AvatarFallback>{user.firstName?.charAt(0)}{user.lastName?.charAt(0)}</AvatarFallback>
+            <AvatarFallback>
+              {user.firstName?.charAt(0)}
+              {user.lastName?.charAt(0)}
+            </AvatarFallback>
           </Avatar>
           <h2 className="text-xl sm:text-2xl font-semibold mb-1">{fullName}</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">{email}</p>
@@ -133,10 +175,14 @@ export default function ProfilePage() {
         <h2 className="text-lg sm:text-xl font-semibold mb-4">Subscription</h2>
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">{subscription?.plan || "Free Plan"}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">
+              {subscription?.plan || "Free Plan"}
+            </CardTitle>
             <CardDescription className="text-gray-500 dark:text-gray-400 text-sm">
               {subscription?.plan_expiry_date
-                ? `Renews on ${new Date(subscription.plan_expiry_date).toLocaleDateString()}`
+                ? `Renews on ${new Date(
+                    subscription.plan_expiry_date
+                  ).toLocaleDateString()}`
                 : "No active subscription"}
             </CardDescription>
           </CardHeader>
@@ -148,27 +194,39 @@ export default function ProfilePage() {
                 <Skeleton className="h-4 w-[220px]" />
               </div>
             ) : subError ? (
-              <p className="text-red-500 text-sm">{subError.message || "Failed to load subscription details"}</p>
+              <p className="text-red-500 text-sm">
+                {subError.message || "Failed to load subscription details"}
+              </p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Tokens Remaining</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Tokens Remaining
+                  </p>
                   <p>{subscription?.tokens_remaining || 0}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Model Trainings</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Model Trainings
+                  </p>
                   <p>{subscription?.model_trainings_remaining || 0}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Private Models</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Private Models
+                  </p>
                   <p>{subscription?.private_model_loads_remaining || 0}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Plan Status</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Plan Status
+                  </p>
                   <p>{subscription?.plan ? "Active" : "Inactive"}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500 dark:text-gray-400">Plan Expiry Date</p>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Plan Expiry Date
+                  </p>
                   <p>{subscription?.plan_expiry_date || "N/A"}</p>
                 </div>
               </div>
@@ -176,7 +234,11 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        <motion.div initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <Card className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative h-40 sm:h-48">
               <img
@@ -184,12 +246,22 @@ export default function ProfilePage() {
                 alt="Promotion"
                 className="object-cover w-full h-full"
               />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center p-4 sm:p-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-xs sm:text-sm text-white mb-1">Limited Time Offer</p>
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">Upgrade to Premium</h3>
+                  <p className="text-xs sm:text-sm text-white mb-1">
+                    Limited Time Offer
+                  </p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">
+                    Upgrade to Premium
+                  </h3>
                 </div>
-                <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 ml-auto text-white" />
+                <Link
+                  href="https://www.imagepipeline.io/pricing"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ArrowRight className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </Link>
               </div>
             </div>
           </Card>
@@ -197,7 +269,9 @@ export default function ProfilePage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">Your Generated Images</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">
+          Your Generated Images
+        </h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           You have generated {generatedImages.length} images (latest first).
         </p>
@@ -217,7 +291,9 @@ export default function ProfilePage() {
             className="flex flex-col items-center justify-center py-10 text-gray-500 dark:text-gray-400"
           >
             <ImageOff className="w-12 h-12 mb-2" />
-            <p className="text-sm sm:text-base">You haven’t created any images yet.</p>
+            <p className="text-sm sm:text-base">
+              You haven’t created any images yet.
+            </p>
           </motion.div>
         ) : (
           <div>
@@ -249,7 +325,9 @@ export default function ProfilePage() {
                   variant="ghost"
                   size="sm"
                   disabled={currentPage === 0}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 0))
+                  }
                 >
                   Previous
                 </Button>
@@ -260,7 +338,9 @@ export default function ProfilePage() {
                   variant="ghost"
                   size="sm"
                   disabled={currentPage === totalPages - 1}
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))
+                  }
                 >
                   Next
                 </Button>
@@ -271,18 +351,26 @@ export default function ProfilePage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">Account Details</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">
+          Account Details
+        </h2>
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
           <CardContent className="p-4 sm:p-6 space-y-4">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Username</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                Username
+              </p>
               <div className="flex justify-between items-center">
                 <p className="text-sm">{username}</p>
-                <Button variant="ghost" size="sm">Change</Button>
+                <Button variant="ghost" size="sm">
+                  Change
+                </Button>
               </div>
             </div>
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Email</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                Email
+              </p>
               <p className="text-sm">{email}</p>
             </div>
           </CardContent>
@@ -290,14 +378,17 @@ export default function ProfilePage() {
       </section>
 
       <section className="mb-10">
-        <h2 className="text-lg sm:text-xl font-semibold mb-4">Delete Account</h2>
+        <h2 className="text-lg sm:text-xl font-semibold mb-4">
+          Delete Account
+        </h2>
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm">
           <CardContent className="p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <p className="text-sm text-red-600 dark:text-red-400">
-                Permanently delete your account, all your data, and cancel your subscription.
+                Permanently delete your account, all your data, and cancel your
+                subscription.
               </p>
-              <Button
+              <Button onClick={deleteUser}
                 variant="ghost"
                 size="sm"
                 className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
