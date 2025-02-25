@@ -13,6 +13,7 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
     <AnimatePresence>
       {/* Backdrop */}
       <motion.div
+        key="backdrop"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -22,16 +23,20 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
 
       {/* Modal */}
       <motion.div
+        key="modal"
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
         className="fixed inset-0 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
       >
-        <div className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-[90vw] max-w-md">
+        <section className="relative bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-[90vw] max-w-md">
           {/* Close button */}
           <button
             onClick={onClose}
             className="absolute right-4 top-4 text-gray-600 hover:text-gray-900 transition-colors"
+            aria-label="Close upgrade popup"
           >
             <X className="h-6 w-6" />
           </button>
@@ -69,7 +74,7 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </motion.div>
     </AnimatePresence>
   );

@@ -7,6 +7,7 @@ import { useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 import { ChangeEvent, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCanvasStore } from "@/lib/store";
+import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 
 interface ToolbarProps {
   onDownload: () => void;
@@ -111,6 +112,7 @@ export default function Toolbar({ onDownload, onUpload }: ToolbarProps) {
   const handleReset = () => {
     useCanvasStore.persist.clearStorage();
     useImageStore.persist.clearStorage();
+    useSettingPanelStore.persist.clearStorage();
     window.location.reload();
   };
 
