@@ -133,7 +133,7 @@ export default function ProfilePage() {
         <h2 className="text-lg sm:text-xl font-semibold mb-4">Subscription</h2>
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
           <CardHeader>
-            <CardTitle className="text-base sm:text-lg">{subscription?.plan_name || "Free Plan"}</CardTitle>
+            <CardTitle className="text-base sm:text-lg">{subscription?.plan || "Free Plan"}</CardTitle>
             <CardDescription className="text-gray-500 dark:text-gray-400 text-sm">
               {subscription?.plan_expiry_date
                 ? `Renews on ${new Date(subscription.plan_expiry_date).toLocaleDateString()}`

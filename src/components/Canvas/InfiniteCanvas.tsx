@@ -391,7 +391,7 @@ export default function InfiniteCanvas() {
 
         {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
-  <div key={img.id}>
+  <div key={img.id} style={{zIndex: -100}}>
     {/* Render ShinyGradientSkeletonHorizontal if image is not loaded or is being generated */}
     {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
       <div
