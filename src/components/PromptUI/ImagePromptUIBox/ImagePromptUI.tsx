@@ -33,7 +33,13 @@ const ImagePromptUI = () => {
   const { user } = useUser();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const { getToken } = useAuth();
-  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const { userId } = useAuth();
+  const [userPlanData, setUserPlanData] = useState<{
+    plan: string;
+    tokens_remaining: number;
+    model_trainings_remaining: number;
+    private_model_loads_remaining: number;
+  } | null>(null);
 
   const { 
     text, 
@@ -81,11 +87,11 @@ const ImagePromptUI = () => {
       "EPBASIC",
       "EPSTANDARD"
     ];
-    return userPlan && allowedPlans.includes(userPlan);
+    return userPlanData?.plan && allowedPlans.includes(userPlanData.plan);
   };
 
   const isFreePlan = () => {
-    return !userPlan || userPlan === "FREE";
+    return !userPlanData?.plan || userPlanData.plan === "FREE";
   };
 
   const { data: generateTaskStatus } = useQuery({
@@ -353,15 +359,24 @@ const ImagePromptUI = () => {
   };
 
   useEffect(() => {
-    const fetchPlan = async () => {
-      const token = await getToken();
-      if (token && user.userId) {
-        const planData = await fetchUserPlan(user.userId, token);
-        setUserPlan(planData.plan);
+    const fetchPlanData = async () => {
+      try {
+        const token = await getToken();
+        if (token && userId) {
+          const planData = await fetchUserPlan(userId, token);
+          setUserPlanData(planData);
+        }
+      } catch (error) {
+        console.error("Error fetching user plan:", error);
+        toast({ 
+          title: "Error", 
+          description: "Failed to fetch user plan", 
+          variant: "destructive" 
+        });
       }
     };
-    fetchPlan();
-  }, [user.userId, getToken]);
+    fetchPlanData();
+  }, [userId, getToken]);
 
   return (
     <>

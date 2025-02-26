@@ -30,6 +30,18 @@ function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string
   );
 }
 
+// Add types for the API response
+interface UserPlanData {
+  user_id: string;
+  api_key: string;
+  email: string;
+  plan: string;
+  tokens_remaining: number;
+  model_trainings_remaining: number;
+  private_model_loads_remaining: number;
+  plan_expiry_date: string | null;
+}
+
 export default function ProfilePage() {
   const { user } = useUser();
   const { signOut } = useClerk();
@@ -38,7 +50,7 @@ export default function ProfilePage() {
   const [showApiKey, setShowApiKey] = useState(false);
   const itemsPerPage = 8;
   const queryClient = useQueryClient();
-  const [userPlan, setUserPlan] = useState<string | null>(null);
+  const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
 
   const fetchToken = async () => {
     const token = await getToken();
@@ -101,22 +113,25 @@ export default function ProfilePage() {
     toast({ title: "API Key copied to clipboard" });
   };
 
+  // Add the plan data fetch effect
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchPlanData = async () => {
       try {
         const token = await getToken();
         if (token && userId) {
           const planData = await fetchUserPlan(userId, token);
-          setUserPlan(planData.plan);
-        } else {
-          console.error("Token or User ID is missing");
+          setUserPlanData(planData);
         }
       } catch (error) {
         console.error("Error fetching user plan:", error);
-        toast({ title: "Error", description: "Failed to fetch user plan", variant: "destructive" });
+        toast({ 
+          title: "Error", 
+          description: "Failed to fetch user plan", 
+          variant: "destructive" 
+        });
       }
     };
-    fetchPlan();
+    fetchPlanData();
   }, [userId, getToken]);
 
   if (!user) {
@@ -200,53 +215,45 @@ export default function ProfilePage() {
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
-                {userPlan ? userPlan : "Loading..."}
+                {userPlanData?.plan || "Loading..."}
               </CardTitle>
               <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
-                {subscription?.plan_expiry_date
-                  ? `Renews on ${new Date(subscription.plan_expiry_date).toLocaleDateString()}`
-                  : "No active subscription"}
+                {userPlanData?.plan_expiry_date
+                  ? `Renews on ${new Date(userPlanData.plan_expiry_date).toLocaleDateString()}`
+                  : "No expiry date"}
               </CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
-              {subLoading ? (
+              {!userPlanData ? (
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700" />
                   <Skeleton className="h-4 w-2/3 bg-gray-200 dark:bg-gray-700" />
                   <Skeleton className="h-4 w-4/5 bg-gray-200 dark:bg-gray-700" />
                 </div>
-              ) : subError ? (
-                <p className="text-red-500 dark:text-red-400 text-sm">Error loading subscription</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Tokens Remaining</p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {subscription?.tokens_remaining || 0}
+                      {userPlanData.tokens_remaining}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Model Trainings</p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {subscription?.model_trainings_remaining || 0}
+                      {userPlanData.model_trainings_remaining}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Private Models</p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {subscription?.private_model_loads_remaining || 0}
+                      {userPlanData.private_model_loads_remaining}
                     </p>
                   </div>
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Status</p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {userPlan ? "Active" : "Inactive"}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-gray-500 dark:text-gray-400">Expiry</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {subscription?.plan_expiry_date || "N/A"}
+                      {userPlanData.plan ? "Active" : "Inactive"}
                     </p>
                   </div>
                 </div>
