@@ -31,7 +31,6 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const { user } = useUser();
-  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const { getToken } = useAuth();
   const { userId } = useAuth();
   const [userPlanData, setUserPlanData] = useState<{
@@ -233,7 +232,7 @@ const ImagePromptUI = () => {
 
   const handleTogglePublic = () => {
     if (!isPublic && isFreePlan()) {
-      setShowUpgradePopup(true);
+      openUpgradePopup();
       return;
     }
     togglePublic();
@@ -586,10 +585,6 @@ const ImagePromptUI = () => {
           </div>
         )}
       </div>
-
-      {showUpgradePopup && (
-        <UpgradePopup onClose={() => setShowUpgradePopup(false)} />
-      )}
     </>
   );
 };
