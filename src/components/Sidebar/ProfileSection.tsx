@@ -84,7 +84,14 @@ export function ProfileSection({ planName, creditsLeft }: ProfileSectionProps) {
         </div>
         <button className="mt-3 w-full rounded-md border border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer">
           <Zap className="h-4 w-4" />
+          <Link
+          href="https://docs.imagepipeline.io/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 text-sm text-gray-800 dark:text-gray-200 hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 cursor-pointer"
+        >
           Upgrade plan
+        </Link>
         </button>
       </div>
       <div className="h-px bg-gray-200 dark:bg-[#2A2A2D]" />
