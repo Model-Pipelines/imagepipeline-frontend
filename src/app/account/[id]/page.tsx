@@ -180,7 +180,7 @@ export default function ProfilePage() {
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
-                {subscription?.plan_name || "Free Plan"}
+                {user?.plan || "Free Plan"}
               </CardTitle>
               <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
                 {subscription?.plan_expiry_date
@@ -220,7 +220,7 @@ export default function ProfilePage() {
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Status</p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {subscription?.plan ? "Active" : "Inactive"}
+                      {user?.plan ? "Active" : "Inactive"}
                     </p>
                   </div>
                   <div>

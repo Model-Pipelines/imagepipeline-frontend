@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
 import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
-import { useUser, useAuth } from "@clerk/nextjs";
+import { useUser, useClerk, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 
 
@@ -80,12 +80,12 @@ const ImagePromptUI = () => {
       "EPBASIC",
       "EPSTANDARD"
     ];
-    const planName = user?.subscription?.plan_name;
+    const planName = user?.plan;
     return planName && allowedPlans.includes(planName);
   };
 
   const isFreePlan = () => {
-    const planName = user?.subscription?.plan_name;
+    const planName = user?.plan;
     return !planName || planName === "FREE";
   };
 
