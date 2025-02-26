@@ -233,7 +233,7 @@ const ImagePromptUI = () => {
 
   const handleTogglePublic = () => {
     if (!isPublic && isFreePlan()) {
-      openUpgradePopup();
+      setShowUpgradePopup(true);
       return;
     }
     togglePublic();
@@ -586,6 +586,10 @@ const ImagePromptUI = () => {
           </div>
         )}
       </div>
+
+      {showUpgradePopup && (
+        <UpgradePopup onClose={() => setShowUpgradePopup(false)} />
+      )}
     </>
   );
 };
