@@ -114,7 +114,7 @@ const FaceTab = () => {
       if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
         return false;
       }
-      return 5000;
+      return 5000; //5 seconds testing
     },
   });
 
