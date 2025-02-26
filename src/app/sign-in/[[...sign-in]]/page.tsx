@@ -110,7 +110,7 @@ export default function Page() {
                   formHeader: "hidden",
                   formFieldRow: "hidden",
                   formButtonPrimary: "hidden", // Hides the Continue button
-                  socialButtons: "flex flex-col gap-4",
+                  socialButtons: "flex flex-col gap-2",
                   socialButtonsBlockButton__github: "order-1",
                   socialButtonsBlockButton__google: "order-2",
                   logoBox: "rounded-full overflow-hidden w-16 h-16 mx-auto border-t border-gray-600",
