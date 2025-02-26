@@ -15,33 +15,48 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+
+// Define a type for the task response to avoid 'any'
+interface TaskResponse {
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  download_urls?: string[];
+  image_url?: string;
+  error?: string;
+}
 
 const TaskProcessor = ({ taskId }: { taskId: string }) => {
   const { tasks, updateTask, removeTask } = useGenerativeTaskStore();
   const { images, addImage } = useImageStore();
+  const { getToken } = useAuth(); // Get token function from Clerk
   const task = tasks[taskId];
   const hasProcessedRef = useRef(false); // Track if task has been processed
 
   if (!task) return null;
 
-  const { data } = useQuery({
+  const { data, error } = useQuery<TaskResponse>({
     queryKey: ["generativeTask", taskId],
     queryFn: async () => {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Authentication token not available");
+      }
+
       switch (task.type) {
         case "controlnet":
-          return getControlNetTaskStatus(taskId);
+          return getControlNetTaskStatus(taskId, token);
         case "sketch":
-          return getRenderSketchStatus(taskId);
+          return getRenderSketchStatus(taskId, token);
         case "recolor":
-          return getRecolorImageStatus(taskId);
+          return getRecolorImageStatus(taskId, token);
         case "interior":
-          return getInteriorDesignStatus(taskId);
+          return getInteriorDesignStatus(taskId, token);
         case "logo":
-          return getGenerateLogoStatus(taskId);
+          return getGenerateLogoStatus(taskId, token);
         case "face":
-          return getFaceControlStatusFaceDailog(taskId);
+          return getFaceControlStatusFaceDailog(taskId, token);
         case "style":
-          return getStyleImageStatus(taskId);
+          return getStyleImageStatus(taskId, token);
         default:
           throw new Error(`Unknown task type: ${task.type}`);
       }
@@ -51,6 +66,17 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
   });
 
   useEffect(() => {
+    // Handle token or API errors
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch task status",
+        variant: "destructive",
+      });
+      removeTask(taskId);
+      return;
+    }
+
     if (!data || hasProcessedRef.current) return;
 
     updateTask(taskId, data);
@@ -86,7 +112,7 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
       removeTask(taskId);
       toast({ title: "Error", description: data.error || "Generation failed", variant: "destructive" });
     }
-  }, [data, taskId, task.type, addImage, images, removeTask, updateTask]);
+  }, [data, error, taskId, task.type, addImage, images, removeTask, updateTask, toast]);
 
   return null;
 };

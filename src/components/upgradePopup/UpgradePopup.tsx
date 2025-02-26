@@ -9,6 +9,11 @@ interface UpgradePopupProps {
 }
 
 export function UpgradePopup({ onClose }: UpgradePopupProps) {
+  const handlePricingClick = () => {
+    // Open pricing page in new tab
+    window.open('https://www.imagepipeline.io/pricing', '_blank');
+  };
+
   return (
     <AnimatePresence>
       {/* Backdrop */}
@@ -17,7 +22,7 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-black/50 backdrop-blur-md"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
         onClick={onClose}
       />
 
@@ -27,7 +32,7 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
         initial={{ scale: 0.95, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-        className="fixed inset-0 flex items-center justify-center p-4"
+        className="fixed inset-0 flex items-center justify-center p-4 z-[9999]"
         role="dialog"
         aria-modal="true"
       >
@@ -55,23 +60,26 @@ export function UpgradePopup({ onClose }: UpgradePopupProps) {
               </div>
 
               {/* Buttons */}
-              <div className="space-y-3">
+              <div className="space-y-3 w-full">
                 <Button 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6"
-                  onClick={() => {
-                    window.location.href = "/#";
-                  }}
+                  onClick={handlePricingClick}
                 >
-                  Upgrade Now
+                  View Pricing Plans
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full text-gray-600 hover:text-gray-800 dark:text-gray-300 dark:hover:text-gray-100"
                   onClick={onClose}
                 >
                   Maybe Later
                 </Button>
               </div>
+
+              {/* Additional Info */}
+              <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+                Compare our plans and choose the one that best fits your needs
+              </p>
             </div>
           </div>
         </section>

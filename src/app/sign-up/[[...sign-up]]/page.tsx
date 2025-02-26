@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+
 import { SignUp } from "@clerk/nextjs";
 import React from "react";
 import { motion } from "framer-motion";

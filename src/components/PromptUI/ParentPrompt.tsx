@@ -6,13 +6,18 @@ import AudioPromptUI from "./AudioPromptUI"
 import ComingSoonPopup from "../ComingSoon/ComingSoonPage"
 import ImagePromptUI from "./ImagePromptUIBox/ImagePromptUI"
 import VideoPromptUI from "./VideoPromptUI"
+import { UpgradePopupPortal } from "@/components/upgradePopup/UpgradePopupPortal"
 
 const ParentPrompt = () => {
   const selectedType = usePromptUIStore((state) => state.selectedType)
 
   return (
     <>
-      <AnimatePresence>{(selectedType === "video" || selectedType === "audio") && <ComingSoonPopup />}</AnimatePresence>
+      <AnimatePresence>
+        {(selectedType === "video" || selectedType === "audio") && <ComingSoonPopup />}
+      </AnimatePresence>
+
+      <UpgradePopupPortal />
 
       <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 z-40 w-full max-w-[850px] p-4 mb-5 rounded-md">
         {selectedType === "image" && <ImagePromptUI />}

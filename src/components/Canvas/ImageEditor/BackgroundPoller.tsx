@@ -7,10 +7,12 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
 
 const TaskProcessor = ({ taskId }: { taskId: string }) => {
   const { tasks, updateTask, removeTask } = useBackgroundTaskStore();
   const { images, addImage } = useImageStore();
+  const { getToken } = useAuth(); // Get token function from Clerk
   const task = tasks[taskId];
 
   // If the task has been removed, exit early.
@@ -18,14 +20,23 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
 
   const currentStatus = task.status;
 
-  // Memoize the query function based on task type and taskId.
-  const queryFn = useCallback(() => {
-    if (task?.type === "human") return getChangeHuman(taskId);
-    if (task?.type === "upscale") return getUpscaleImageStatus(taskId);
-    return getBackgroundTaskStatus(taskId);
-  }, [task?.type, taskId]);
+  // Memoize the query function based on task type and taskId, including token retrieval
+  const queryFn = useCallback(async () => {
+    const token = await getToken();
+    if (!token) {
+      throw new Error("Authentication token not available");
+    }
 
-  const { data } = useQuery({
+    if (task?.type === "human") {
+      return getChangeHuman(taskId, token);
+    }
+    if (task?.type === "upscale") {
+      return getUpscaleImageStatus(taskId, token);
+    }
+    return getBackgroundTaskStatus(taskId, token);
+  }, [task?.type, taskId, getToken]);
+
+  const { data, error } = useQuery({
     queryKey: ["backgroundTask", taskId],
     queryFn,
     refetchInterval: 5000,
@@ -33,6 +44,16 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
   });
 
   useEffect(() => {
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch task status",
+        variant: "destructive",
+      });
+      removeTask(taskId);
+      return;
+    }
+
     if (!data || !task) return;
 
     // Update the task if its status has changed.
@@ -47,7 +68,6 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
 
         // Prevent duplicate images: check if an image with the same URL already exists.
         if (images.some((img) => img.url === imageUrl)) {
-          // Already added; simply remove the task.
           removeTask(taskId);
           return;
         }
@@ -107,7 +127,7 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
       });
       removeTask(taskId);
     }
-  }, [data, currentStatus, task, taskId, updateTask, removeTask, images, addImage]);
+  }, [data, error, currentStatus, task, taskId, updateTask, removeTask, images, addImage, toast]);
 
   return null;
 };
