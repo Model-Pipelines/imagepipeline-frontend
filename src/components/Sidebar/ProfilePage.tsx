@@ -74,7 +74,7 @@ export default function ProfilePage() {
               <p>{userPlanData?.plan ? "Active" : "Inactive"}</p>
             </div>
             <Button variant="secondary" size="sm" asChild>
-              <Link href="https://www.imagepipeline.io/pricing">
+            <Link href="https://www.imagepipeline.io/pricing">
                 Upgrade Plan
               </Link>
             </Button>
