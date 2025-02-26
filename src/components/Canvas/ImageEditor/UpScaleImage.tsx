@@ -1,21 +1,20 @@
 "use client";
+
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
-import { useUpscaleImage } from "@/AxiosApi/TanstackQuery";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
-import { HelpCircle } from "lucide-react";
+import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useMutation } from "@tanstack/react-query"; // Import useMutation directly
+import { upscaleImage } from "@/AxiosApi/GenerativeApi"; // Import upscaleImage directly
 import {
   Tooltip,
   TooltipContent,
@@ -25,9 +24,10 @@ import {
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 
 const Upscale = () => {
-  const [upscaleFactor, setUpscaleFactor] = useState<number>(2);
+  const [upscaleFactor] = useState<number>(2); // Fixed to 2x as per tooltip description
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth(); // Get token function from Clerk
 
   const { selectedImageId, images } = useImageStore();
   const selectedImage = useMemo(
@@ -35,15 +35,51 @@ const Upscale = () => {
     [images, selectedImageId]
   );
 
-  // Derive isLoading based on the normalized mutation status.
-  const { mutate: upscaleImage, status } = useUpscaleImage();
-  const isLoading = status.trim().toUpperCase() === "PENDING";
+  // Define the mutation directly instead of importing useUpscaleImage
+  const { mutate: upscaleImageMutation, status } = useMutation({
+    mutationFn: ({ data: payload, token }: { data: any; token: string }) => upscaleImage(payload, token),
+    onSuccess: (response) => {
+      if (!response.id) {
+        toast({
+          title: "Error",
+          description: "Invalid response: Missing task ID",
+          variant: "destructive",
+        });
+        return;
+      }
+      addTask(response.id, selectedImageId!, "upscale");
+      toast({
+        title: "Processing",
+        description: "Upscaling in progress...",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start upscaling",
+        variant: "destructive",
+      });
+    },
+  });
 
-  const handleSubmit = useCallback(() => {
+  // Normalize isLoading based on mutation status
+  const isLoading = status === "pending"; // Updated to match React Query v5 terminology
+
+  const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
       toast({
         title: "Error",
         description: "Please select an image to upscale",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const token = await getToken();
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token not available",
         variant: "destructive",
       });
       return;
@@ -54,31 +90,8 @@ const Upscale = () => {
       scale: upscaleFactor,
     };
 
-    upscaleImage(payload, {
-      onSuccess: (response) => {
-        if (!response.id) {
-          toast({
-            title: "Error",
-            description: "Invalid response: Missing task ID",
-            variant: "destructive",
-          });
-          return;
-        }
-        addTask(response.id, selectedImageId!, "upscale");
-        toast({
-          title: "Processing",
-          description: "Upscaling in progress...",
-        });
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to start upscaling",
-          variant: "destructive",
-        });
-      },
-    });
-  }, [selectedImage, upscaleFactor, upscaleImage, toast, addTask, selectedImageId]);
+    upscaleImageMutation({ data: payload, token });
+  }, [selectedImage, upscaleFactor, upscaleImageMutation, toast, addTask, selectedImageId, getToken]);
 
   return (
     <Card className="max-w-md mx-auto my-4">

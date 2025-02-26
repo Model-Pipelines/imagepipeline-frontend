@@ -26,26 +26,32 @@ import {
   InteriorDesignPayload,
   RecolorImagePayload,
   RenderSketchPayload,
-  UploadFilesPayload,
   UpscaleImagePayload,
 } from './types';
+
+// Define UploadFilesPayload if not already in ./types
+interface UploadFilesPayload {
+  userUploadedImage: File;
+  maskImageUrl?: string;
+}
 
 /**
  * Generic mutation handler without any task-related logic.
  *
  * @param key - A unique key for the mutation.
- * @param mutationFn - The function to call when performing the mutation.
- * @param imageHandler - Optional image handler function.
+ * @param mutationFn - The function to call when performing the mutation, requiring data and token.
+ * @param imageHandler - Optional image handler function to process the response.
  */
 const createMutation = <T,>(
   key: string,
-  mutationFn: (data: T) => Promise<any>,
-  imageHandler?: (response: any) => void,
+  mutationFn: (data: T, token: string) => Promise<any>,
+  imageHandler?: (response: any) => void
 ) => {
   return () => {
     return useMutation({
       mutationKey: [key],
-      mutationFn: (data: T) => mutationFn(data),
+      mutationFn: (variables: { data: T; token: string }) =>
+        mutationFn(variables.data, variables.token),
       onSuccess: (response) => {
         if (imageHandler) {
           imageHandler(response);
@@ -59,15 +65,15 @@ const createMutation = <T,>(
   };
 };
 
-// File Upload Mutations (No task creation for file uploads)
+// File Upload Mutations
 export const useUploadFiles = createMutation<UploadFilesPayload>(
   'uploadFiles',
-  ({ userUploadedImage, maskImageUrl }) => uploadFiles(userUploadedImage, maskImageUrl)
+  (data, token) => uploadFiles(data.userUploadedImage, data.maskImageUrl, token)
 );
 
 export const useUploadBackendFiles = createMutation<File>(
   'uploadBackendFiles',
-  (file) => uploadBackendFiles(file)
+  (file, token) => uploadBackendFiles(file, token)
 );
 
 // Generative Mutations
@@ -76,7 +82,6 @@ export const useGenerateImage = createMutation<GenerateImagePayload>(
   generateImage
 );
 
-//describe image 
 export const useDescribeImage = createMutation<DescribeImagePayload>(
   'describeImage',
   describeImage

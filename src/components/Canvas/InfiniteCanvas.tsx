@@ -1,4 +1,5 @@
 "use client";
+
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Edit, Trash2, Loader2 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
@@ -18,6 +19,10 @@ import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
 import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
+import { useMutation } from "@tanstack/react-query";
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi"; // Import uploadBackendFiles
+import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useToast } from "@/hooks/use-toast"; // Import useToast for feedback
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
@@ -42,16 +47,50 @@ export default function InfiniteCanvas() {
     setIsResizing,
     setResizeHandle,
   } = useCanvasStore();
+  const { getToken } = useAuth(); // Get token function from Clerk
+  const { toast } = useToast(); // For user feedback
 
   const [actionStart, setActionStart] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
   });
-  const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(
-    null
-  );
-  //for to track generating images
+  const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(null);
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+
+  // Mutation for uploading images to the backend
+  const { mutate: uploadImage } = useMutation({
+    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
+    onSuccess: async (imageUrl) => {
+      const img = await loadImage(imageUrl);
+
+      // Calculate new position to avoid stacking
+      const numImages = images.length;
+      const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+      const spacing = 50;
+
+      const newPosition = {
+        x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
+        y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
+      };
+
+      addImage({
+        id: crypto.randomUUID(),
+        url: imageUrl,
+        position: newPosition,
+        size: { width: INITIAL_IMAGE_SIZE, height: INITIAL_IMAGE_SIZE },
+        element: img,
+      });
+
+      toast({ title: "Success", description: "Image uploaded successfully!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Initialize images on mount
   useEffect(() => {
@@ -61,44 +100,25 @@ export default function InfiniteCanvas() {
     initialize();
   }, []);
 
-  // Handle image upload
+  // Handle image upload with token
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const dataUrl = event.target?.result as string;
-        const img = await loadImage(dataUrl);
-
-        // Calculate new position to avoid stacking
-        const numImages = images.length;
-        const gridSize = Math.ceil(Math.sqrt(numImages + 1));
-        const spacing = 50;
-
-        const newPosition = {
-          x:
-            ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale -
-            offset.x,
-          y:
-            (Math.floor(numImages / gridSize) *
-              (INITIAL_IMAGE_SIZE + spacing)) /
-              scale -
-            offset.y,
-        };
-
-        addImage({
-          id: crypto.randomUUID(),
-          url: dataUrl,
-          position: newPosition,
-          size: { width: INITIAL_IMAGE_SIZE, height: INITIAL_IMAGE_SIZE },
-          element: img,
+      const token = await getToken();
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication token not available",
+          variant: "destructive",
         });
-      };
-      reader.readAsDataURL(file);
+        return;
+      }
+
+      uploadImage({ data: file, token });
     },
-    [addImage, images.length, scale, offset]
+    [uploadImage, getToken, toast]
   );
 
   const loadImage = (url: string): Promise<HTMLImageElement> => {
@@ -132,7 +152,6 @@ export default function InfiniteCanvas() {
   };
 
   const handleActionStart = (canvasPos: { x: number; y: number }) => {
-    // Check for resize handle
     if (selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (img) {
@@ -147,7 +166,6 @@ export default function InfiniteCanvas() {
       }
     }
 
-    // Check for image click
     const clickedImage = images.find(
       (img) =>
         canvasPos.x >= img.position.x &&
@@ -230,10 +248,7 @@ export default function InfiniteCanvas() {
       }
 
       updateImage(selectedImageId, {
-        position: {
-          x: newX,
-          y: newY,
-        },
+        position: { x: newX, y: newY },
         size: { width: newWidth, height: newHeight },
       });
 
@@ -256,33 +271,12 @@ export default function InfiniteCanvas() {
     setResizeHandle(null);
   };
 
-  // Resize handle detection
   const getResizeHandle = (img: any, pos: { x: number; y: number }) => {
     const handles = [
-      {
-        id: "nw",
-        x: img.position.x,
-        y: img.position.y,
-        region: HANDLE_SIZE / scale,
-      },
-      {
-        id: "ne",
-        x: img.position.x + img.size.width,
-        y: img.position.y,
-        region: HANDLE_SIZE / scale,
-      },
-      {
-        id: "sw",
-        x: img.position.x,
-        y: img.position.y + img.size.height,
-        region: HANDLE_SIZE / scale,
-      },
-      {
-        id: "se",
-        x: img.position.x + img.size.width,
-        y: img.position.y + img.size.height,
-        region: HANDLE_SIZE / scale,
-      },
+      { id: "nw", x: img.position.x, y: img.position.y, region: HANDLE_SIZE / scale },
+      { id: "ne", x: img.position.x + img.size.width, y: img.position.y, region: HANDLE_SIZE / scale },
+      { id: "sw", x: img.position.x, y: img.position.y + img.size.height, region: HANDLE_SIZE / scale },
+      { id: "se", x: img.position.x + img.size.width, y: img.position.y + img.size.height, region: HANDLE_SIZE / scale },
     ];
 
     return (
@@ -296,7 +290,6 @@ export default function InfiniteCanvas() {
     );
   };
 
-  // Canvas drawing
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -314,7 +307,6 @@ export default function InfiniteCanvas() {
     images
       .filter((img) => img.element && img.element.complete)
       .forEach((img) => {
-        // Draw the image
         ctx.drawImage(
           img.element!,
           img.position.x,
@@ -323,7 +315,6 @@ export default function InfiniteCanvas() {
           img.size.height
         );
 
-        // If selected, draw border and resize handles
         if (img.id === selectedImageId) {
           ctx.strokeStyle = "#3b82f6";
           ctx.lineWidth = 2 / scale;
@@ -339,10 +330,7 @@ export default function InfiniteCanvas() {
             { x: img.position.x, y: img.position.y },
             { x: img.position.x + img.size.width, y: img.position.y },
             { x: img.position.x, y: img.position.y + img.size.height },
-            {
-              x: img.position.x + img.size.width,
-              y: img.position.y + img.size.height,
-            },
+            { x: img.position.x + img.size.width, y: img.position.y + img.size.height },
           ];
 
           handles.forEach((handle) => {
@@ -389,37 +377,34 @@ export default function InfiniteCanvas() {
           onTouchCancel={handleTouchEnd}
         />
 
-        {/* Render overlay buttons (or loader) for each image */}
         {images.map((img) => (
-  <div key={img.id} style={{zIndex: -100}}>
-    {/* Render ShinyGradientSkeletonHorizontal if image is not loaded or is being generated */}
-    {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
-      <div
-        className="absolute"
-        style={{
-          transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
-          width: `${img.size.width * scale}px`,
-          height: `${img.size.height * scale}px`,
-          zIndex: 10,
-        }}
-      >
-        <ShinyGradientSkeletonHorizontal />
-      </div>
-    )}
-    {/* Render image and associated UI elements */}
-    {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
-      <div
-        className="absolute"
-        style={{
-          transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
-          zIndex: 10,
-        }}
-      >
-        <DropdownMenuBar />
-      </div>
-    )}
-  </div>
-))}
+          <div key={img.id} style={{ zIndex: -100 }}>
+            {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
+              <div
+                className="absolute"
+                style={{
+                  transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
+                  width: `${img.size.width * scale}px`,
+                  height: `${img.size.height * scale}px`,
+                  zIndex: 10,
+                }}
+              >
+                <ShinyGradientSkeletonHorizontal />
+              </div>
+            )}
+            {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
+              <div
+                className="absolute"
+                style={{
+                  transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
+                  zIndex: 10,
+                }}
+              >
+                <DropdownMenuBar />
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       <ParentPrompt />
     </div>

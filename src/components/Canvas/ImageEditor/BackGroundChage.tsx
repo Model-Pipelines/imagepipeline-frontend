@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { HelpCircle } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
 import {
   Tooltip,
   TooltipContent,
@@ -37,14 +37,30 @@ export default function BackGroundChange() {
   const { selectedImageId, images } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth();
 
   const selectedImage = useMemo(
     () => images.find((img) => img.id === selectedImageId),
     [images, selectedImageId]
   );
 
+  const { mutate: uploadBackgroundImage } = useMutation({
+    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
+    onSuccess: (imageUrl) => {
+      setBackgroundImage(imageUrl);
+      toast({ title: "Success", description: "Background image uploaded!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload background image.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const { mutate: startBackgroundChange } = useMutation({
-    mutationFn: (payload: any) => changeBackground(payload),
+    mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeBackground(payload, token),
     onSuccess: (response) => {
       if (!response?.id) {
         toast({
@@ -58,12 +74,11 @@ export default function BackGroundChange() {
       addTask(response.id, selectedImageId!, "background");
       toast({ title: "Started", description: "Background change in progress..." });
 
-      // Clear prompt and background image after successful mutation
       setPrompt("");
       setBackgroundImage(null);
       setIsGenerating(false);
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to change background.",
@@ -73,7 +88,7 @@ export default function BackGroundChange() {
     },
   });
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
       toast({
         title: "Error",
@@ -91,6 +106,16 @@ export default function BackGroundChange() {
       return;
     }
 
+    const token = await getToken();
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token not available.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const payload = {
       init_image: selectedImage.url,
       prompt,
@@ -101,23 +126,26 @@ export default function BackGroundChange() {
     };
 
     setIsGenerating(true);
-    startBackgroundChange(payload);
-  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast]);
+    startBackgroundChange({ data: payload, token });
+  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        try {
-          const imageUrl = await uploadBackendFiles(file);
-          setBackgroundImage(imageUrl);
-          toast({ title: "Success", description: "Background image uploaded!" });
-        } catch (error) {
-          toast({ title: "Error", description: "Failed to upload background image.", variant: "destructive" });
+        const token = await getToken();
+        if (!token) {
+          toast({
+            title: "Error",
+            description: "Authentication token not available.",
+            variant: "destructive",
+          });
+          return;
         }
+        uploadBackgroundImage({ data: file, token });
       }
     },
-    [toast]
+    [uploadBackgroundImage, toast, getToken]
   );
 
   return (
@@ -158,7 +186,7 @@ export default function BackGroundChange() {
               <p className="text-gray-500">No image selected</p>
             )}
           </div>
-          
+
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label className="text-base font-medium">Reference Background</Label>
