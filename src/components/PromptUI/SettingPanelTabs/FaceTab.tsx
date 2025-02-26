@@ -188,7 +188,7 @@ const FaceTab = () => {
         description: "Face image uploaded",
       });
     } catch (error) {
-      // Error handling is managed by the mutation's onError testing
+      // Error handling is managed by the mutation's onError testing with 5 seconds 
     }
   };
 
