@@ -40,8 +40,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
-import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 
 const ImagePromptUI = () => {
@@ -51,7 +50,7 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const { user } = useUser();
-  const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const { getToken } = useAuth();
 
   const {
     text,
@@ -80,10 +79,31 @@ const ImagePromptUI = () => {
   const toggleSettingsPanel = () =>
     setIsSettingsPanelVisible(!isSettingsPanelVisible);
 
+  // Fetch token for useQuery
+  const fetchToken = async () => {
+    const token = await getToken();
+    if (!token) throw new Error("No authentication token available");
+    return token;
+  };
+
   const { data: describeTaskStatus } = useQuery({
     queryKey: ["describeImageTask", describeTaskId],
-    queryFn: () => getDescribeImageStatus(describeTaskId!),
+    queryFn: async () => {
+      const token = await fetchToken();
+      return getDescribeImageStatus(describeTaskId!, token);
+    },
     enabled: !!describeTaskId,
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
+  });
+
+  const { data: generateTaskStatus } = useQuery({
+    queryKey: ["generateImageTask", generateTaskId],
+    queryFn: async () => {
+      const token = await fetchToken();
+      return getGenerateImage(generateTaskId!, token);
+    },
+    enabled: !!generateTaskId,
     refetchInterval: (data) =>
       data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
@@ -105,14 +125,6 @@ const ImagePromptUI = () => {
     const planName = user?.subscription?.plan_name;
     return !planName || planName === "FREE";
   };
-
-  const { data: generateTaskStatus } = useQuery({
-    queryKey: ["generateImageTask", generateTaskId],
-    queryFn: () => getGenerateImage(generateTaskId!),
-    enabled: !!generateTaskId,
-    refetchInterval: (data) =>
-      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
-  });
 
   const { openUpgradePopup } = useUpgradePopupStore();
 
@@ -204,7 +216,7 @@ const ImagePromptUI = () => {
     }
   }, [generateTaskStatus, addImage, images, toast]);
 
-  const handleGenerateImage = () => {
+  const handleGenerateImage = async () => {
     if (!text.trim()) {
       toast({
         title: "Error",
@@ -215,6 +227,8 @@ const ImagePromptUI = () => {
     }
 
     setImageUrl(null);
+
+    const token = await fetchToken();
 
     const payload: GenerateImagePayload = {
       prompt: text.trim(),
@@ -227,31 +241,34 @@ const ImagePromptUI = () => {
       seed: -1,
     };
 
-    generateImage(payload, {
-      onSuccess: (response) => {
-        if (!response.id) {
+    generateImage(
+      { ...payload, token }, // Pass token with payload
+      {
+        onSuccess: (response) => {
+          if (!response.id) {
+            toast({
+              title: "Error",
+              description: "Missing task ID in response",
+              variant: "destructive",
+            });
+            return;
+          }
+          setGenerateTaskId(response.id);
           toast({
-            title: "Error",
-            description: "Missing task ID in response",
+            title: "Processing started",
+            description: "Your image is being generated",
+          });
+        },
+        onError: (error) => {
+          toast({
+            title: "Generation Failed",
+            description:
+              error instanceof Error ? error.message : "Failed to generate image",
             variant: "destructive",
           });
-          return;
-        }
-        setGenerateTaskId(response.id);
-        toast({
-          title: "Processing started",
-          description: "Your image is being generated",
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Generation Failed",
-          description:
-            error instanceof Error ? error.message : "Failed to generate image",
-          variant: "destructive",
-        });
-      },
-    });
+        },
+      }
+    );
   };
 
   const handleTogglePublic = () => {
@@ -265,7 +282,8 @@ const ImagePromptUI = () => {
   const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
-      const imageUrl: string = await uploadBackendFile(file);
+      const token = await fetchToken();
+      const imageUrl: string = await uploadBackendFile({ file, token }); // Pass token
       if (!imageUrl) throw new Error("Failed to upload image");
       setImageUrl(imageUrl);
       setShowDescribeButton(true);
@@ -286,7 +304,7 @@ const ImagePromptUI = () => {
     }
   };
 
-  const handleDescribeImage = () => {
+  const handleDescribeImage = async () => {
     if (!image_url) {
       toast({
         title: "Error",
@@ -298,8 +316,10 @@ const ImagePromptUI = () => {
 
     setInputTextStore("");
 
+    const token = await fetchToken();
+
     describeImageMutation(
-      { input_image: image_url },
+      { input_image: image_url, token }, // Pass token
       {
         onSuccess: (response) => {
           if (!response.id) {
@@ -452,7 +472,6 @@ const ImagePromptUI = () => {
                   e.target.files?.[0] && handleFileUpload(e.target.files[0])
                 }
               />
-
               <button
                 onClick={handlePaperclipClick}
                 className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
@@ -649,4 +668,5 @@ const ImagePromptUI = () => {
     </>
   );
 };
+
 export default ImagePromptUI;
