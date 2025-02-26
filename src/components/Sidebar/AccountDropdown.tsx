@@ -9,21 +9,21 @@ import { ProfileSection } from "./ProfileSection";
 import { ThemeSwitcher } from "./ThemeSwitcher";
 import { useAuth } from "@clerk/nextjs";
 import { useQuery } from "@tanstack/react-query";
-import { fetchSubscriptionDetails } from "@/services/AccountServices";
+import { fetchUserPlan } from "@/AxiosApi/GenerativeApi";
 
 export default function AccountDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { userId, getToken } = useAuth();
 
-  // Fetch subscription details
-  const { data: subscription } = useQuery({
-    queryKey: ["subscription", userId],
+  // Fetch user plan
+  const { data: userPlanData } = useQuery({
+    queryKey: ["userPlan", userId],
     queryFn: async () => {
       if (!userId) throw new Error("User ID not available");
       const token = await getToken();
       if (!token) throw new Error("No authentication token available");
-      return fetchSubscriptionDetails(userId, token);
+      return fetchUserPlan(userId, token);
     },
     enabled: !!userId,
   });
@@ -65,8 +65,8 @@ export default function AccountDropdown() {
               <div className="bg-white/40 dark:bg-[#1B1B1D]/40 backdrop-blur-md">
                 {/* Profile Section */}
                 <ProfileSection
-                  planName={subscription?.plan_name || "Free Plan"}
-                  creditsLeft={subscription?.tokens_remaining || 0}
+                  planName={userPlanData?.plan || "Free Plan"}
+                  creditsLeft={userPlanData?.tokens_remaining || 0}
                 />
                 <Separator className="bg-white/20 dark:bg-gray-700/20" />
                 {/* Theme Selector */}

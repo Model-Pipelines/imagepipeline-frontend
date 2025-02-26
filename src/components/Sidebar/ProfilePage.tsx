@@ -5,15 +5,28 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowRight } from "lucide-react"
 import Image from "next/image"
-import { useUser, useClerk } from "@clerk/nextjs" // Import both useUser and useClerk hooks
+import { useUser, useClerk, useAuth } from "@clerk/nextjs"
+import { useQuery } from "@tanstack/react-query"
+import { fetchUserPlan } from "@/AxiosApi/GenerativeApi"
+import Link from "next/link"
 
 export default function ProfilePage() {
-  // Fetch the user data using Clerk's useUser hook
   const { user } = useUser();
-  // Get the signOut method from Clerk
   const { signOut } = useClerk();
+  const { userId, getToken } = useAuth();
 
-  // If the user is not loaded yet, show a loading state
+  // Add user plan query
+  const { data: userPlanData } = useQuery({
+    queryKey: ["userPlan", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID not available");
+      const token = await getToken();
+      if (!token) throw new Error("No authentication token available");
+      return fetchUserPlan(userId, token);
+    },
+    enabled: !!userId,
+  });
+
   if (!user) {
     return <div>Loading...</div>;
   }
@@ -48,13 +61,22 @@ export default function ProfilePage() {
         <h2 className="text-xl font-semibold mb-6">Subscription</h2>
         <Card className="bg-zinc-900 border-zinc-800 mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Try Image Pipeline for free</CardTitle>
-            <CardDescription className="text-zinc-400">Usage reset on Feb 13, 2025</CardDescription>
+            <CardTitle className="text-lg">{userPlanData?.plan || "Free Plan"}</CardTitle>
+            <CardDescription className="text-zinc-400">
+              {userPlanData?.tokens_remaining 
+                ? `${userPlanData.tokens_remaining} tokens remaining` 
+                : "No tokens available"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex justify-between items-center">
-            <span>Free Plan</span>
-            <Button variant="secondary" size="sm">
-              Upgrade Plan
+            <div>
+              <p className="text-sm text-zinc-400">Status</p>
+              <p>{userPlanData?.plan ? "Active" : "Inactive"}</p>
+            </div>
+            <Button variant="secondary" size="sm" asChild>
+              <Link href="https://www.imagepipeline.io/pricing">
+                Upgrade Plan
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -67,10 +89,15 @@ export default function ProfilePage() {
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent flex items-center p-6">
                 <div className="flex justify-between items-center w-full">
                   <div>
-                    <p className="text-sm mb-2 text-white">Image Pipeline</p>
-                    <h3 className="text-xl font-semibold text-white">Upgrade to skip the waitlist</h3>
+                    <p className="text-sm mb-2 text-white">Limited Time Offer</p>
+                    <h3 className="text-xl font-semibold text-white">Upgrade to Premium</h3>
                   </div>
-                  <ArrowRight className="w-6 h-6" />
+                  <Link href="https://www.imagepipeline.io/pricing">
+                    <Button variant="outline" size="sm" className="text-white border-white hover:bg-white/20">
+                      Learn More
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </div>
