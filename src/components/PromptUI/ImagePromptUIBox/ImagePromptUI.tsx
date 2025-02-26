@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
 import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 
 
@@ -32,6 +32,7 @@ const ImagePromptUI = () => {
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const { user } = useUser();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
+  const { getToken } = useAuth();
 
   const { 
     text, 
@@ -60,7 +61,11 @@ const ImagePromptUI = () => {
 
   const { data: describeTaskStatus } = useQuery({
     queryKey: ["describeImageTask", describeTaskId],
-    queryFn: () => getDescribeImageStatus(describeTaskId!),
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getDescribeImageStatus(describeTaskId!, token);
+    },
     enabled: !!describeTaskId,
     refetchInterval: (data) => 
       (data?.status === "SUCCESS" || data?.status === "FAILURE") ? false : 5000,
@@ -86,7 +91,11 @@ const ImagePromptUI = () => {
 
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["generateImageTask", generateTaskId],
-    queryFn: () => getGenerateImage(generateTaskId!),
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getGenerateImage(generateTaskId!, token);
+    },
     enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
   });
@@ -170,23 +179,32 @@ const ImagePromptUI = () => {
     }
   }, [generateTaskStatus, addImage, images, toast]);
 
-  const handleGenerateImage = () => {
+  const handleGenerateImage = async () => {
     if (!text.trim()) {
       toast({ title: "Error", description: "Please enter a description", variant: "destructive" });
       return;
     }
 
+    const token = await getToken();
+    if (!token) {
+      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
+      return;
+    }
+
     setImageUrl(null);
 
-    const payload: GenerateImagePayload = {
-      prompt: text.trim(),
-      num_inference_steps: 30,
-      samples: 1,
-      enhance_prompt: true,
-      palette: hex_color,
-      height: height, 
-      width:  width,  
-      seed: -1,
+    const payload = {
+      data: {
+        prompt: text.trim(),
+        num_inference_steps: 30,
+        samples: 1,
+        enhance_prompt: true,
+        palette: hex_color,
+        height: height,
+        width: width,
+        seed: -1,
+      },
+      token
     };
 
     generateImage(payload, {
@@ -219,8 +237,14 @@ const ImagePromptUI = () => {
 
   const handleFileUpload = async (file: File) => {
     try {
+      const token = await getToken();
+      if (!token) {
+        toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
+        return;
+      }
+
       setIsUploading(true);
-      const imageUrl: string = await uploadBackendFile(file);
+      const imageUrl = await uploadBackendFile({ data: file, token });
       if (!imageUrl) throw new Error("Failed to upload image");
       setImageUrl(imageUrl);
       setShowDescribeButton(true);
@@ -238,7 +262,7 @@ const ImagePromptUI = () => {
   };
 
   
-  const handleDescribeImage = () => {
+  const handleDescribeImage = async () => {
     if (!image_url) {
       toast({
         title: "Error",
@@ -248,10 +272,19 @@ const ImagePromptUI = () => {
       return;
     }
 
+    const token = await getToken();
+    if (!token) {
+      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
+      return;
+    }
+
     setInputTextStore('');
     
     describeImageMutation(
-      { input_image: image_url },
+      { 
+        data: { input_image: image_url },
+        token
+      },
       {
         onSuccess: (response) => {
           if (!response.id) {
@@ -311,6 +344,14 @@ const ImagePromptUI = () => {
   };
 
   const buttonText = getButtonText();
+
+  const handleMagicPromptClick = () => {
+    if (!magic_prompt && isFreePlan()) {
+      openUpgradePopup();
+      return;
+    }
+    toggleMagicPrompt();
+  };
 
   return (
     <>
@@ -433,7 +474,7 @@ const ImagePromptUI = () => {
                         magic_prompt ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
                         "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80"
                       )}
-                      onClick={toggleMagicPrompt}
+                      onClick={handleMagicPromptClick}
                       aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
                     >
                       <motion.div
