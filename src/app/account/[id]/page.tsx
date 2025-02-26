@@ -103,10 +103,17 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchPlan = async () => {
-      const token = await getToken();
-      if (token && userId) {
-        const planData = await fetchUserPlan(userId, token);
-        setUserPlan(planData.plan);
+      try {
+        const token = await getToken();
+        if (token && userId) {
+          const planData = await fetchUserPlan(userId, token);
+          setUserPlan(planData.plan);
+        } else {
+          console.error("Token or User ID is missing");
+        }
+      } catch (error) {
+        console.error("Error fetching user plan:", error);
+        toast({ title: "Error", description: "Failed to fetch user plan", variant: "destructive" });
       }
     };
     fetchPlan();
@@ -193,7 +200,7 @@ export default function ProfilePage() {
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
-                {userPlan || "Free Plan"}
+                {userPlan ? userPlan : "Loading..."}
               </CardTitle>
               <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
                 {subscription?.plan_expiry_date
