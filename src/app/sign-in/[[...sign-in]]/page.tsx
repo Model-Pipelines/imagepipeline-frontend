@@ -1,5 +1,5 @@
 "use client";
-export const runtime = 'edge';
+
 import { SignIn } from "@clerk/nextjs";
 import React from "react";
 import { motion } from "framer-motion";
@@ -87,7 +87,7 @@ export default function Page() {
         </div>
       </motion.div>
 
-      {/* Signup card */}
+      {/* SignIn card */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -109,7 +109,7 @@ export default function Page() {
                   dividerText: "hidden",
                   formHeader: "hidden",
                   formFieldRow: "hidden",
-                  formButtonPrimary: "bg-gray-800 hover:bg-gray-700 text-white",
+                  formButtonPrimary: "hidden", // Hides the Continue button
                   socialButtons: "flex flex-col gap-4",
                   socialButtonsBlockButton__github: "order-1",
                   socialButtonsBlockButton__google: "order-2",
