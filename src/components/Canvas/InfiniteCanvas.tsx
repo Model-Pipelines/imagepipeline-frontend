@@ -389,6 +389,7 @@ export default function InfiniteCanvas() {
                 }}
               >
                 <ShinyGradientSkeletonHorizontal />
+                
               </div>
             )}
             {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (

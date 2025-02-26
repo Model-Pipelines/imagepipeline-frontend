@@ -4,7 +4,7 @@ import "./globals.css";
 import Provider from "./provider";
 import { Toaster } from "@/components/ui/toaster";
 import { ClerkProvider } from '@clerk/nextjs';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
 import ReactQueryProvider from "@/store/TanstackQuery";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
