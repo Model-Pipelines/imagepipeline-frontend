@@ -445,3 +445,11 @@ export const getFaceControlStatus = async (taskId: string, token: string): Promi
   });
   return response.data;
 };
+
+// New function to fetch user plan
+export const fetchUserPlan = async (userId: string, token: string) => {
+  const response = await apiClient.get(`/user/${userId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};

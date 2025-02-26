@@ -13,7 +13,7 @@ import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import type { GenerateImagePayload } from "@/AxiosApi/types";
-import { getGenerateImage,describeImage, getDescribeImageStatus } from "@/AxiosApi/GenerativeApi";
+import { getGenerateImage,describeImage, getDescribeImageStatus, fetchUserPlan } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,7 @@ const ImagePromptUI = () => {
   const { user } = useUser();
   const [showUpgradePopup, setShowUpgradePopup] = useState(false);
   const { getToken } = useAuth();
+  const [userPlan, setUserPlan] = useState<string | null>(null);
 
   const { 
     text, 
@@ -80,13 +81,11 @@ const ImagePromptUI = () => {
       "EPBASIC",
       "EPSTANDARD"
     ];
-    const planName = user?.plan;
-    return planName && allowedPlans.includes(planName);
+    return userPlan && allowedPlans.includes(userPlan);
   };
 
   const isFreePlan = () => {
-    const planName = user?.plan;
-    return !planName || planName === "FREE";
+    return !userPlan || userPlan === "FREE";
   };
 
   const { data: generateTaskStatus } = useQuery({
@@ -352,6 +351,17 @@ const ImagePromptUI = () => {
     }
     toggleMagicPrompt();
   };
+
+  useEffect(() => {
+    const fetchPlan = async () => {
+      const token = await getToken();
+      if (token && user.userId) {
+        const planData = await fetchUserPlan(user.userId, token);
+        setUserPlan(planData.plan);
+      }
+    };
+    fetchPlan();
+  }, [user.userId, getToken]);
 
   return (
     <>
