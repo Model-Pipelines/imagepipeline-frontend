@@ -14,9 +14,17 @@ export interface GenerateImagePayload {
 
 // Describe Image Payload
 export interface DescribeImagePayload {
-  input_image: string; // Required
+  input_image: string;
 }
 
+// Add this interface for describe image response
+export interface DescribeImageResponse {
+  id: string;
+  status: 'PROCESSING' | 'SUCCESS' | 'FAILURE';
+  prompt?: string;
+  error?: string;
+  stage?: string;
+}
 
 // ControlNet Payload (Outline, Depth, Pose)
 export interface ControlNetPayload {

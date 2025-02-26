@@ -5,8 +5,6 @@ import {
   Card,
   CardContent,
   CardFooter,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
-import { HelpCircle } from "lucide-react";
+import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
 import {
   Tooltip,
   TooltipContent,
@@ -46,6 +44,7 @@ export function HumanEditorImage() {
   const { selectedImageId, images } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth(); // Get token function from Clerk
 
   // Memoized selectedImage.
   const selectedImage = useMemo(
@@ -53,13 +52,49 @@ export function HumanEditorImage() {
     [images, selectedImageId]
   );
 
-  // Mutation to start human modification.
+  // Mutation to upload the reference human image
+  const { mutate: uploadHumanImage } = useMutation({
+    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
+    onSuccess: (imageUrl) => {
+      setHumanImage(imageUrl);
+      toast({ title: "Success", description: "Reference image uploaded!" });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload reference image",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Mutation to start human modification
   const { mutate: startHumanModification } = useMutation({
-    mutationFn: (payload: any) => changeHuman(payload),
+    mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeHuman(payload, token),
+    onSuccess: (response) => {
+      if (!response.id) {
+        toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
+        setIsProcessing(false);
+        return;
+      }
+      addTask(response.id, selectedImageId!, "human");
+      toast({ title: "Processing", description: "Human modification in progress..." });
+      setIsProcessing(false);
+      setPrompt("");
+      setHumanImage(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start modification",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    },
   });
 
   // Handler for form submission.
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     // Early returns for validation.
     if (!selectedImage) {
       toast({ title: "Error", description: "Please select a base image first", variant: "destructive" });
@@ -74,6 +109,16 @@ export function HumanEditorImage() {
       return;
     }
 
+    const token = await getToken();
+    if (!token) {
+      toast({
+        title: "Error",
+        description: "Authentication token not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const payload = {
       input_image: selectedImage.url,
       input_face: humanImage,
@@ -83,39 +128,28 @@ export function HumanEditorImage() {
 
     // Set loading state.
     setIsProcessing(true);
-
-    startHumanModification(payload, {
-      onSuccess: (response) => {
-        if (!response.id) {
-          toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
-          setIsProcessing(false);
-          return;
-        }
-        addTask(response.id, selectedImageId!, "human");
-        toast({ title: "Processing", description: "Human modification in progress..." });
-        setIsProcessing(false);
-      },
-      onError: (error: any) => {
-        toast({ title: "Error", description: error.message || "Failed to start modification", variant: "destructive" });
-        setIsProcessing(false);
-      },
-    });
-  }, [selectedImage, humanImage, prompt, startHumanModification, toast, addTask, selectedImageId]);
+    startHumanModification({ data: payload, token });
+  }, [selectedImage, humanImage, prompt, startHumanModification, toast, addTask, selectedImageId, getToken]);
 
   // Handler for file upload.
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      try {
-        const imageUrl: string = await uploadBackendFiles(file);
-        setHumanImage(imageUrl);
-        toast({ title: "Success", description: "Reference image uploaded!" });
-      } catch (error) {
-        toast({ title: "Error", description: "Failed to upload reference image", variant: "destructive" });
+
+      const token = await getToken();
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Authentication token not available",
+          variant: "destructive",
+        });
+        return;
       }
+
+      uploadHumanImage({ data: file, token });
     },
-    [toast]
+    [uploadHumanImage, toast, getToken]
   );
 
   return (

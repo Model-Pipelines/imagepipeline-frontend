@@ -8,6 +8,8 @@ import AccountDropdown from "./AccountDropdown";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import MobileAccountDropdown from "./MobileAccountDropdown";
 
+
+
 const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
   const [activeIcon, setActiveIcon] = useState<string | null>(null);
@@ -28,7 +30,11 @@ const Sidebar: FC = () => {
   const renderSidebarContent = () => (
     <>
       <Link href="/" aria-label="Logo">
-        <div className="p-2 rounded-md text-black dark:text-white font-bold">LOGO</div>
+      
+      <div className="w-12 h-12 bg-[#EFB718] rounded-full flex items-center justify-center shadow-lg">
+        <span className="text-white text-xl font-bold">i p</span>
+      </div>
+    
       </Link>
 
       <div className=" flex flex-col items-center space-y-20">
