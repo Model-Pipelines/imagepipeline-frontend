@@ -511,7 +511,7 @@ export default function ProfilePage() {
                             style={{
                               borderRadius: "24px",
                             }}
-                            className="pointer-events-auto relative flex h-32 w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl "
+                            className="pointer-events-auto relative flex h-1/2 w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl "
                           >
                             <div className="relative">
                               {selectedImageDetails?.isLoading && (
