@@ -57,12 +57,13 @@ interface ImageData {
 
 // Add this interface to better type the image details
 interface DetailedImageData extends ImageData {
-  height?: number;
-  width?: number;
-  model_id?: string;
-  json?: string;
-  // Add loading state for animation
-  isLoading?: boolean;
+  height?: number
+  width?: number
+  model_id?: string
+  controlnet?: string
+  json?: string
+  isLoading?: boolean
+  creation_timestamp?: string
 }
 
 function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
@@ -481,60 +482,111 @@ export default function ProfilePage() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: i * 0.05 }}
                     >
-                      <MorphingDialog>
+                      <MorphingDialog
+                        transition={{
+                          type: 'spring',
+                          bounce: 0.05,
+                          duration: 0.25,
+                        }}
+                      >
                         <MorphingDialogTrigger
-                          style={{ borderRadius: "12px" }}
+                          style={{
+                            borderRadius: '12px',
+                          }}
                           className="w-full h-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
-                          onClick={() => handleImageSelect(globalIndex)}
+                          asChild
                         >
-                          <div className="relative">
-                            {selectedImageDetails?.isLoading && (
-                              <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="absolute inset-0 flex items-center justify-center bg-black/50"
-                              >
-                                <motion.div
-                                  animate={{ rotate: 360 }}
-                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                  className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
-                                />
-                              </motion.div>
-                            )}
+                          <button onClick={() => handleImageSelect(globalIndex)}>
                             <MorphingDialogImage
-                              src={selectedImageDetails?.download_url || img.download_url}
+                              src={img.download_url}
                               alt={`Generated image ${globalIndex + 1}`}
-                              className="w-full max-h-[70vh] object-contain bg-gray-100 dark:bg-gray-800"
+                              className="h-48 w-full object-cover"
                             />
-                          </div>
-                          <div className="p-6">
-                            <MorphingDialogTitle className="text-xl text-gray-900 dark:text-gray-100">
-                              Image {globalIndex + 1} of {generatedImages.length}
-                            </MorphingDialogTitle>
-                            <MorphingDialogDescription>
-                              <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
-                                {selectedImageDetails?.prompt && (
-                                  <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
-                                    <p>{selectedImageDetails.prompt}</p>
-                                  </div>
-                                )}
-                                {selectedImageDetails?.height && selectedImageDetails?.width && (
-                                  <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
-                                    <p>{selectedImageDetails.width} x {selectedImageDetails.height}</p>
-                                  </div>
-                                )}
-                                {selectedImageDetails?.model_id && (
-                                  <div>
-                                    <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
-                                    <p>{selectedImageDetails.model_id}</p>
-                                  </div>
-                                )}
-                              </div>
-                            </MorphingDialogDescription>
-                          </div>
+                            <div className="p-2">
+                              <MorphingDialogTitle className="text-gray-900 dark:text-gray-100">
+                                Image {globalIndex + 1}
+                              </MorphingDialogTitle>
+                              <MorphingDialogSubtitle className="text-gray-500 dark:text-gray-400">
+                                {formatDate(img.created_at)}
+                              </MorphingDialogSubtitle>
+                            </div>
+                          </button>
                         </MorphingDialogTrigger>
+
+                        <MorphingDialogContainer>
+                          <MorphingDialogContent
+                            style={{
+                              borderRadius: '24px',
+                            }}
+                            className="pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl"
+                          >
+                            <div className="relative">
+                              {selectedImageDetails?.isLoading && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="absolute inset-0 flex items-center justify-center bg-black/50"
+                                >
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
+                                  />
+                                </motion.div>
+                              )}
+                              <MorphingDialogImage
+                                src={selectedImageDetails?.download_url || img.download_url}
+                                alt={`Generated image ${globalIndex + 1}`}
+                                className="w-full max-h-[70vh] object-contain"
+                              />
+                            </div>
+
+                            <div className="p-6">
+                              <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
+                                Image {globalIndex + 1} of {generatedImages.length}
+                              </MorphingDialogTitle>
+                              <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
+                                Created on {formatDate(selectedImageDetails?.creation_timestamp || img.created_at)}
+                              </MorphingDialogSubtitle>
+                              <MorphingDialogDescription
+                                disableLayoutAnimation
+                                variants={{
+                                  initial: { opacity: 0, scale: 0.8, y: 20 },
+                                  animate: { opacity: 1, scale: 1, y: 0 },
+                                  exit: { opacity: 0, scale: 0.8, y: 20 },
+                                }}
+                              >
+                                <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
+                                  {selectedImageDetails?.prompt && (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
+                                      <p>{selectedImageDetails.prompt}</p>
+                                    </div>
+                                  )}
+                                  {selectedImageDetails?.height && selectedImageDetails?.width && (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
+                                      <p>{selectedImageDetails.width} x {selectedImageDetails.height}</p>
+                                    </div>
+                                  )}
+                                  {selectedImageDetails?.model_id && (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
+                                      <p>{selectedImageDetails.model_id}</p>
+                                    </div>
+                                  )}
+                                  {selectedImageDetails?.controlnet && (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Control Net:</p>
+                                      <p>{selectedImageDetails.controlnet}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </MorphingDialogDescription>
+                            </div>
+                            <MorphingDialogClose className="text-gray-500 dark:text-gray-400" />
+                          </MorphingDialogContent>
+                        </MorphingDialogContainer>
                       </MorphingDialog>
                     </motion.div>
                   )
