@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { fetchSubscriptionDetails, fetchUserImages, resetApiKey } from "@/services/AccountServices"
+import { fetchSubscriptionDetails, fetchUserImages, resetApiKey, fetchImageDetails, UserImage } from "@/services/AccountServices"
 import Link from "next/link"
 import { toast } from "@/hooks/use-toast"
 import { fetchUserPlan } from "@/AxiosApi/GenerativeApi"
@@ -36,10 +36,8 @@ interface UserPlanData {
   plan_expiry_date: string | null
 }
 
-interface ImageData {
-  id: string
-  download_url: string
-  created_at: string
+// Update the ImageData interface to match the API response
+interface ImageData extends UserImage {
   prompt?: string
   model?: string
 }
@@ -179,16 +177,11 @@ export default function ProfilePage() {
     fetchPlanData()
   }, [userId, getToken])
 
-  // Function to fetch detailed image data
-  const fetchImageDetails = async (imageId: string) => {
+  // Update the fetchImageDetails function in the component
+  const fetchImageDetailsWithParsing = async (imageId: string) => {
     try {
       const token = await getToken()
-      const response = await fetch(`https://api.imagepipeline.io/images/${imageId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-      const data = await response.json()
+      const data = await fetchImageDetails(imageId, token)
 
       // Parse the JSON string if it exists
       let parsedJson = {}
@@ -203,6 +196,8 @@ export default function ProfilePage() {
         prompt: parsedJson.prompt,
         height: parsedJson.height,
         width: parsedJson.width,
+        controlnet: parsedJson.controlnet,
+        isLoading: false,
       }
     } catch (error) {
       console.error("Error fetching image details:", error)
@@ -210,7 +205,7 @@ export default function ProfilePage() {
     }
   }
 
-  // Modify the image selection handler
+  // Update the handleImageSelect function
   const handleImageSelect = async (globalIndex: number) => {
     setSelectedImageIndex(globalIndex)
     const selectedImage = generatedImages[globalIndex]
@@ -218,8 +213,8 @@ export default function ProfilePage() {
     // Set loading state
     setSelectedImageDetails({ ...selectedImage, isLoading: true })
 
-    // Fetch detailed data
-    const details = await fetchImageDetails(selectedImage.id)
+    // Fetch detailed data using the image_id
+    const details = await fetchImageDetailsWithParsing(selectedImage.image_id)
     if (details) {
       setSelectedImageDetails({ ...details, isLoading: false })
     }
@@ -466,7 +461,7 @@ export default function ProfilePage() {
                   const globalIndex = currentPage * itemsPerPage + i
                   return (
                     <motion.div
-                      key={img.id}
+                      key={img.image_id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: i * 0.05 }}
