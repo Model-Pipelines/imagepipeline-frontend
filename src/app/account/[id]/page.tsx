@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowRight, LogOut, ImageOff, Home, Eye, EyeOff, Copy, RefreshCw } from "lucide-react"
+import { ArrowRight, LogOut, ImageOff, Home, Eye, EyeOff, Copy, RefreshCw, Download } from "lucide-react"
 import { useUser, useClerk, useAuth } from "@clerk/nextjs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState, useEffect } from "react"
@@ -104,6 +104,13 @@ export default function ProfilePage() {
     enabled: !!userId,
   })
 
+  // Update the image grid section with fixed dimensions and proper date sorting
+  const sortImagesByDate = (images: UserImage[]) => {
+    return [...images].sort((a, b) => 
+      new Date(b.creation_timestamp).getTime() - new Date(a.creation_timestamp).getTime()
+    );
+  };
+
   // Images Query
   const {
     data: generatedImages = [],
@@ -115,7 +122,7 @@ export default function ProfilePage() {
       if (!userId) throw new Error("User ID not available")
       const token = await fetchToken()
       const images = await fetchUserImages(userId, token)
-      return images.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      return sortImagesByDate(images)
     },
     enabled: !!userId,
   })
@@ -477,21 +484,23 @@ export default function ProfilePage() {
                           style={{
                             borderRadius: "12px",
                           }}
-                          className="w-full h-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+                          className="w-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
                           asChild
                         >
                           <button onClick={() => handleImageSelect(globalIndex)}>
-                            <MorphingDialogImage
-                              src={img.download_url}
-                              alt={`Generated image ${globalIndex + 1}`}
-                              className="h-48 w-full object-cover"
-                            />
+                            <div className="w-full h-[200px] relative">
+                              <MorphingDialogImage
+                                src={img.download_url}
+                                alt={`Generated image ${globalIndex + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
                             <div className="p-2">
                               <MorphingDialogTitle className="text-gray-900 dark:text-gray-100">
-                                Image {globalIndex + 1}
+                                Image {generatedImages.length - globalIndex}
                               </MorphingDialogTitle>
                               <MorphingDialogSubtitle className="text-gray-500 dark:text-gray-400">
-                                {formatDate(img.created_at)}
+                                {formatDate(img.creation_timestamp)}
                               </MorphingDialogSubtitle>
                             </div>
                           </button>
@@ -526,12 +535,25 @@ export default function ProfilePage() {
                             </div>
 
                             <div className="p-6">
-                              <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
-                                Image {globalIndex + 1} of {generatedImages.length}
-                              </MorphingDialogTitle>
-                              <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
-                                Created on {formatDate(selectedImageDetails?.creation_timestamp || img.created_at)}
-                              </MorphingDialogSubtitle>
+                              <div className="flex justify-between items-center mb-4">
+                                <div>
+                                  <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
+                                    Image {generatedImages.length - globalIndex} of {generatedImages.length}
+                                  </MorphingDialogTitle>
+                                  <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
+                                    Created on {formatDate(selectedImageDetails?.creation_timestamp || img.creation_timestamp)}
+                                  </MorphingDialogSubtitle>
+                                </div>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(selectedImageDetails?.download_url || img.download_url, '_blank')}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Open Image
+                                </Button>
+                              </div>
                               <MorphingDialogDescription
                                 disableLayoutAnimation
                                 variants={{
