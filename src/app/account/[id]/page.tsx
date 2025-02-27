@@ -488,7 +488,7 @@ export default function ProfilePage() {
                           asChild
                         >
                           <button onClick={() => handleImageSelect(globalIndex)}>
-                            <div className="w-[200px] h-[200px] relative">
+                            <div className="w-52 h-56 relative">
                               <MorphingDialogImage
                                 src={img.download_url}
                                 alt={`Generated image ${globalIndex + 1}`}
@@ -511,14 +511,15 @@ export default function ProfilePage() {
                             style={{
                               borderRadius: "24px",
                             }}
-                            className="pointer-events-auto relative flex h-4/5 w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl "
+                            className="pointer-events-auto relative flex h-[80vh] w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl"
                           >
-                            <div className="relative">
+                            {/* Image section - fixed height */}
+                            <div className="relative flex-shrink-0">
                               {selectedImageDetails?.isLoading && (
                                 <motion.div
                                   initial={{ opacity: 0 }}
                                   animate={{ opacity: 1 }}
-                                  className="absolute inset-0 flex items-center justify-center bg-black/50"
+                                  className="absolute inset-0 flex items-center justify-center bg-black/50 z-10"
                                 >
                                   <motion.div
                                     animate={{ rotate: 360 }}
@@ -530,69 +531,72 @@ export default function ProfilePage() {
                               <MorphingDialogImage
                                 src={selectedImageDetails?.download_url || img.download_url}
                                 alt={`Generated image ${globalIndex + 1}`}
-                                className="w-full max-h-[70vh] object-contain"
+                                className="w-full max-h-[40vh] object-contain"
                               />
                             </div>
 
-                            <div className="p-6">
-                              <div className="flex justify-between items-center mb-4">
-                                <div>
-                                  <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
-                                    Image {generatedImages.length - globalIndex} of {generatedImages.length}
-                                  </MorphingDialogTitle>
-                                  <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
-                                    Created on {formatDate(selectedImageDetails?.creation_timestamp || img.creation_timestamp)}
-                                  </MorphingDialogSubtitle>
+                            {/* Content section - scrollable */}
+                            <div className="flex-1 overflow-y-auto">
+                              <div className="p-6">
+                                <div className="flex justify-between items-center mb-4">
+                                  <div>
+                                    <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
+                                      Image {generatedImages.length - globalIndex} of {generatedImages.length}
+                                    </MorphingDialogTitle>
+                                    <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
+                                      Created on {formatDate(selectedImageDetails?.creation_timestamp || img.creation_timestamp)}
+                                    </MorphingDialogSubtitle>
+                                  </div>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => window.open(selectedImageDetails?.download_url || img.download_url, '_blank')}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                    Open Image
+                                  </Button>
                                 </div>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => window.open(selectedImageDetails?.download_url || img.download_url, '_blank')}
-                                  className="flex items-center gap-2"
+                                <MorphingDialogDescription
+                                  disableLayoutAnimation
+                                  variants={{
+                                    initial: { opacity: 0, scale: 0.8, y: 20 },
+                                    animate: { opacity: 1, scale: 1, y: 0 },
+                                    exit: { opacity: 0, scale: 0.8, y: 20 },
+                                  }}
                                 >
-                                  <Download className="h-4 w-4" />
-                                  Open Image
-                                </Button>
+                                  <div className="space-y-4 text-gray-600 dark:text-gray-400">
+                                    {selectedImageDetails?.prompt && (
+                                      <div>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
+                                        <p className="mt-1">{selectedImageDetails.prompt}</p>
+                                      </div>
+                                    )}
+                                    {selectedImageDetails?.height && selectedImageDetails?.width && (
+                                      <div>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
+                                        <p className="mt-1">
+                                          {selectedImageDetails.width} x {selectedImageDetails.height}
+                                        </p>
+                                      </div>
+                                    )}
+                                    {selectedImageDetails?.model_id && (
+                                      <div>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
+                                        <p className="mt-1">{selectedImageDetails.model_id}</p>
+                                      </div>
+                                    )}
+                                    {selectedImageDetails?.controlnet && (
+                                      <div>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">Control Net:</p>
+                                        <p className="mt-1">{selectedImageDetails.controlnet}</p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </MorphingDialogDescription>
                               </div>
-                              <MorphingDialogDescription
-                                disableLayoutAnimation
-                                variants={{
-                                  initial: { opacity: 0, scale: 0.8, y: 20 },
-                                  animate: { opacity: 1, scale: 1, y: 0 },
-                                  exit: { opacity: 0, scale: 0.8, y: 20 },
-                                }}
-                              >
-                                <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
-                                  {selectedImageDetails?.prompt && (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
-                                      <p>{selectedImageDetails.prompt}</p>
-                                    </div>
-                                  )}
-                                  {selectedImageDetails?.height && selectedImageDetails?.width && (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
-                                      <p>
-                                        {selectedImageDetails.width} x {selectedImageDetails.height}
-                                      </p>
-                                    </div>
-                                  )}
-                                  {selectedImageDetails?.model_id && (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
-                                      <p>{selectedImageDetails.model_id}</p>
-                                    </div>
-                                  )}
-                                  {selectedImageDetails?.controlnet && (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Control Net:</p>
-                                      <p>{selectedImageDetails.controlnet}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </MorphingDialogDescription>
                             </div>
-                            <MorphingDialogClose className="text-gray-500 dark:text-gray-400" />
+                            <MorphingDialogClose className="text-gray-500 dark:text-gray-400 absolute top-4 right-4" />
                           </MorphingDialogContent>
                         </MorphingDialogContainer>
                       </MorphingDialog>
