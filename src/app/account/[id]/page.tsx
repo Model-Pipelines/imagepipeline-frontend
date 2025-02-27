@@ -1,138 +1,208 @@
-// ProfilePage.tsx
-"use client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ArrowRight, LogOut, ImageOff, Home, Eye, EyeOff, Copy, RefreshCw } from "lucide-react";
-import { useUser, useClerk, useAuth } from "@clerk/nextjs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchSubscriptionDetails, fetchUserImages, resetApiKey } from "@/services/AccountServices";
-import Link from "next/link";
-import { toast } from "@/hooks/use-toast";
-import { fetchUserPlan } from "@/AxiosApi/GenerativeApi";
+"use client"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import {
+  ArrowRight,
+  LogOut,
+  ImageOff,
+  Home,
+  Eye,
+  EyeOff,
+  Copy,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"
+import { useUser, useClerk, useAuth } from "@clerk/nextjs"
+import { Skeleton } from "@/components/ui/skeleton"
+import { useState, useEffect } from "react"
+import { motion } from "framer-motion"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { fetchSubscriptionDetails, fetchUserImages, resetApiKey } from "@/services/AccountServices"
+import Link from "next/link"
+import { toast } from "@/hooks/use-toast"
+import { fetchUserPlan } from "@/AxiosApi/GenerativeApi"
+import {
+  MorphingDialog,
+  MorphingDialogTrigger,
+  MorphingDialogContent,
+  MorphingDialogTitle,
+  MorphingDialogImage,
+  MorphingDialogSubtitle,
+  MorphingDialogClose,
+  MorphingDialogDescription,
+  MorphingDialogContainer,
+} from "@/components/ui/morphing-dialog"
+
+// Add types for the API response
+interface UserPlanData {
+  user_id: string
+  api_key: string
+  email: string
+  plan: string
+  tokens_remaining: number
+  model_trainings_remaining: number
+  private_model_loads_remaining: number
+  plan_expiry_date: string | null
+}
+
+interface ImageData {
+  id: string
+  download_url: string
+  created_at: string
+  prompt?: string
+  model?: string
+}
 
 function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(false)
   return (
     <div className="relative h-full w-full">
       {!loaded && <Skeleton className="absolute inset-0 bg-gray-200 dark:bg-gray-700" />}
       <img
-        src={src}
+        src={src || "/placeholder.svg"}
         alt={alt}
         {...props}
         className={`${className} ${!loaded ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover rounded-md`}
         onLoad={() => setLoaded(true)}
       />
     </div>
-  );
-}
-
-// Add types for the API response
-interface UserPlanData {
-  user_id: string;
-  api_key: string;
-  email: string;
-  plan: string;
-  tokens_remaining: number;
-  model_trainings_remaining: number;
-  private_model_loads_remaining: number;
-  plan_expiry_date: string | null;
+  )
 }
 
 export default function ProfilePage() {
-  const { user } = useUser();
-  const { signOut } = useClerk();
-  const { userId, getToken } = useAuth();
-  const [currentPage, setCurrentPage] = useState(0);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const itemsPerPage = 8;
-  const queryClient = useQueryClient();
-  const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
+  const { user } = useUser()
+  const { signOut } = useClerk()
+  const { userId, getToken } = useAuth()
+  const [currentPage, setCurrentPage] = useState(0)
+  const [showApiKey, setShowApiKey] = useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
+  const itemsPerPage = 8
+  const queryClient = useQueryClient()
+  const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null)
 
   const fetchToken = async () => {
-    const token = await getToken();
-    if (!token) throw new Error("No authentication token available");
-    return token;
-  };
+    const token = await getToken()
+    if (!token) throw new Error("No authentication token available")
+    return token
+  }
 
   // Subscription Query
-  const { data: subscription, isLoading: subLoading, error: subError } = useQuery({
+  const {
+    data: subscription,
+    isLoading: subLoading,
+    error: subError,
+  } = useQuery({
     queryKey: ["subscription", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available");
-      const token = await fetchToken();
-      return fetchSubscriptionDetails(userId, token);
+      if (!userId) throw new Error("User ID not available")
+      const token = await fetchToken()
+      return fetchSubscriptionDetails(userId, token)
     },
     enabled: !!userId,
-  });
+  })
 
   // Images Query
-  const { data: generatedImages = [], isLoading: isImagesLoading, error: imagesError } = useQuery({
+  const {
+    data: generatedImages = [],
+    isLoading: isImagesLoading,
+    error: imagesError,
+  } = useQuery({
     queryKey: ["userImages", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available");
-      const token = await fetchToken();
-      const images = await fetchUserImages(userId, token);
-      return images.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      if (!userId) throw new Error("User ID not available")
+      const token = await fetchToken()
+      const images = await fetchUserImages(userId, token)
+      return images.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     },
     enabled: !!userId,
-  });
+  })
 
   // API Key Query
-  const { data: apiKeyData, isLoading: apiKeyLoading, error: apiKeyError } = useQuery({
+  const {
+    data: apiKeyData,
+    isLoading: apiKeyLoading,
+    error: apiKeyError,
+  } = useQuery({
     queryKey: ["apiKey", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available");
-      const token = await fetchToken();
-      return fetchSubscriptionDetails(userId, token);
+      if (!userId) throw new Error("User ID not available")
+      const token = await fetchToken()
+      return fetchSubscriptionDetails(userId, token)
     },
     enabled: !!userId,
-  });
+  })
 
   // Reset API Key Mutation
   const resetApiKeyMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error("User ID not available");
-      const token = await fetchToken();
-      return resetApiKey(userId, token);
+      if (!userId) throw new Error("User ID not available")
+      const token = await fetchToken()
+      return resetApiKey(userId, token)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apiKey", userId] });
-      toast({ title: "API Key reset successfully" });
+      queryClient.invalidateQueries({ queryKey: ["apiKey", userId] })
+      toast({ title: "API Key reset successfully" })
     },
     onError: (error: any) => {
-      toast({ title: "Failed to reset API Key", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to reset API Key", description: error.message, variant: "destructive" })
     },
-  });
+  })
 
   const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({ title: "API Key copied to clipboard" });
-  };
+    navigator.clipboard.writeText(text)
+    toast({ title: "API Key copied to clipboard" })
+  }
 
   // Add the plan data fetch effect
   useEffect(() => {
     const fetchPlanData = async () => {
       try {
-        const token = await getToken();
+        const token = await getToken()
         if (token && userId) {
-          const planData = await fetchUserPlan(userId, token);
-          setUserPlanData(planData);
+          const planData = await fetchUserPlan(userId, token)
+          setUserPlanData(planData)
         }
       } catch (error) {
-        console.error("Error fetching user plan:", error);
-        toast({ 
-          title: "Error", 
-          description: "Failed to fetch user plan", 
-          variant: "destructive" 
-        });
+        console.error("Error fetching user plan:", error)
+        toast({
+          title: "Error",
+          description: "Failed to fetch user plan",
+          variant: "destructive",
+        })
       }
-    };
-    fetchPlanData();
-  }, [userId, getToken]);
+    }
+    fetchPlanData()
+  }, [userId, getToken])
+
+  // Image navigation in dialog
+  const navigateImage = (direction: "next" | "prev") => {
+    if (selectedImageIndex === null) return
+
+    const totalImages = generatedImages.length
+    let newIndex
+
+    if (direction === "next") {
+      newIndex = (selectedImageIndex + 1) % totalImages
+    } else {
+      newIndex = (selectedImageIndex - 1 + totalImages) % totalImages
+    }
+
+    setSelectedImageIndex(newIndex)
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   if (!user) {
     return (
@@ -145,18 +215,18 @@ export default function ProfilePage() {
           <Skeleton className="h-8 w-24 bg-gray-200 dark:bg-gray-700" />
         </div>
       </div>
-    );
+    )
   }
 
-  const avatarUrl = user.imageUrl;
-  const email = user.primaryEmailAddress?.emailAddress;
-  const fullName = `${user.firstName} ${user.lastName}`;
-  const username = user.username || (email ? email.split("@")[0] : "Not set");
-  const totalPages = Math.ceil(generatedImages.length / itemsPerPage);
-  const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
+  const avatarUrl = user.imageUrl
+  const email = user.primaryEmailAddress?.emailAddress
+  const fullName = `${user.firstName} ${user.lastName}`
+  const username = user.username || (email ? email.split("@")[0] : "Not set")
+  const totalPages = Math.ceil(generatedImages.length / itemsPerPage)
+  const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
 
   // const deleteUser = async = () =>{
-  //   //need delete user functionality over here 
+  //   //need delete user functionality over here
   // }
 
   return (
@@ -234,9 +304,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Tokens Remaining</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">
-                      {userPlanData.tokens_remaining}
-                    </p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">{userPlanData.tokens_remaining}</p>
                   </div>
                   <div>
                     <p className="text-gray-500 dark:text-gray-400">Model Trainings</p>
@@ -345,24 +413,150 @@ export default function ProfilePage() {
                 Total: {generatedImages.length} images (latest first)
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {currentImages.map((img, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3, delay: i * 0.05 }}
-                  >
-                    <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-                      <CardContent className="p-2">
-                        <ImageWithSkeleton
-                          src={img.download_url}
-                          alt={`Generated image ${i + 1}`}
-                          className="w-full h-40 object-cover rounded-md"
-                        />
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
+                {currentImages.map((img, i) => {
+                  const globalIndex = currentPage * itemsPerPage + i
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.3, delay: i * 0.05 }}
+                    >
+                      <MorphingDialog
+                        transition={{
+                          type: "spring",
+                          bounce: 0.05,
+                          duration: 0.25,
+                        }}
+                      >
+                        <MorphingDialogTrigger
+                          style={{
+                            borderRadius: "12px",
+                          }}
+                          className="w-full h-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+                          onClick={() => setSelectedImageIndex(globalIndex)}
+                        >
+                          <MorphingDialogImage
+                            src={img.download_url}
+                            alt={`Generated image ${i + 1}`}
+                            className="w-full h-40 object-cover"
+                          />
+                          <div className="p-2">
+                            <MorphingDialogTitle className="text-sm truncate text-gray-900 dark:text-gray-100">
+                              Image {i + 1}
+                            </MorphingDialogTitle>
+                            <MorphingDialogSubtitle className="text-xs truncate text-gray-500 dark:text-gray-400">
+                              {formatDate(img.created_at)}
+                            </MorphingDialogSubtitle>
+                          </div>
+                        </MorphingDialogTrigger>
+                        <MorphingDialogContainer>
+                          <MorphingDialogContent
+                            style={{
+                              borderRadius: "24px",
+                            }}
+                            className="pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl"
+                          >
+                            <div className="relative">
+                              <MorphingDialogImage
+                                src={
+                                  selectedImageIndex !== null
+                                    ? generatedImages[selectedImageIndex]?.download_url
+                                    : img.download_url
+                                }
+                                alt={`Generated image ${selectedImageIndex !== null ? selectedImageIndex + 1 : i + 1}`}
+                                className="w-full max-h-[70vh] object-contain bg-gray-100 dark:bg-gray-800"
+                              />
+
+                              {/* Navigation buttons */}
+                              <div className="absolute inset-0 flex items-center justify-between px-4">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="rounded-full bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+                                  onClick={() => navigateImage("prev")}
+                                >
+                                  <ChevronLeft className="h-5 w-5" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="rounded-full bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
+                                  onClick={() => navigateImage("next")}
+                                >
+                                  <ChevronRight className="h-5 w-5" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="p-6">
+                              <MorphingDialogTitle className="text-xl text-gray-900 dark:text-gray-100">
+                                {selectedImageIndex !== null ? `Image ${selectedImageIndex + 1}` : `Image ${i + 1}`}
+                              </MorphingDialogTitle>
+                              <MorphingDialogSubtitle className="text-gray-700 dark:text-gray-400">
+                                {selectedImageIndex !== null
+                                  ? formatDate(generatedImages[selectedImageIndex]?.created_at)
+                                  : formatDate(img.created_at)}
+                              </MorphingDialogSubtitle>
+                              <MorphingDialogDescription
+                                disableLayoutAnimation
+                                variants={{
+                                  initial: { opacity: 0, scale: 0.8, y: 20 },
+                                  animate: { opacity: 1, scale: 1, y: 0 },
+                                  exit: { opacity: 0, scale: 0.8, y: 20 },
+                                }}
+                              >
+                                <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
+                                  {selectedImageIndex !== null && generatedImages[selectedImageIndex]?.prompt ? (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
+                                      <p>{generatedImages[selectedImageIndex].prompt}</p>
+                                    </div>
+                                  ) : img.prompt ? (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
+                                      <p>{img.prompt}</p>
+                                    </div>
+                                  ) : (
+                                    <p>No prompt information available for this image.</p>
+                                  )}
+
+                                  {selectedImageIndex !== null && generatedImages[selectedImageIndex]?.model ? (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
+                                      <p>{generatedImages[selectedImageIndex].model}</p>
+                                    </div>
+                                  ) : img.model ? (
+                                    <div>
+                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
+                                      <p>{img.model}</p>
+                                    </div>
+                                  ) : null}
+
+                                  <div className="pt-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        const url =
+                                          selectedImageIndex !== null
+                                            ? generatedImages[selectedImageIndex]?.download_url
+                                            : img.download_url
+                                        window.open(url, "_blank")
+                                      }}
+                                    >
+                                      Download Image
+                                    </Button>
+                                  </div>
+                                </div>
+                              </MorphingDialogDescription>
+                            </div>
+                            <MorphingDialogClose className="text-gray-500 dark:text-gray-400" />
+                          </MorphingDialogContent>
+                        </MorphingDialogContainer>
+                      </MorphingDialog>
+                    </motion.div>
+                  )
+                })}
               </div>
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-4 mt-6">
@@ -420,11 +614,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Promotion Banner */}
-        <motion.section
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <motion.section initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Card className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative h-40 sm:h-48">
               <img
@@ -477,9 +667,8 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
         </section> */}
-        
       </main>
     </div>
-  );
+  )
 }
 
