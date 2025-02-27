@@ -476,8 +476,8 @@ const ImagePromptUI = () => {
                 />
               ) : (
                 <>
-                  <span className="hidden sm:inline">Generate</span>
-                  <span className="sm:hidden">➜</span>
+                  <span className="hidden sm:inline text-white">Generate</span>
+                  <span className="sm:hidden text-white">➜</span>
                 </>
               )}
             </motion.button>
