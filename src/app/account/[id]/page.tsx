@@ -55,6 +55,16 @@ interface ImageData {
   model?: string
 }
 
+// Add this interface to better type the image details
+interface DetailedImageData extends ImageData {
+  height?: number;
+  width?: number;
+  model_id?: string;
+  json?: string;
+  // Add loading state for animation
+  isLoading?: boolean;
+}
+
 function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
   const [loaded, setLoaded] = useState(false)
   return (
@@ -81,6 +91,9 @@ export default function ProfilePage() {
   const itemsPerPage = 8
   const queryClient = useQueryClient()
   const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null)
+
+  // Add state for detailed image data
+  const [selectedImageDetails, setSelectedImageDetails] = useState<DetailedImageData | null>(null);
 
   const fetchToken = async () => {
     const token = await getToken()
@@ -175,6 +188,52 @@ export default function ProfilePage() {
     }
     fetchPlanData()
   }, [userId, getToken])
+
+  // Function to fetch detailed image data
+  const fetchImageDetails = async (imageId: string) => {
+    try {
+      const token = await getToken();
+      const response = await fetch(`https://api.imagepipeline.io/images/${imageId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      
+      // Parse the JSON string if it exists
+      let parsedJson = {};
+      try {
+        parsedJson = data.json ? JSON.parse(data.json) : {};
+      } catch (e) {
+        console.error("Error parsing image JSON:", e);
+      }
+
+      return {
+        ...data,
+        prompt: parsedJson.prompt,
+        height: parsedJson.height,
+        width: parsedJson.width,
+      };
+    } catch (error) {
+      console.error("Error fetching image details:", error);
+      return null;
+    }
+  };
+
+  // Modify the image selection handler
+  const handleImageSelect = async (globalIndex: number) => {
+    setSelectedImageIndex(globalIndex);
+    const selectedImage = generatedImages[globalIndex];
+    
+    // Set loading state
+    setSelectedImageDetails({ ...selectedImage, isLoading: true });
+    
+    // Fetch detailed data
+    const details = await fetchImageDetails(selectedImage.id);
+    if (details) {
+      setSelectedImageDetails({ ...details, isLoading: false });
+    }
+  };
 
   // Image navigation in dialog
   const navigateImage = (direction: "next" | "prev") => {
@@ -417,142 +476,65 @@ export default function ProfilePage() {
                   const globalIndex = currentPage * itemsPerPage + i
                   return (
                     <motion.div
-                      key={i}
+                      key={img.id}
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ duration: 0.3, delay: i * 0.05 }}
                     >
-                      <MorphingDialog
-                        transition={{
-                          type: "spring",
-                          bounce: 0.05,
-                          duration: 0.25,
-                        }}
-                      >
+                      <MorphingDialog>
                         <MorphingDialogTrigger
-                          style={{
-                            borderRadius: "12px",
-                          }}
+                          style={{ borderRadius: "12px" }}
                           className="w-full h-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
-                          onClick={() => setSelectedImageIndex(globalIndex)}
+                          onClick={() => handleImageSelect(globalIndex)}
                         >
-                          <MorphingDialogImage
-                            src={img.download_url}
-                            alt={`Generated image ${i + 1}`}
-                            className="w-full h-40 object-cover"
-                          />
-                          <div className="p-2">
-                            <MorphingDialogTitle className="text-sm truncate text-gray-900 dark:text-gray-100">
-                              Image {i + 1}
+                          <div className="relative">
+                            {selectedImageDetails?.isLoading && (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                className="absolute inset-0 flex items-center justify-center bg-black/50"
+                              >
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                  className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
+                                />
+                              </motion.div>
+                            )}
+                            <MorphingDialogImage
+                              src={selectedImageDetails?.download_url || img.download_url}
+                              alt={`Generated image ${globalIndex + 1}`}
+                              className="w-full max-h-[70vh] object-contain bg-gray-100 dark:bg-gray-800"
+                            />
+                          </div>
+                          <div className="p-6">
+                            <MorphingDialogTitle className="text-xl text-gray-900 dark:text-gray-100">
+                              Image {globalIndex + 1} of {generatedImages.length}
                             </MorphingDialogTitle>
-                            <MorphingDialogSubtitle className="text-xs truncate text-gray-500 dark:text-gray-400">
-                              {formatDate(img.created_at)}
-                            </MorphingDialogSubtitle>
+                            <MorphingDialogDescription>
+                              <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
+                                {selectedImageDetails?.prompt && (
+                                  <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
+                                    <p>{selectedImageDetails.prompt}</p>
+                                  </div>
+                                )}
+                                {selectedImageDetails?.height && selectedImageDetails?.width && (
+                                  <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
+                                    <p>{selectedImageDetails.width} x {selectedImageDetails.height}</p>
+                                  </div>
+                                )}
+                                {selectedImageDetails?.model_id && (
+                                  <div>
+                                    <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
+                                    <p>{selectedImageDetails.model_id}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </MorphingDialogDescription>
                           </div>
                         </MorphingDialogTrigger>
-                        <MorphingDialogContainer>
-                          <MorphingDialogContent
-                            style={{
-                              borderRadius: "24px",
-                            }}
-                            className="pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl"
-                          >
-                            <div className="relative">
-                              <MorphingDialogImage
-                                src={
-                                  selectedImageIndex !== null
-                                    ? generatedImages[selectedImageIndex]?.download_url
-                                    : img.download_url
-                                }
-                                alt={`Generated image ${selectedImageIndex !== null ? selectedImageIndex + 1 : i + 1}`}
-                                className="w-full max-h-[70vh] object-contain bg-gray-100 dark:bg-gray-800"
-                              />
-
-                              {/* Navigation buttons */}
-                              <div className="absolute inset-0 flex items-center justify-between px-4">
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="rounded-full bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
-                                  onClick={() => navigateImage("prev")}
-                                >
-                                  <ChevronLeft className="h-5 w-5" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="rounded-full bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 shadow-sm"
-                                  onClick={() => navigateImage("next")}
-                                >
-                                  <ChevronRight className="h-5 w-5" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="p-6">
-                              <MorphingDialogTitle className="text-xl text-gray-900 dark:text-gray-100">
-                                {selectedImageIndex !== null ? `Image ${selectedImageIndex + 1}` : `Image ${i + 1}`}
-                              </MorphingDialogTitle>
-                              <MorphingDialogSubtitle className="text-gray-700 dark:text-gray-400">
-                                {selectedImageIndex !== null
-                                  ? formatDate(generatedImages[selectedImageIndex]?.created_at)
-                                  : formatDate(img.created_at)}
-                              </MorphingDialogSubtitle>
-                              <MorphingDialogDescription
-                                disableLayoutAnimation
-                                variants={{
-                                  initial: { opacity: 0, scale: 0.8, y: 20 },
-                                  animate: { opacity: 1, scale: 1, y: 0 },
-                                  exit: { opacity: 0, scale: 0.8, y: 20 },
-                                }}
-                              >
-                                <div className="mt-4 space-y-3 text-gray-600 dark:text-gray-400">
-                                  {selectedImageIndex !== null && generatedImages[selectedImageIndex]?.prompt ? (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
-                                      <p>{generatedImages[selectedImageIndex].prompt}</p>
-                                    </div>
-                                  ) : img.prompt ? (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
-                                      <p>{img.prompt}</p>
-                                    </div>
-                                  ) : (
-                                    <p>No prompt information available for this image.</p>
-                                  )}
-
-                                  {selectedImageIndex !== null && generatedImages[selectedImageIndex]?.model ? (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
-                                      <p>{generatedImages[selectedImageIndex].model}</p>
-                                    </div>
-                                  ) : img.model ? (
-                                    <div>
-                                      <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
-                                      <p>{img.model}</p>
-                                    </div>
-                                  ) : null}
-
-                                  <div className="pt-2">
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      onClick={() => {
-                                        const url =
-                                          selectedImageIndex !== null
-                                            ? generatedImages[selectedImageIndex]?.download_url
-                                            : img.download_url
-                                        window.open(url, "_blank")
-                                      }}
-                                    >
-                                      Download Image
-                                    </Button>
-                                  </div>
-                                </div>
-                              </MorphingDialogDescription>
-                            </div>
-                            <MorphingDialogClose className="text-gray-500 dark:text-gray-400" />
-                          </MorphingDialogContent>
-                        </MorphingDialogContainer>
                       </MorphingDialog>
                     </motion.div>
                   )
