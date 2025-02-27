@@ -2,18 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import {
-  ArrowRight,
-  LogOut,
-  ImageOff,
-  Home,
-  Eye,
-  EyeOff,
-  Copy,
-  RefreshCw,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react"
+import { ArrowRight, LogOut, ImageOff, Home, Eye, EyeOff, Copy, RefreshCw } from "lucide-react"
 import { useUser, useClerk, useAuth } from "@clerk/nextjs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useState, useEffect } from "react"
@@ -94,7 +83,7 @@ export default function ProfilePage() {
   const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null)
 
   // Add state for detailed image data
-  const [selectedImageDetails, setSelectedImageDetails] = useState<DetailedImageData | null>(null);
+  const [selectedImageDetails, setSelectedImageDetails] = useState<DetailedImageData | null>(null)
 
   const fetchToken = async () => {
     const token = await getToken()
@@ -193,20 +182,20 @@ export default function ProfilePage() {
   // Function to fetch detailed image data
   const fetchImageDetails = async (imageId: string) => {
     try {
-      const token = await getToken();
+      const token = await getToken()
       const response = await fetch(`https://api.imagepipeline.io/images/${imageId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
-      const data = await response.json();
-      
+      })
+      const data = await response.json()
+
       // Parse the JSON string if it exists
-      let parsedJson = {};
+      let parsedJson = {}
       try {
-        parsedJson = data.json ? JSON.parse(data.json) : {};
+        parsedJson = data.json ? JSON.parse(data.json) : {}
       } catch (e) {
-        console.error("Error parsing image JSON:", e);
+        console.error("Error parsing image JSON:", e)
       }
 
       return {
@@ -214,27 +203,27 @@ export default function ProfilePage() {
         prompt: parsedJson.prompt,
         height: parsedJson.height,
         width: parsedJson.width,
-      };
+      }
     } catch (error) {
-      console.error("Error fetching image details:", error);
-      return null;
+      console.error("Error fetching image details:", error)
+      return null
     }
-  };
+  }
 
   // Modify the image selection handler
   const handleImageSelect = async (globalIndex: number) => {
-    setSelectedImageIndex(globalIndex);
-    const selectedImage = generatedImages[globalIndex];
-    
+    setSelectedImageIndex(globalIndex)
+    const selectedImage = generatedImages[globalIndex]
+
     // Set loading state
-    setSelectedImageDetails({ ...selectedImage, isLoading: true });
-    
+    setSelectedImageDetails({ ...selectedImage, isLoading: true })
+
     // Fetch detailed data
-    const details = await fetchImageDetails(selectedImage.id);
+    const details = await fetchImageDetails(selectedImage.id)
     if (details) {
-      setSelectedImageDetails({ ...details, isLoading: false });
+      setSelectedImageDetails({ ...details, isLoading: false })
     }
-  };
+  }
 
   // Image navigation in dialog
   const navigateImage = (direction: "next" | "prev") => {
@@ -484,14 +473,14 @@ export default function ProfilePage() {
                     >
                       <MorphingDialog
                         transition={{
-                          type: 'spring',
+                          type: "spring",
                           bounce: 0.05,
                           duration: 0.25,
                         }}
                       >
                         <MorphingDialogTrigger
                           style={{
-                            borderRadius: '12px',
+                            borderRadius: "12px",
                           }}
                           className="w-full h-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
                           asChild
@@ -516,7 +505,7 @@ export default function ProfilePage() {
                         <MorphingDialogContainer>
                           <MorphingDialogContent
                             style={{
-                              borderRadius: '24px',
+                              borderRadius: "24px",
                             }}
                             className="pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 sm:w-[90vw] md:w-[80vw] lg:w-[70vw] max-w-5xl"
                           >
@@ -529,7 +518,7 @@ export default function ProfilePage() {
                                 >
                                   <motion.div
                                     animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
                                     className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
                                   />
                                 </motion.div>
@@ -566,7 +555,9 @@ export default function ProfilePage() {
                                   {selectedImageDetails?.height && selectedImageDetails?.width && (
                                     <div>
                                       <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
-                                      <p>{selectedImageDetails.width} x {selectedImageDetails.height}</p>
+                                      <p>
+                                        {selectedImageDetails.width} x {selectedImageDetails.height}
+                                      </p>
                                     </div>
                                   )}
                                   {selectedImageDetails?.model_id && (
