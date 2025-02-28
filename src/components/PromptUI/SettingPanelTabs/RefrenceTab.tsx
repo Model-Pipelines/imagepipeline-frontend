@@ -71,8 +71,7 @@ interface InteriorDesignPayload {
 interface GenerateLogoPayload {
   logo_prompt: string;
   image: string;
-  samples: number;
-  num_inference_steps: number;
+  prompt: string;
 }
 
 interface TaskResponse {
@@ -199,8 +198,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           payload = {
             logo_prompt: prompt,
             image: referenceImage,
-            samples: 1,
-            num_inference_steps: 30,
+            prompt: prompt,
           } as GenerateLogoPayload;
           break;
         default:
