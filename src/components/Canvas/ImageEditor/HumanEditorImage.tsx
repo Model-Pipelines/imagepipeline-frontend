@@ -30,7 +30,7 @@ const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElem
     type="file"
     accept="image/*"
     onChange={onChange}
-    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-accent hover:file:bg-blue-100"
   />
 );
 
@@ -209,7 +209,7 @@ export function HumanEditorImage() {
                     />
                     <button
                       onClick={() => setHumanImage(null)}
-                      className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md"
+                      className="absolute top-2 right-2 p-2 bg-text rounded-full shadow-md"
                     >
                       <X className="w-4 h-4 text-gray-700" />
                     </button>
@@ -224,7 +224,7 @@ export function HumanEditorImage() {
         <Button
           onClick={handleSubmit}
           disabled={!selectedImage || !humanImage || !prompt.trim() || isProcessing}
-          className="w-full bg-blue-600 hover:bg-blue-700"
+          className="w-full bg-accent hover:bg-notice"
         >
           {isProcessing ? (
             <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>

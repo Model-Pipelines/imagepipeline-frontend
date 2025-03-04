@@ -60,7 +60,7 @@ const COMPONENT_DESCRIPTIONS = {
 const InfoButton = ({ description }: { description: string }) => (
   <div className="relative inline-block ml-2 group">
     <Info size={16} className="text-gray-500 hover:text-gray-700 cursor-help" />
-    <div className="absolute hidden group-hover:block bg-black text-white text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
+    <div className="absolute hidden group-hover:block bg-textPrimary text-text text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
       {description}
     </div>
   </div>

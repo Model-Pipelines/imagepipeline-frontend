@@ -37,19 +37,19 @@ export function EditImageCard() {
       <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1.5 rounded-lg mb-6">
         <TabsTrigger
           value="background-change"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600"
+          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
         >
           Background Change
         </TabsTrigger>
         <TabsTrigger
           value="human"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600"
+          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
         >
           Human Editor
         </TabsTrigger>
         <TabsTrigger
           value="upscale"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-blue-600"
+          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
         >
           Upscale
         </TabsTrigger>

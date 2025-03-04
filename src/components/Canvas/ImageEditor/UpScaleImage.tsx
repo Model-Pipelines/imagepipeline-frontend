@@ -122,7 +122,7 @@ const Upscale = () => {
         <Button
           onClick={handleSubmit}
           disabled={isLoading}
-          className="w-full bg-blue-600 hover:bg-blue-700"
+          className="w-full bg-accent hover:bg-info"
         >
           {isLoading ? (
             <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave>

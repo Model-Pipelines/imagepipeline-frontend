@@ -379,7 +379,7 @@ const ImagePromptUI = () => {
 
   return (
     <>
-      <div className="relative bg-white dark:bg-[#1B1B1D] p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
+      <div className="relative bg-text dark:bg-secondary p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
         <div className="flex flex-col gap-4">
           {(isUploading || image_url) && (
             <div className="relative mt-4 z-[100]">
@@ -393,33 +393,33 @@ const ImagePromptUI = () => {
                       transition={{ duration: 0.3 }}
                     >
                       <Button
-        onClick={handleDescribeImage}
-        className="h-10 px-4 flex items-center justify-center rounded-lg bg-green-600 hover:bg-green-700 text-white"
-        disabled={!image_url || !!describeTaskId}
-      >
-        {describeTaskId ? (
-          <motion.div
-            className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          />
-        ) : (
-          <motion.span 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.1 }}
-          >
-            Describe Image
-          </motion.span>
-        )}
-      </Button>
+                        onClick={handleDescribeImage}
+                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-secondary dark:bg-accent hover:bg-secondary text-text"
+                        disabled={!image_url || !!describeTaskId}
+                      >
+                        {describeTaskId ? (
+                          <motion.div
+                            className="w-5 h-5 border-2 border-text border-t-transparent rounded-full"
+                            animate={{ rotate: 360 }}
+                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          />
+                        ) : (
+                          <motion.span 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            transition={{ delay: 0.1 }}
+                          >
+                            Describe Image
+                          </motion.span>
+                        )}
+                      </Button>
                     </motion.div>
                     <button
                       onClick={() => {
                         setImageUrl(null)
                         setShowDescribeButton(false)
                       }}
-                      className="absolute top-0 left-20 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600 transition-colors z-[110]"
+                      className="absolute top-0 left-20 bg-error text-text rounded-full w-6 h-6 flex items-center justify-center hover:bg-error transition-colors z-[110]"
                     >
                       <X size={16} />
                     </button>
@@ -443,7 +443,7 @@ const ImagePromptUI = () => {
                 className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
                 aria-label="Upload image"
               >
-                <ScanEye className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                <ScanEye className="h-5 w-5 text-textPrimary dark:text-text" />
               </button>
               <motion.div
                 initial={{ opacity: 0 }}
@@ -455,7 +455,7 @@ const ImagePromptUI = () => {
                   value={text}
                   onChange={(e) => setInputTextStore(e.target.value)}
                   placeholder="Describe what you want to generate..."
-                  className="w-full pl-10 pr-2 bg-slate-50 dark:bg-[#2A2A2D] resize-none rounded-lg"
+                  className="w-full pl-10 pr-2 bg-info dark:bg-background resize-none rounded-lg"
                   rows={3}
                 />
               </motion.div>
@@ -464,20 +464,20 @@ const ImagePromptUI = () => {
               onClick={handleGenerateImage}
               disabled={isGenerating || !!generateTaskId}
               className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
-                ${isGenerating || generateTaskId ? "bg-blue-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                ${isGenerating || generateTaskId ? "bg-accent-500 cursor-not-allowed" : "bg-accent hover:bg-notice"}`}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
               {isGenerating || generateTaskId ? (
                 <motion.div
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  className="w-5 h-5 border-2 border-text border-t-transparent rounded-full"
                   animate={{ rotate: 360 }}
                   transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 />
               ) : (
                 <>
-                  <span className="hidden sm:inline text-white">Generate</span>
-                  <span className="sm:hidden text-white">➜</span>
+                  <span className="hidden sm:inline text-text">Generate</span>
+                  <span className="sm:hidden text-text">➜</span>
                 </>
               )}
             </motion.button>
@@ -494,9 +494,9 @@ const ImagePromptUI = () => {
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
-                        magic_prompt ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
-                        "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80"
+                        "h-10 w-10 rounded-md border border-info dark:border-info",
+                        magic_prompt ? "bg-blue-100 dark:bg-accent text-accent dark:text-accent" : "bg-info dark:bg-foreground text-muted-foreground dark:text-info",
+                        "hover:bg-blue-50 dark:hover:bg-foreground"
                       )}
                       onClick={handleMagicPromptClick}
                       aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
@@ -514,54 +514,54 @@ const ImagePromptUI = () => {
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={cn(
-                      "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
-                      isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400" : "bg-gray-100 dark:bg-[#2A2A2D] text-gray-700 dark:text-gray-300",
-                      "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
-                      !canMakePrivate() && !isPublic && "opacity-50 cursor-not-allowed"
-                    )}
-                    onClick={handleTogglePublic}
-                    aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
-                  >
-                    <motion.div
-                      animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
-                      transition={{ duration: 0.5, ease: "easeInOut" }}
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
+                        isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-accent dark:text-blue-400" : "bg-gray-100 dark:bg-background text-gray-700 dark:text-gray-300",
+                        "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
+                        !canMakePrivate() && !isPublic && "opacity-50 cursor-not-allowed"
+                      )}
+                      onClick={handleTogglePublic}
+                      aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
                     >
-                      {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
-                    </motion.div>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  {!canMakePrivate() && !isPublic ? (
-                    <p>Upgrade to make images private</p>
-                  ) : (
-                    <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
-                  )}
-                </TooltipContent>
-              </Tooltip>
+                      <motion.div
+                        animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }}
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                      </motion.div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {!canMakePrivate() && !isPublic ? (
+                      <p>Upgrade to make images private</p>
+                    ) : (
+                      <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               </TooltipProvider>
             </div>
             <div className="flex items-center gap-2">
               <Button
                 onClick={toggleColorPalette}
-                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-accent hover:bg-notice text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   }`}
                 aria-label="Toggle color palette"
               >
-                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-white" : "text-gray-700"}`} />
+                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-text" : "text-gray-700"}`} />
                 <span className="ml-2 truncate">{buttonText}</span>
               </Button>
               <Button
                 onClick={toggleSettingsPanel}
-                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-200 hover:bg-gray-300"
+                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-accent hover:bg-notice" : "bg-gray-200 hover:bg-gray-300"
                   }`}
                 aria-label="Toggle settings"
               >
-                <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-white" : "text-black"}`} />
+                <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-text" : "text-textPrimary"}`} />
                 <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
               </Button>
             </div>

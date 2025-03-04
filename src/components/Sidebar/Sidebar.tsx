@@ -32,7 +32,7 @@ const Sidebar: FC = () => {
       <Link href="/" aria-label="Logo">
       
       <div className="w-12 h-12 bg-[#EFB718] rounded-full flex items-center justify-center shadow-lg">
-        <span className="text-white text-xl font-bold">i p</span>
+        <span className="text-text text-xl font-bold">i p</span>
       </div>
     
       </Link>
@@ -42,8 +42,8 @@ const Sidebar: FC = () => {
           <div
             key={item.type}
             className={`p-2 rounded-md cursor-pointer ${activeIcon === item.type
-                ? "bg-purple-800 dark:bg-gray-700 text-white"
-                : "hover:bg-purple-800 hover:text-white dark:hover:bg-gray-700 text-purple-700 dark:text-white"
+                ? "bg-secondary dark:bg-secondary text-text"
+                : "hover:bg-secondary hover:text-text dark:hover:bg-secondary text-secondary dark:text-text"
               }`}
             onClick={() => handleIconClick(item.type)}
             aria-label={item.label}
@@ -54,7 +54,7 @@ const Sidebar: FC = () => {
       </div>
 
       <div className="flex flex-col items-center space-y-10">
-        <div className="hover:bg-purple-800 hover:text-white dark:hover:bg-gray-700 p-2 rounded-md text-purple-700 dark:text-white cursor-pointer">
+        <div className="hover:bg-secondary hover:text-text dark:hover:bg-secondary p-2 rounded-md text-secondary dark:text-text cursor-pointer">
           <AccountDropdown />
         </div>
       </div>
@@ -69,15 +69,15 @@ const Sidebar: FC = () => {
           <div
             key={idx}
             className={`flex items-center justify-center p-2 rounded-full cursor-pointer transition-all duration-200 ${activeIcon === item.type
-                ? "bg-yellow-500 dark:bg-gray-700 scale-110" // Scale and color change on active
-                : "bg-transparent hover:bg-gray-200 dark:hover:bg-neutral-700" // Transparent background by default
+                ? "bg-yellow-500 dark:bg-secondary scale-110" // Scale and color change on active
+                : "bg-transparent hover:bg-text dark:hover:bg-secondary" // Transparent background by default
               }`}
             onClick={() => handleIconClick(item.type)}
           >
             <item.icon
               className={`h-6 w-6 ${activeIcon === item.type
-                  ? "text-white" // White icon for active state
-                  : "text-black dark:text-white" // Default icon color
+                  ? "text-text" // Changed from text-white to text-text
+                  : "text-textPrimary dark:text-text" // Changed from text-white to text-text
                 }`}
             />
           </div>
@@ -85,7 +85,7 @@ const Sidebar: FC = () => {
       </div>
 
       {/* AccountDropdown on the right */}
-      <div className="p-2 rounded-full cursor-pointer hover:bg-gray-200 dark:hover:bg-neutral-700">
+      <div className="p-2 rounded-full cursor-pointer hover:bg-text dark:hover:bg-secondary">
         {/* Render MobileAccountDropdown on screens smaller than md (768px) */}
         <div className="md:hidden">
           <MobileAccountDropdown />
@@ -104,7 +104,7 @@ const Sidebar: FC = () => {
       {isMobile || isTablet ? (
         renderMobileDock()
       ) : (
-        <div className="flex flex-col bg-purple-700/20 dark:bg-purple-800 items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
+        <div className="flex flex-col bg-primary dark:bg-primary items-center justify-between min-h-screen w-24 py-10 flex-shrink-0">
           {renderSidebarContent()}
         </div>
       )}
