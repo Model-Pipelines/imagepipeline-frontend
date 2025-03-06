@@ -4,8 +4,6 @@ import React, { useCallback, useState, useMemo } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
-import { uploadBackendFiles, changeBackground } from "@/AxiosApi/GenerativeApi";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
 import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
 import { Label } from "@/components/ui/label";
@@ -13,13 +11,8 @@ import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
 
 const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
   <input
@@ -44,49 +37,8 @@ export default function BackGroundChange() {
     [images, selectedImageId]
   );
 
-  const { mutate: uploadBackgroundImage } = useMutation({
-    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
-    onSuccess: (imageUrl) => {
-      setBackgroundImage(imageUrl);
-      toast({ title: "Success", description: "Background image uploaded!" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload background image.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const { mutate: startBackgroundChange } = useMutation({
-    mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeBackground(payload, token),
-    onSuccess: (response) => {
-      if (!response?.id) {
-        toast({
-          title: "Error",
-          description: "Invalid response structure: Missing task ID.",
-          variant: "destructive",
-        });
-        setIsGenerating(false);
-        return;
-      }
-      addTask(response.id, selectedImageId!, "background");
-      toast({ title: "Started", description: "Background change in progress..." });
-
-      setPrompt("");
-      setBackgroundImage(null);
-      setIsGenerating(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to change background.",
-        variant: "destructive",
-      });
-      setIsGenerating(false);
-    },
-  });
+  const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
+  const { mutate: startBackgroundChange } = useChangeBackground();
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -126,8 +78,37 @@ export default function BackGroundChange() {
     };
 
     setIsGenerating(true);
-    startBackgroundChange({ data: payload, token });
-  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken]);
+    startBackgroundChange(
+      { data: payload, token },
+      {
+        onSuccess: (response) => {
+          if (!response?.id) {
+            toast({
+              title: "Error",
+              description: "Invalid response structure: Missing task ID.",
+              variant: "destructive",
+            });
+            setIsGenerating(false);
+            return;
+          }
+          addTask(response.id, selectedImageId!, "background");
+          toast({ title: "Started", description: "Background change in progress..." });
+
+          setPrompt("");
+          setBackgroundImage(null);
+          setIsGenerating(false);
+        },
+        onError: (error: any) => {
+          toast({
+            title: "Error",
+            description: error.message || "Failed to change background.",
+            variant: "destructive",
+          });
+          setIsGenerating(false);
+        },
+      }
+    );
+  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,7 +123,22 @@ export default function BackGroundChange() {
           });
           return;
         }
-        uploadBackgroundImage({ data: file, token });
+        uploadBackgroundImage(
+          { data: file, token },
+          {
+            onSuccess: (imageUrl) => {
+              setBackgroundImage(imageUrl);
+              toast({ title: "Success", description: "Background image uploaded!" });
+            },
+            onError: (error: any) => {
+              toast({
+                title: "Error",
+                description: error.message || "Failed to upload background image.",
+                variant: "destructive",
+              });
+            },
+          }
+        );
       }
     },
     [uploadBackgroundImage, toast, getToken]
