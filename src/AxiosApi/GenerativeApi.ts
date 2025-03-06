@@ -343,6 +343,15 @@ export const getBackgroundTaskStatus = async (taskId: string, token: string): Pr
   const response = await apiClient.get(`/bgchanger/v1/status/${taskId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
+  
+  // If the response contains multiple images, only return the first one
+  if (response.data.download_urls && Array.isArray(response.data.download_urls)) {
+    return {
+      ...response.data,
+      download_urls: [response.data.download_urls[0]] // Only take the first URL
+    };
+  }
+  
   return response.data;
 };
 
