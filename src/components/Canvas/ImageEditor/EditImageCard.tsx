@@ -34,7 +34,7 @@ export function EditImageCard() {
       </div>
 
       {/* Tabs List - Removed info icons */}
-      <TabsList className="grid w-full grid-cols-3 bg-gray-100 p-1.5 rounded-lg mb-6">
+      <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-bordergraydark p-1.5 rounded-lg mb-6">
         <TabsTrigger
           value="background-change"
           className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"

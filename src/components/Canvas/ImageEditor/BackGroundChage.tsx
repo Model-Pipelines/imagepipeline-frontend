@@ -26,7 +26,7 @@ const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HT
     type="file"
     accept="image/*"
     onChange={onChange}
-    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-accent hover:file:bg-accent"
+    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-accent hover:file:bg-[var(--muted)] dark:hover:file:bg-[var(--muted-foreground)]"
   />
 ));
 
@@ -167,7 +167,7 @@ export default function BackGroundChange() {
             placeholder="Describe the new background"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="w-full"
+            className="w-full hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -203,7 +203,7 @@ export default function BackGroundChange() {
                 />
                 <button
                   onClick={() => setBackgroundImage(null)}
-                  className="absolute top-2 right-2 p-2 bg-text rounded-full shadow-md"
+                  className="absolute top-2 right-2 p-2 bg-text rounded-full shadow-md hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -216,7 +216,7 @@ export default function BackGroundChange() {
         <Button
           onClick={handleSubmit}
           disabled={!selectedImage || isGenerating}
-          className="w-full bg-accent hover:bg-info"
+          className="w-full bg-accent hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
         >
           {isGenerating ? (
             <TextShimmerWave>Generating...</TextShimmerWave>

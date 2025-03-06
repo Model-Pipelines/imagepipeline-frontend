@@ -113,7 +113,7 @@ const DropdownMenuBar = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="cursor-pointer">
           Close
-          <X className="w-4 h-4 ml-auto" />
+          <X className="w-4 h-4 ml-auto " />
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
