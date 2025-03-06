@@ -362,7 +362,7 @@ export default function InfiniteCanvas() {
         <canvas
           ref={canvasRef}
           className={cn(
-            "absolute inset-0 bg-white dark:bg-black/25 touch-none",
+            "absolute inset-0 bg-text dark:bg-black/25 touch-none",
             isDragging ? "cursor-grabbing" : "cursor-grab",
             isResizing ? "cursor-nwse-resize" : ""
           )}

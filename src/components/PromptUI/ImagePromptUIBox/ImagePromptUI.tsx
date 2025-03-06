@@ -394,7 +394,7 @@ const ImagePromptUI = () => {
                     >
                       <Button
                         onClick={handleDescribeImage}
-                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-secondary dark:bg-accent hover:bg-secondary text-text"
+                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-success hover:bg-chart-2 dark:bg-success dark:hover:bg-chart-2 text-text"
                         disabled={!image_url || !!describeTaskId}
                       >
                         {describeTaskId ? (
@@ -455,7 +455,7 @@ const ImagePromptUI = () => {
                   value={text}
                   onChange={(e) => setInputTextStore(e.target.value)}
                   placeholder="Describe what you want to generate..."
-                  className="w-full pl-10 pr-2 bg-info dark:bg-background resize-none rounded-lg"
+                  className="w-full pl-10 pr-2 bg-info dark:bg-bordergraydark resize-none rounded-lg"
                   rows={3}
                 />
               </motion.div>
@@ -495,8 +495,8 @@ const ImagePromptUI = () => {
                       size="icon"
                       className={cn(
                         "h-10 w-10 rounded-md border border-info dark:border-info",
-                        magic_prompt ? "bg-blue-100 dark:bg-accent text-accent dark:text-accent" : "bg-info dark:bg-foreground text-muted-foreground dark:text-info",
-                        "hover:bg-blue-50 dark:hover:bg-foreground"
+                        magic_prompt ? "bg-lightblue dark:bg-secondary text-bordergray dark:text-text" : "bg-info dark:bg-bordergray text-muted-foreground dark:text-info",
+                        "hover:bg-lightbluehover dark:hover:bg-foreground"
                       )}
                       onClick={handleMagicPromptClick}
                       aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}

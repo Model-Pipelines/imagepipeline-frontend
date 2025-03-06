@@ -31,7 +31,7 @@ const ImageUploadLoader: React.FC<ImageUploadLoaderProps> = ({ imagePreview, isU
 
       {/* Show Loader Only During Uploading */}
       {isUploading && (
-        <div className="absolute inset-0 bg-textPrimary bg-opacity-50 flex flex-col items-center justify-center gap-2 z-[60]">
+        <div className="absolute inset-0 bg-bordergray bg-opacity-50 flex flex-col items-center justify-center gap-2 z-[60]">
           <CircularBarsSpinnerLoader />
         </div>
       )}
