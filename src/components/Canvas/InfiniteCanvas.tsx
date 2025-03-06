@@ -46,16 +46,17 @@ export default function InfiniteCanvas() {
     setIsDragging,
     setIsResizing,
     setResizeHandle,
+    setOffset,
   } = useCanvasStore();
   const { getToken } = useAuth(); // Get token function from Clerk
   const { toast } = useToast(); // For user feedback
 
-  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
-  const [currentAction, setCurrentAction] = useState<"move" | "resize" | null>(null);
+  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [startOffset, setStartOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [currentAction, setCurrentAction] = useState<"move" | "resize" | "pan" | "zoom" | null>(null);
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+  const [lastClientPos, setLastClientPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [lastPinchDistance, setLastPinchDistance] = useState<number>(0);
 
   // Mutation for uploading images to the backend
   const { mutate: uploadImage } = useMutation({
@@ -133,34 +134,164 @@ export default function InfiniteCanvas() {
   // Coordinate transformation
   const getCanvasCoords = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
     return {
-      x: (clientX - (rect?.left || 0) - offset.x) / scale,
-      y: (clientY - (rect?.top || 0) - offset.y) / scale,
+      x: (clientX - rect.left),
+      y: (clientY - rect.top)
     };
   };
 
-  // Mouse and touch handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     const canvasPos = getCanvasCoords(e.clientX, e.clientY);
+    setLastClientPos({ x: e.clientX, y: e.clientY });
     handleActionStart(canvasPos);
+  };
+
+  // Add wheel event handler for desktop zoom
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const { setScale } = useCanvasStore.getState();
+    
+    // Calculate zoom center in canvas coordinates
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Convert mouse position to world coordinates before zoom
+    const worldX = (mouseX - offset.x) / scale;
+    const worldY = (mouseY - offset.y) / scale;
+    
+    // Calculate new scale
+    const delta = e.deltaY * -0.01;
+    const newScale = Math.min(Math.max(scale + delta, 0.1), 5);
+    
+    // Calculate new offset to keep the point under mouse fixed
+    const newOffset = {
+      x: mouseX - worldX * newScale,
+      y: mouseY - worldY * newScale
+    };
+    
+    setScale(newScale);
+    setOffset(newOffset);
+  };
+
+  // Calculate distance between two touch points
+  const getTouchDistance = (touch1: React.Touch, touch2: React.Touch): number => {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  // Get center point between two touches
+  const getTouchCenter = (touch1: React.Touch, touch2: React.Touch) => {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    };
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
-    handleActionStart(canvasPos);
+    e.preventDefault();
+    
+    if (e.touches.length === 2) {
+      // Start pinch-to-zoom
+      const distance = getTouchDistance(e.touches[0], e.touches[1]);
+      setLastPinchDistance(distance);
+      setCurrentAction("zoom");
+      setIsDragging(false);
+    } else if (e.touches.length === 1) {
+      // Start drag
+      const touch = e.touches[0];
+      const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
+      setLastClientPos({ x: touch.clientX, y: touch.clientY });
+      handleActionStart(canvasPos);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    
+    if (!isDragging && currentAction !== "zoom") return;
+
+    if (e.touches.length === 2 && currentAction === "zoom") {
+      // Handle pinch-to-zoom
+      const { setScale } = useCanvasStore.getState();
+      const distance = getTouchDistance(e.touches[0], e.touches[1]);
+      const center = getTouchCenter(e.touches[0], e.touches[1]);
+      
+      // Calculate zoom
+      const deltaScale = (distance - lastPinchDistance) * 0.005; // Reduced sensitivity
+      const newScale = Math.min(Math.max(scale + deltaScale, 0.1), 5);
+      
+      // Calculate zoom center in canvas coordinates
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      
+      const centerX = center.x - rect.left;
+      const centerY = center.y - rect.top;
+      
+      // Convert center position to world coordinates before zoom
+      const worldX = (centerX - offset.x) / scale;
+      const worldY = (centerY - offset.y) / scale;
+      
+      // Calculate new offset to keep the center point fixed
+      const newOffset = {
+        x: centerX - worldX * newScale,
+        y: centerY - worldY * newScale
+      };
+      
+      setScale(newScale);
+      setOffset(newOffset);
+      setLastPinchDistance(distance);
+    } else if (e.touches.length === 1 && isDragging) {
+      // Handle drag
+      const touch = e.touches[0];
+      const dx = touch.clientX - lastClientPos.x;
+      const dy = touch.clientY - lastClientPos.y;
+      setLastClientPos({ x: touch.clientX, y: touch.clientY });
+      
+      const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
+      handleActionMove(canvasPos, dx, dy);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (e.touches.length === 0) {
+      handleActionEnd();
+      setCurrentAction(null);
+    } else if (e.touches.length === 1 && currentAction === "zoom") {
+      // Switch from zoom to drag
+      const touch = e.touches[0];
+      setLastClientPos({ x: touch.clientX, y: touch.clientY });
+      const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
+      handleActionStart(canvasPos);
+    }
+  };
+
+  // Add onTouchCancel handler
+  const handleTouchCancel = () => {
+    handleActionEnd();
+    setCurrentAction(null);
   };
 
   const handleActionStart = (canvasPos: { x: number; y: number }) => {
+    const worldPos = {
+      x: (canvasPos.x - offset.x) / scale,
+      y: (canvasPos.y - offset.y) / scale
+    };
+
     if (selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (img) {
-        const handle = getResizeHandle(img, canvasPos);
+        const handle = getResizeHandle(img, worldPos);
         if (handle) {
           setIsResizing(true);
           setResizeHandle(handle);
           setCurrentAction("resize");
-          setActionStart(canvasPos);
+          setActionStart(worldPos);
           return;
         }
       }
@@ -168,56 +299,62 @@ export default function InfiniteCanvas() {
 
     const clickedImage = images.find(
       (img) =>
-        canvasPos.x >= img.position.x &&
-        canvasPos.x <= img.position.x + img.size.width &&
-        canvasPos.y >= img.position.y &&
-        canvasPos.y <= img.position.y + img.size.height
+        worldPos.x >= img.position.x &&
+        worldPos.x <= img.position.x + img.size.width &&
+        worldPos.y >= img.position.y &&
+        worldPos.y <= img.position.y + img.size.height
     );
+
     if (clickedImage) {
       setSelectedImageId(clickedImage.id);
       setIsDragging(true);
       setCurrentAction("move");
-      setActionStart(canvasPos);
+      setActionStart(worldPos);
+    } else {
+      setSelectedImageId(null);
+      setIsDragging(true);
+      setCurrentAction("pan");
+      setStartOffset(offset);
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    
+    const dx = e.clientX - lastClientPos.x;
+    const dy = e.clientY - lastClientPos.y;
+    setLastClientPos({ x: e.clientX, y: e.clientY });
+    
     const canvasPos = getCanvasCoords(e.clientX, e.clientY);
-    handleActionMove(canvasPos);
+    handleActionMove(canvasPos, dx, dy);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
-    handleActionMove(canvasPos);
-  };
-
-  const handleActionMove = (canvasPos: { x: number; y: number }) => {
+  const handleActionMove = (canvasPos: { x: number; y: number }, dx: number, dy: number) => {
     if (!canvasRef.current) return;
+
+    const worldPos = {
+      x: (canvasPos.x - offset.x) / scale,
+      y: (canvasPos.y - offset.y) / scale
+    };
 
     if (currentAction === "move" && selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (!img) return;
 
-      const dx = canvasPos.x - actionStart.x;
-      const dy = canvasPos.y - actionStart.y;
-
       updateImage(selectedImageId, {
         position: {
-          x: img.position.x + dx,
-          y: img.position.y + dy,
+          x: img.position.x + dx / scale,
+          y: img.position.y + dy / scale,
         },
       });
-
-      setActionStart(canvasPos);
-    }
-
-    if (currentAction === "resize" && selectedImageId && resizeHandle) {
+    } else if (currentAction === "pan") {
+      setOffset({
+        x: offset.x + dx,
+        y: offset.y + dy
+      });
+    } else if (currentAction === "resize" && selectedImageId && resizeHandle) {
       const img = images.find((img) => img.id === selectedImageId);
       if (!img) return;
-
-      const dx = (canvasPos.x - actionStart.x) * scale;
-      const dy = (canvasPos.y - actionStart.y) * scale;
 
       let newWidth = img.size.width;
       let newHeight = img.size.height;
@@ -251,16 +388,10 @@ export default function InfiniteCanvas() {
         position: { x: newX, y: newY },
         size: { width: newWidth, height: newHeight },
       });
-
-      setActionStart(canvasPos);
     }
   };
 
   const handleMouseUp = () => {
-    handleActionEnd();
-  };
-
-  const handleTouchEnd = () => {
     handleActionEnd();
   };
 
@@ -362,7 +493,7 @@ export default function InfiniteCanvas() {
         <canvas
           ref={canvasRef}
           className={cn(
-            "absolute inset-0 bg-text dark:bg-black/25 touch-none",
+            "absolute inset-0 bg-text dark:bg-black/25 touch-none select-none",
             isDragging ? "cursor-grabbing" : "cursor-grab",
             isResizing ? "cursor-nwse-resize" : ""
           )}
@@ -373,7 +504,8 @@ export default function InfiniteCanvas() {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          onTouchCancel={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+          onWheel={handleWheel}
         />
 
         {images.map((img) => (
