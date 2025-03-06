@@ -626,11 +626,11 @@ const ImagePromptUI = () => {
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-10 w-10 rounded-md border border-bordergray dark:border-bordergraydark",
+                        "h-10 w-10 rounded-md border transition-colors",
                         isPublic
-                          ? "bg-lightblue dark:bg-blue-900/20 text-accent dark:text-notice"
-                          : "bg-bordergray dark:bg-background text-bordergraydark dark:text-bordergray",
-                        "hover:bg-lightblue dark:hover:bg-[#2A2A2D]/80",
+                          ? "bg-success text-text dark:text-notice"
+                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
+                        "hover:bg-muted dark:hover:bg-muted",
                         !canMakePrivate() &&
                           !isPublic &&
                           "opacity-50 cursor-not-allowed"
