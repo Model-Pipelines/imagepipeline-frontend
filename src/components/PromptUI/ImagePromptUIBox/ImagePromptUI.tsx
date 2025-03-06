@@ -519,9 +519,9 @@ const ImagePromptUI = () => {
                       variant="outline"
                       size="icon"
                       className={cn(
-                        "h-10 w-10 rounded-md border border-gray-300 dark:border-gray-600",
-                        isPublic ? "bg-blue-100 dark:bg-blue-900/20 text-accent dark:text-blue-400" : "bg-gray-100 dark:bg-background text-gray-700 dark:text-gray-300",
-                        "hover:bg-blue-50 dark:hover:bg-[#2A2A2D]/80",
+                        "h-10 w-10 rounded-md border border-bordergray dark:border-bordergraydark",
+                        isPublic ? "bg-lightblue dark:bg-blue-900/20 text-accent dark:text-notice" : "bg-bordergray dark:bg-background text-bordergraydark dark:text-bordergray",
+                        "hover:bg-lightblue dark:hover:bg-[#2A2A2D]/80",
                         !canMakePrivate() && !isPublic && "opacity-50 cursor-not-allowed"
                       )}
                       onClick={handleTogglePublic}
@@ -548,21 +548,21 @@ const ImagePromptUI = () => {
             <div className="flex items-center gap-2">
               <Button
                 onClick={toggleColorPalette}
-                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-accent hover:bg-notice text-white" : "bg-gray-200 hover:bg-gray-300 text-gray-700"
+                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-accent hover:bg-notice text-text" : "bg-bordergray hover:bg-gray-300 text-gray-700"
                   }`}
                 aria-label="Toggle color palette"
               >
-                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-text" : "text-gray-700"}`} />
+                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-text" : "text-bordergraydark"}`} />
                 <span className="ml-2 truncate">{buttonText}</span>
               </Button>
               <Button
                 onClick={toggleSettingsPanel}
-                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-accent hover:bg-notice" : "bg-gray-200 hover:bg-gray-300"
+                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-accent hover:bg-notice" : "bg-bordergray hover:bg-gray-300"
                   }`}
                 aria-label="Toggle settings"
               >
                 <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-text" : "text-textPrimary"}`} />
-                <span className="hidden lg:ml-2 lg:inline text-gray-700">Settings</span>
+                <span className="hidden lg:ml-2 lg:inline text-bordergraydark">Settings</span>
               </Button>
             </div>
           </div>

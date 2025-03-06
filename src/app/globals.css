@@ -40,6 +40,10 @@ body {
     --radius: 0.5rem;
     --text: hsl(0, 0%, 100%); /* Changed to white */
     --text-primary: hsl(0, 0%, 0%); /* Changed to black */
+    --lightblue: hsl(214, 95%, 93%);
+    --lightbluehover: hsl(213, 97%, 87%);
+    --bordergray: hsl(216, 12%, 84%);
+    --bordergraydark: hsl(217, 19%, 27%);
   }
   .dark {
     --primary: hsl(280, 67%, 39%); /* #6B21A8 */

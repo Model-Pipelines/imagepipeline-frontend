@@ -42,7 +42,7 @@ const InfoButton = ({ description }: { description: string }) => (
   <div className="relative inline-block ml-2 group">
     <Info 
       size={16} 
-      className="text-gray-500 hover:text-chart-3 cursor-help"
+      className="text-muted-foreground hover:text-chart-3 cursor-help"
     />
     <div className="absolute hidden group-hover:block bg-textPrimary text-text text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
       {description}
@@ -65,7 +65,7 @@ const DimensionInput = ({
 }) => (
   <div className="flex flex-col items-start w-1/2">
     <div className="flex items-center">
-      <Label htmlFor={id} className="text-sm font-semibold text-chart-3 dark:text-gray-200">
+      <Label htmlFor={id} className="text-sm font-semibold text-chart-3 dark:text-bordergray">
         {label}
       </Label>
       <InfoButton description={description} />
@@ -76,7 +76,7 @@ const DimensionInput = ({
       name={id}
       value={value}
       onChange={onChange}
-      className="w-full text-sm p-2 border border-gray-300 dark:border-gray-700 rounded-md focus:ring-2 focus:ring-yellow-500 dark:bg-gray-700 dark:text-gray-200"
+      className="w-full text-sm p-2 border border-bordergray dark:border-bordergraydark rounded-md focus:ring-2 focus:ring-yellow-500 dark:bg-bordergraydark dark:text-bordergray"
     />
   </div>
 );
@@ -181,7 +181,7 @@ const AspectRatioTab = () => {
             className={`px-2 ${
               storedRatio === ratio 
                 ? "bg-warning text-text" 
-                : "bg-gray-100 hover:bg-gray-200"
+                : "bg-gray-bordergray hover:bg-gray-200"
             }`}
             onClick={() => handleRatioClick(ratio)}
           >

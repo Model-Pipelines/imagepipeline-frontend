@@ -19,7 +19,7 @@ export const MagicPromptToggle = () => {
   return (
     <button
       className={cn(
-        "group relative inline-flex items-center justify-center overflow-hidden bg-white hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700",
+        "group relative inline-flex items-center justify-center overflow-hidden bg-text hover:bg-neutral-100 dark:bg-neutral-800 dark:hover:bg-neutral-700",
         // Mobile styles (default)
         "h-12 w-12 rounded-full border border-neutral-500/10",
         // Desktop styles (md and up)
@@ -39,9 +39,9 @@ export const MagicPromptToggle = () => {
         {loading ? (
           <Loader2 className="animate-spin" />
         ) : aiMode === "on" ? (
-          <Sparkles className="text-indigo-400" />
+          <Sparkles className="text-notice" />
         ) : (
-          <Sparkle className="text-rose-400" />
+          <Sparkle className="text-destructive" />
         )}
       </span>
 
@@ -66,7 +66,7 @@ export const MagicPromptToggle = () => {
       </span>
 
       {/* Mobile tooltip - only visible on hover on small screens */}
-      <span className="absolute left-full ml-2 hidden whitespace-nowrap rounded bg-neutral-900 px-2 py-1 text-sm text-white opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700 sm:block md:hidden">
+      <span className="absolute left-full ml-2 hidden whitespace-nowrap rounded bg-neutral-900 px-2 py-1 text-sm text-text opacity-0 transition-opacity group-hover:opacity-100 dark:bg-neutral-700 sm:block md:hidden">
         {aiMode === "on" ? "Magic Prompt On" : "Magic Prompt Off"}
       </span>
     </button>

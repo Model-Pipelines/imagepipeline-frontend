@@ -49,6 +49,10 @@ export default {
   			},
   			text: 'var(--text)',
   			textPrimary: 'var(--text-primary)',
+			lightblue: 'var(--lightblue)',
+			lightbluehover: 'var(--lightbluehover)',
+			bordergray: 'var(--bordergray)',
+			bordergraydark: 'var(--bordergraydark)',
   		},
   		borderRadius: {
   			lg: 'var(--radius)',

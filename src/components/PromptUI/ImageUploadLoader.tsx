@@ -11,10 +11,10 @@ const ImageUploadLoader: React.FC<ImageUploadLoaderProps> = ({ imagePreview, isU
   const [isImageLoaded, setIsImageLoaded] = useState(false);
 
   return (
-    <div className="relative w-24 h-24 bg-white rounded-lg overflow-hidden z-50">
+    <div className="relative w-24 h-24 bg-text rounded-lg overflow-hidden z-50">
       {/* White Background Until Image Loads */}
       {!isImageLoaded && !isUploading && (
-        <div className="absolute inset-0 bg-white"></div>
+        <div className="absolute inset-0 bg-text"></div>
       )}
 
       {/* Image Preview (Only Shows After It Fully Loads) */}
@@ -31,7 +31,7 @@ const ImageUploadLoader: React.FC<ImageUploadLoaderProps> = ({ imagePreview, isU
 
       {/* Show Loader Only During Uploading */}
       {isUploading && (
-        <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center gap-2 z-[60]">
+        <div className="absolute inset-0 bg-textPrimary bg-opacity-50 flex flex-col items-center justify-center gap-2 z-[60]">
           <CircularBarsSpinnerLoader />
         </div>
       )}

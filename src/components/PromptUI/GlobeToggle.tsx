@@ -21,18 +21,18 @@ export function GlobeToggle() {
       type="button"
       onClick={handleToggle}
       className={cn(
-        "group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-neutral-500/10 bg-white p-2 text-neutral-600 hover:bg-neutral-100 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700",
+        "group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-neutral-500/10 bg-text p-2 text-info hover:bg-neutral-100 dark:bg-background dark:text-neutral-300 dark:hover:bg-neutral-700",
         // On medium screens and up, modify the shape and padding
         "md:rounded-md md:px-4 md:py-2",
       )}
     >
       <span className="relative size-6">
         {loading ? (
-          <Loader2 className="animate-spin text-gray-500" />
+          <Loader2 className="animate-spin text-bordergraydark" />
         ) : visibility === "public" ? (
-          <Globe className="text-blue-400" />
+          <Globe className="text-accent" />
         ) : (
-          <Lock className="text-rose-400" />
+          <Lock className="text-chart-1" />
         )}
       </span>
       {/* Hide text on mobile, show on md and up */}

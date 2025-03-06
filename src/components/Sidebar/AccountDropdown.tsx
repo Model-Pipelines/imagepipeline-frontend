@@ -47,7 +47,7 @@ export default function AccountDropdown() {
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="h-8 w-8 flex items-center justify-center bg-transparent dark:text-white cursor-pointer"
+        className="h-8 w-8 flex items-center justify-center bg-transparent dark:text-text cursor-pointer"
       >
         <Menu />
       </button>

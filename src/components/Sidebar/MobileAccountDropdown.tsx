@@ -31,7 +31,7 @@ export default function MobileAccountDropdown() {
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="h-8 w-8 flex items-center justify-center bg-transparent dark:text-white"
+        className="h-8 w-8 flex items-center justify-center bg-transparent dark:text-text"
       >
         <Menu />
       </button>

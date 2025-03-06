@@ -25,7 +25,7 @@ export function ProfileFooter() {
   } = useCanvasStore();
 
   return (
-    <CardFooter className="flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400 cursor-default">
+    <CardFooter className="flex flex-col sm:flex-row items-center justify-between text-xs text-bordergraydark dark:text-gray-400 cursor-default">
       {/* Left Section: Terms and Privacy */}
       <div className="flex gap-4 mb-2 sm:mb-0 cursor-default">
         <Link

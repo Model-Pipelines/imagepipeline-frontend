@@ -35,7 +35,7 @@ const ImageUploader = ({ image, onUpload, onRemove }: ImageUploaderProps) => {
 
   return (
     <motion.div
-      className="w-14 h-20 bg-gray-100 rounded-lg overflow-hidden cursor-pointer relative"
+      className="w-14 h-20 bg-bordergray rounded-lg overflow-hidden cursor-pointer relative"
       variants={variants}
       whileHover="hover"
       whileTap="tap"
@@ -58,7 +58,7 @@ const ImageUploader = ({ image, onUpload, onRemove }: ImageUploaderProps) => {
               e.stopPropagation(); // Prevent triggering file input
               onRemove();
             }}
-            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+            className="absolute top-1 right-1 bg-red-500 text-text rounded-full p-1 hover:bg-red-600"
             disabled={isUploading} // Disable remove button during upload
           >
             <FaTimes size={12} />
@@ -67,11 +67,11 @@ const ImageUploader = ({ image, onUpload, onRemove }: ImageUploaderProps) => {
       ) : (
         <label
           htmlFor={`fileInput-${image || "new"}`}
-          className="w-full h-full flex items-center justify-center text-gray-400 cursor-pointer"
+          className="w-full h-full flex items-center justify-center text-bordergray cursor-pointer"
         >
           {isUploading ? (
             <motion.div
-              className="w-6 h-6 border-2 border-gray-400 border-t-transparent rounded-full"
+              className="w-6 h-6 border-2 border-bordergray border-t-transparent rounded-full"
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
             />
