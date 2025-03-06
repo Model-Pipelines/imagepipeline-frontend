@@ -75,6 +75,7 @@ export default function BackGroundChange() {
       samples: 1,
       negative_prompt: "pixelated, low res, blurry, watermark, text, bad anatomy",
       seed: -1,
+      num_outputs: 1
     };
 
     setIsGenerating(true);
@@ -92,11 +93,10 @@ export default function BackGroundChange() {
             return;
           }
           addTask(response.id, selectedImageId!, "background");
-          toast({ title: "Started", description: "Background change in progress..." });
-
           setPrompt("");
           setBackgroundImage(null);
           setIsGenerating(false);
+          toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
           toast({
