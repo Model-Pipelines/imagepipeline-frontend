@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,15 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import { useQuery } from "@tanstack/react-query";
+import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
+
+interface TaskResponse {
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  download_urls?: string[];
+  image_url?: string;
+  error?: string;
+}
 
 const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
   <input
@@ -27,6 +36,7 @@ export default function BackGroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
   const { selectedImageId, images } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
@@ -39,6 +49,21 @@ export default function BackGroundChange() {
 
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
+
+  // Add task status polling
+  const { data: taskStatus } = useQuery<TaskResponse, Error>({
+    queryKey: ["backgroundTask", taskId],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getBackgroundTaskStatus(taskId!, token);
+    },
+    enabled: !!taskId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data && (data.status === "SUCCESS" || data.status === "FAILURE") ? false : 5000;
+    },
+  });
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -92,6 +117,7 @@ export default function BackGroundChange() {
             setIsGenerating(false);
             return;
           }
+          setTaskId(response.id);
           addTask(response.id, selectedImageId!, "background");
           setPrompt("");
           setBackgroundImage(null);
@@ -109,6 +135,26 @@ export default function BackGroundChange() {
       }
     );
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask]);
+
+  // Add effect to handle task status changes
+  useEffect(() => {
+    if (taskStatus) {
+      if (taskStatus.status === "SUCCESS") {
+        toast({
+          title: "Success",
+          description: "Background changed successfully!",
+        });
+        setTaskId(null);
+      } else if (taskStatus.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: taskStatus.error || "Failed to change background",
+          variant: "destructive",
+        });
+        setTaskId(null);
+      }
+    }
+  }, [taskStatus, toast]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
