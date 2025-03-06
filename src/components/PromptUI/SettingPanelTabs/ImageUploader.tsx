@@ -76,7 +76,7 @@ const ImageUploader = ({ image, onUpload, onRemove }: ImageUploaderProps) => {
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
             />
           ) : (
-            <FaUpload size={24} />
+            <FaUpload size={24} color="white" />
           )}
         </label>
       )}

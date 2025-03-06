@@ -269,7 +269,7 @@ const StyleTab = () => {
             <SelectTrigger>
               <SelectValue placeholder="Select style" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="dark:bg-muted-foreground">
               {STYLE_OPTIONS.map((style) => (
                 <SelectItem key={style} value={style}>
                   {style}
@@ -300,6 +300,7 @@ const StyleTab = () => {
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Style description"
+        className="dark:hover:bg-[var(--bordergray)]"
       />
 
       <Button

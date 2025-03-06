@@ -172,7 +172,7 @@ export default function CustomColorPalette() {
 
   return (
     isVisible && (
-      <Card className="fixed z-[1000] w-[320px] bg-white/90 backdrop-blur-md shadow-lg rounded-xl border border-gray-200">
+      <Card className="fixed z-[1000] w-[320px] bg-white/90 dark:bg-secondary backdrop-blur-md shadow-lg rounded-xl border border-gray-200">
         <CardContent className="p-4">
           <Button
             variant="ghost"
@@ -181,9 +181,9 @@ export default function CustomColorPalette() {
             onClick={() => setIsVisible(false)}
             aria-label="Close palette"
           >
-            <X className="h-4 w-4 text-gray-700" />
+            <X className="h-4 w-4 text-gray-700 dark:text-bordergray" />
           </Button>
-          <h2 className="mb-4 text-lg text-gray-800 font-medium">Color Palette</h2>
+          <h2 className="mb-4 text-lg text-gray-800 font-medium dark:text-bordergray">Color Palette</h2>
           <ScrollArea className="h-[300px] pr-2">
             <div className="space-y-2">
               {defaultPalettes.map((palette) => (
@@ -193,8 +193,8 @@ export default function CustomColorPalette() {
                     className={cn(
                       "w-full justify-between py-3 px-4 text-gray-800 font-medium rounded-md",
                       selectedPaletteName === palette.name
-                        ? "bg-blue-100 border border-blue-500 text-blue-700"
-                        : "bg-slate-100 hover:bg-blue-50 hover:shadow-sm"
+                        ? "bg-blue-100 border dark:bg-bordergray border-accent text-notice"
+                        : "bg-slate-100 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] hover:shadow-sm"
                     )}
                     onClick={() => handlePaletteSelect(palette)}
                     aria-label={`Select ${palette.name} palette`}
@@ -227,8 +227,8 @@ export default function CustomColorPalette() {
                   className={cn(
                     "w-full justify-between py-3 px-4 text-gray-800 font-medium rounded-md",
                     selectedPaletteName === "custom"
-                      ? "bg-blue-100 border border-blue-500 text-blue-700"
-                      : "bg-slate-100 hover:bg-blue-50 hover:shadow-sm"
+                      ? "bg-blue-100 border border-accent text-notice"
+                      : "bg-slate-100 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] hover:shadow-sm"
                   )}
                   onClick={() => handlePaletteSelect({ name: "custom", colors: customColors })}
                   aria-label="Select custom palette"
@@ -297,7 +297,6 @@ export default function CustomColorPalette() {
                     ))}
                   </div>
                 </Button>
-
               </div>
             </div>
           </ScrollArea>

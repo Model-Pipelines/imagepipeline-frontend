@@ -76,7 +76,6 @@ const FaceTab = () => {
   const { addTask } = useGenerativeTaskStore();
   const { getToken } = useAuth(); // Get token function from Clerk
 
-
   // Mutations with token support
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token) as Promise<string>,
@@ -301,6 +300,7 @@ const FaceTab = () => {
             key={position}
             onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
+            className="hover:bg-[var(--muted)] dark:bg-bordergraydark dark:hover:bg-[var(--muted-foreground)]"
           >
             {position}
           </Button>
@@ -315,12 +315,13 @@ const FaceTab = () => {
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Description"
+        className="hover:bg-[var(--muted)] dark:hover:bg-[var(--bordergray)]"
       />
 
       <Button
         onClick={handleSubmit}
         disabled={!prompt || faceImages.length === 0 || faceImages.length !== selectedPositions.length}
-        className="w-full"
+        className="w-full hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
       >
         Generate
       </Button>
@@ -328,4 +329,4 @@ const FaceTab = () => {
   );
 };
 
-export default FaceTab;
+export default FaceTab; 

@@ -180,8 +180,8 @@ const AspectRatioTab = () => {
             variant={storedRatio === ratio ? "default" : "outline"}
             className={`px-2 ${
               storedRatio === ratio 
-                ? "bg-warning text-text" 
-                : "bg-gray-bordergray hover:bg-gray-200"
+                ? "bg-accent text-text" 
+                : "bg-gray-bordergray hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
             }`}
             onClick={() => handleRatioClick(ratio)}
           >
@@ -194,7 +194,7 @@ const AspectRatioTab = () => {
         <h3 className="text-sm font-medium">Custom Dimensions</h3>
         <InfoButton description="Enter custom width and height values (64px to 1440px)" />
       </div>
-      <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+      <div className="bg-bordergray dark:bg-bordergraydark p-4 rounded-lg">
         <div className="flex items-center justify-between space-x-4">
           <DimensionInput 
             label="Height" 
@@ -216,7 +216,7 @@ const AspectRatioTab = () => {
 
       <Button 
         onClick={handleSave}
-        className="w-full bg-accent hover:bg-notice text-text"
+        className="w-full bg-accent hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] text-text"
       >
         Save Dimensions
       </Button>
