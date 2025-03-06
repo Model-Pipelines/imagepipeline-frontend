@@ -54,6 +54,7 @@ export default function BackGroundChange() {
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
     queryFn: async () => {
+      console.log("GET request triggered for taskId:", taskId);
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
       return getBackgroundTaskStatus(taskId!, token);
@@ -61,6 +62,7 @@ export default function BackGroundChange() {
     enabled: !!taskId,
     refetchInterval: (query) => {
       const data = query.state.data;
+      console.log("Refetch interval evaluated. Status:", data?.status);
       return data && (data.status === "SUCCESS" || data.status === "FAILURE") ? false : 5000;
     },
   });
