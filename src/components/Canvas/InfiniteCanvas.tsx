@@ -57,6 +57,19 @@ export default function InfiniteCanvas() {
   });
   const [currentAction, setCurrentAction] = useState<"move" | "resize" | "canvas-drag" | null>(null);
   const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
+  const [touchDistance, setTouchDistance] = useState<number | null>(null);
+
+
+  // Add function to calculate distance between two touch points
+  const getTouchDistance = (touch1: Touch, touch2: Touch) => {
+    return Math.hypot(
+      touch1.clientX - touch2.clientX,
+      touch1.clientY - touch2.clientY
+    );
+  };
+
+  
+
 
   // Mutation for uploading images to the backend
   const { mutate: uploadImage } = useMutation({
@@ -147,12 +160,28 @@ export default function InfiniteCanvas() {
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Initialize pinch-to-zoom
+      const touch1 = e.touches[0] as Touch;
+      const touch2 = e.touches[1] as Touch;
+      setTouchDistance(getTouchDistance(touch1, touch2));
+      return;
+    }
+
     const touch = e.touches[0];
     const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
     handleActionStart(canvasPos);
   };
 
   const handleActionStart = (canvasPos: { x: number; y: number }) => {
+    const clickedImage = images.find(
+      (img) =>
+        canvasPos.x >= img.position.x &&
+        canvasPos.x <= img.position.x + img.size.width &&
+        canvasPos.y >= img.position.y &&
+        canvasPos.y <= img.position.y + img.size.height
+    );
+
     if (selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (img) {
@@ -167,22 +196,15 @@ export default function InfiniteCanvas() {
       }
     }
 
-    const clickedImage = images.find(
-      (img) =>
-        canvasPos.x >= img.position.x &&
-        canvasPos.x <= img.position.x + img.size.width &&
-        canvasPos.y >= img.position.y &&
-        canvasPos.y <= img.position.y + img.size.height
-    );
     if (clickedImage) {
       setSelectedImageId(clickedImage.id);
       setIsDragging(true);
       setCurrentAction("move");
-      setActionStart(canvasPos);
     } else {
+      setSelectedImageId(null);
       setCurrentAction("canvas-drag");
-      setActionStart(canvasPos);
     }
+    setActionStart(canvasPos);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -191,10 +213,25 @@ export default function InfiniteCanvas() {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Handle pinch-to-zoom
+      const touch1 = e.touches[0] as Touch;
+      const touch2 = e.touches[1] as Touch;
+      const currentDistance = getTouchDistance(touch1, touch2);
+      if (touchDistance) {
+        const delta = currentDistance - touchDistance;
+        const zoomFactor = 1 + delta * 0.01;
+        useCanvasStore.setState({ scale: Math.min(Math.max(scale * zoomFactor, 0.1), 5) });
+      }
+      setTouchDistance(currentDistance);
+      return;
+    }
+
     const touch = e.touches[0];
     const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
     handleActionMove(canvasPos);
   };
+  
 
   const handleActionMove = (canvasPos: { x: number; y: number }) => {
     if (!canvasRef.current) return;
@@ -273,8 +310,10 @@ export default function InfiniteCanvas() {
   };
 
   const handleTouchEnd = () => {
+    setTouchDistance(null);
     handleActionEnd();
   };
+
 
   const handleActionEnd = () => {
     setIsDragging(false);
