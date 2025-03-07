@@ -87,7 +87,7 @@ const Upscale = () => {
 
     const payload = {
       input_image: selectedImage.url,
-      scale: upscaleFactor,
+      // scale: upscaleFactor,
     };
 
     upscaleImageMutation({ data: payload, token });
