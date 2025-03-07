@@ -30,7 +30,7 @@ export const useImageStore = create<ImageState>()(
         // Add an image if it doesn't already exist
         addImage: (image) =>
           set((state) => {
-            if (state.images.some((img) => img.id === image.id)) return state;
+            if (state.images.some((img) => img.id === image.id || img.url === image.url)) return state;
             return {
               images: [...state.images, image],
             };
