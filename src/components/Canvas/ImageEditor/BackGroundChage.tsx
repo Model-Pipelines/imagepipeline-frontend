@@ -50,7 +50,7 @@ export default function BackGroundChange() {
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
 
-  // Add task status polling
+  // Modify the query configuration
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
     queryFn: async () => {
@@ -61,15 +61,13 @@ export default function BackGroundChange() {
     enabled: !!taskId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      // Stop polling immediately when we get SUCCESS or FAILURE
-      if (data?.status === "SUCCESS" || data?.status === "FAILURE") {
-        return false;
-      }
-      return 5000; // Continue polling every 5 seconds while PENDING
+      return data?.status === "PENDING" ? 5000 : false;
     },
-    // Add these options to better control refetching
+    // Add these to prevent duplicate fetches
     staleTime: 0,
-    retry: false
+    retry: false,
+    // Add this to prevent multiple rapid refetches
+    refetchOnWindowFocus: false
   });
 
   const handleSubmit = useCallback(async () => {
@@ -143,24 +141,31 @@ export default function BackGroundChange() {
     );
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask]);
 
-  // Add effect to handle task status changes
+  // Modify the effect to handle task status changes
   useEffect(() => {
-    if (taskStatus) {
+    if (!taskStatus) return;
+
+    const handleTaskCompletion = () => {
       if (taskStatus.status === "SUCCESS") {
         toast({
           title: "Success",
           description: "Background changed successfully!",
         });
-        // Add a small delay before clearing taskId to ensure we don't get extra fetches
-        setTimeout(() => setTaskId(null), 100);
+        // Clear the task immediately to prevent additional fetches
+        setTaskId(null);
       } else if (taskStatus.status === "FAILURE") {
         toast({
           title: "Error",
           description: taskStatus.error || "Failed to change background",
           variant: "destructive",
         });
-        setTimeout(() => setTaskId(null), 100);
+        setTaskId(null);
       }
+    };
+
+    // Only handle completion states
+    if (taskStatus.status !== "PENDING") {
+      handleTaskCompletion();
     }
   }, [taskStatus, toast]);
 
