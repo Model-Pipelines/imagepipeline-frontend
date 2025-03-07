@@ -54,7 +54,6 @@ export default function BackGroundChange() {
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
     queryFn: async () => {
-      console.log("GET request triggered for taskId:", taskId);
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
       return getBackgroundTaskStatus(taskId!, token);
@@ -62,9 +61,15 @@ export default function BackGroundChange() {
     enabled: !!taskId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      console.log("Refetch interval evaluated. Status:", data?.status);
-      return data && (data.status === "SUCCESS" || data.status === "FAILURE") ? false : 5000;
+      // Stop polling immediately when we get SUCCESS or FAILURE
+      if (data?.status === "SUCCESS" || data?.status === "FAILURE") {
+        return false;
+      }
+      return 5000; // Continue polling every 5 seconds while PENDING
     },
+    // Add these options to better control refetching
+    staleTime: 0,
+    retry: false
   });
 
   const handleSubmit = useCallback(async () => {
@@ -146,14 +151,15 @@ export default function BackGroundChange() {
           title: "Success",
           description: "Background changed successfully!",
         });
-        setTaskId(null);
+        // Add a small delay before clearing taskId to ensure we don't get extra fetches
+        setTimeout(() => setTaskId(null), 100);
       } else if (taskStatus.status === "FAILURE") {
         toast({
           title: "Error",
           description: taskStatus.error || "Failed to change background",
           variant: "destructive",
         });
-        setTaskId(null);
+        setTimeout(() => setTaskId(null), 100);
       }
     }
   }, [taskStatus, toast]);
