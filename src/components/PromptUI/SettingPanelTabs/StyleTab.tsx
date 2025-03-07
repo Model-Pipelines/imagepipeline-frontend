@@ -259,17 +259,17 @@ const StyleTab = () => {
       {uploadSections.map((section) => (
         <div key={section.id} className="space-y-2">
           <div className="flex items-center mb-2">
-            <h3 className="text-sm font-medium">Style Selection</h3>
+            <h3 className="text-sm font-medium dark:text-text">Style Selection</h3>
             <InfoButton description={COMPONENT_DESCRIPTIONS.styleSelector} />
           </div>
           <Select
             value={section.styleOption}
             onValueChange={(value) => handleStyleOptionChange(value, section.id)}
           >
-            <SelectTrigger>
+            <SelectTrigger className="dark:text-text">
               <SelectValue placeholder="Select style" />
             </SelectTrigger>
-            <SelectContent className="dark:bg-muted-foreground">
+            <SelectContent>
               {STYLE_OPTIONS.map((style) => (
                 <SelectItem key={style} value={style}>
                   {style}
@@ -280,7 +280,7 @@ const StyleTab = () => {
 
           <div className="space-y-2">
             <div className="flex items-center">
-              <label>Style Image</label>
+              <label className="dark:text-text">Style Image</label>
               <InfoButton description={COMPONENT_DESCRIPTIONS.styleUploader} />
             </div>
             <ImageUploader
@@ -293,14 +293,14 @@ const StyleTab = () => {
       ))}
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Style Description</h3>
+        <h3 className="text-sm font-medium dark:text-text">Style Description</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
       </div>
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Style description"
-        className="dark:hover:bg-[var(--bordergray)]"
+        className="dark:text-text"
       />
 
       <Button

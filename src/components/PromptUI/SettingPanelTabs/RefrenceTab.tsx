@@ -346,12 +346,12 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
   return (
     <div className="space-y-4">
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Reference Type</h3>
+        <h3 className="text-sm font-medium dark:text-text">Reference Type</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.typeSelector} />
       </div>
       <Select value={type} onValueChange={handleTypeChange}>
-        <SelectTrigger>
-          <SelectValue placeholder="Select type" />
+        <SelectTrigger className="dark:text-text">
+          <SelectValue  placeholder="Select type" />
         </SelectTrigger>
         <SelectContent>
           {REFERENCE_TYPES.map((t) => (
@@ -365,7 +365,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       {type !== "none" && (
         <>
           <div className="flex items-center mb-2">
-            <h3 className="text-sm font-medium">Reference Image</h3>
+            <h3 className="text-sm font-medium dark:text-text">Reference Image</h3>
             <InfoButton description={COMPONENT_DESCRIPTIONS.imageUploader} />
           </div>
           <ImageUploader image={referenceImage} onUpload={handleUpload} onRemove={() => setReferenceImage("")} />
@@ -373,10 +373,10 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       )}
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Image Description</h3>
+        <h3 className="text-sm font-medium dark:text-text">Image Description</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
       </div>
-      <Input value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Description" />
+      <Input value={prompt} className="dark:text-text" onChange={(e) => setPrompt(e.target.value)} placeholder="Description" />
 
       <Button
         onClick={() => handleSubmit("Reference")}

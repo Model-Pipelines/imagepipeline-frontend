@@ -266,7 +266,7 @@ const FaceTab = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Face Images</h3>
+        <h3 className="text-sm font-medium dark:text-text">Face Images</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.imageUploader} />
       </div>
       <div className="flex flex-row gap-4">
@@ -291,7 +291,7 @@ const FaceTab = () => {
       </div>
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Face Positions</h3>
+        <h3 className="text-sm font-medium dark:text-text">Face Positions</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.positionButtons} />
       </div>
       <div className="flex gap-2">
@@ -308,14 +308,14 @@ const FaceTab = () => {
       </div>
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Scene Description</h3>
+        <h3 className="text-sm font-medium dark:text-text">Scene Description</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
       </div>
       <Input
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Description"
-        className="hover:bg-[var(--muted)] dark:hover:bg-[var(--bordergray)]"
+        className="dark:text-text"
       />
 
       <Button

@@ -28,7 +28,7 @@ const SettingsPanel = ({
   onClose,
 }: SettingsPanelProps) => {
   return (
-    <div className="fixed p-4 bg-white/20 backdrop-blur-md text-black rounded-xl shadow-lg w-96 ring-1 ring-black/5 isolate">
+    <div className="fixed p-4 bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md text-black rounded-xl shadow-lg w-96 ring-1 ring-black/5 isolate">
       <button
         onClick={onClose}
         className="absolute top-3 right-3 p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition"

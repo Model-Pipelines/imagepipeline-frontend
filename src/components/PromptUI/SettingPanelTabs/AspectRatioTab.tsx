@@ -170,7 +170,7 @@ const AspectRatioTab = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Preset Ratios</h3>
+        <h3 className="text-sm font-medium dark:text-text">Preset Ratios</h3>
         <InfoButton description="Quick select common aspect ratios for your images" />
       </div>
       <div className="grid grid-cols-3 gap-2">
@@ -178,7 +178,7 @@ const AspectRatioTab = () => {
           <Button
             key={ratio}
             variant={storedRatio === ratio ? "default" : "outline"}
-            className={`px-2 ${
+            className={`px-2 dark:text-text ${
               storedRatio === ratio 
                 ? "bg-accent text-text" 
                 : "bg-gray-bordergray hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
@@ -191,10 +191,10 @@ const AspectRatioTab = () => {
       </div>
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium">Custom Dimensions</h3>
+        <h3 className="text-sm font-medium dark:text-text">Custom Dimensions</h3>
         <InfoButton description="Enter custom width and height values (64px to 1440px)" />
       </div>
-      <div className="bg-bordergray dark:bg-bordergraydark p-4 rounded-lg">
+      <div className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 p-4 rounded-lg">
         <div className="flex items-center justify-between space-x-4">
           <DimensionInput 
             label="Height" 
