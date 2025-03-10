@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -105,7 +104,7 @@ export default function CustomColorPalette() {
     setPaletteImage,
   } = useSettingPanelStore()
 
-  const [customColors, setCustomColors] = useState<string[]>(Array(5).fill("#FFFFFF"))
+  const [customColors, setCustomColors] = useState<string[]>(Array(5).fill("")) // Initialize with empty strings
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null)
   const [inputValue, setInputValue] = useState<string>("")
   const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null)
@@ -113,7 +112,7 @@ export default function CustomColorPalette() {
 
   useEffect(() => {
     if (!isVisible && selectedPaletteName !== "custom") {
-      const resetColors = Array(5).fill("#FFFFFF")
+      const resetColors = Array(5).fill("") // Reset to empty strings
       setCustomColors(resetColors)
     }
   }, [isVisible, selectedPaletteName])
@@ -121,7 +120,7 @@ export default function CustomColorPalette() {
   const handlePaletteSelect = useCallback(
     (palette: ColorPalette) => {
       const newColors =
-        palette.name === "custom" ? customColors : palette.colors.concat(Array(5).fill("#FFFFFF")).slice(0, 5)
+        palette.name === "custom" ? customColors : palette.colors.concat(Array(5).fill("")).slice(0, 5)
       if (image_url) {
         const currentEmberImage = paletteImages["Ember"]
         if (palette.name !== "Ember" && currentEmberImage) {
@@ -161,7 +160,7 @@ export default function CustomColorPalette() {
   const handleInputBlur = (index: number) => {
     let finalColor = customColors[index]
     if (finalColor.length < 4 || !/^#[0-9A-F]{6}$/i.test(finalColor)) {
-      finalColor = "#FFFFFF"
+      finalColor = ""
     }
     const updatedColors = [...customColors]
     updatedColors[index] = finalColor
@@ -259,12 +258,12 @@ export default function CustomColorPalette() {
                               "h-4 w-4 rounded-full border border-gray-200 transition-all hover:scale-110",
                               activeColorIndex === index && "ring-2 ring-blue-500",
                             )}
-                            style={{ backgroundColor: color }}
+                            style={{ backgroundColor: color || "transparent" }} // Use transparent for empty colors
                             onClick={(e) => {
                               e.stopPropagation()
                             }}
                           >
-                            {color === "#FFFFFF" && <Plus className="h-3 w-3 mx-auto text-gray-500" />}
+                            {!color && <Plus className="h-3 w-3 mx-auto text-gray-500" />}
                           </div>
                         </PopoverTrigger>
                         <PopoverContent className="w-72 p-4 bg-gray-100/90 dark:bg-gray-800/60 backdrop-blur-md dark:backdrop-blur-md border border-gray-200 dark:border-gray-700/50 shadow-md rounded-lg">
@@ -284,7 +283,7 @@ export default function CustomColorPalette() {
                           <div className="mt-3 flex justify-between items-center">
                             <div
                               className="w-8 h-8 rounded-md border border-gray-300 dark:border-gray-600 shadow-sm"
-                              style={{ backgroundColor: customColors[index] }}
+                              style={{ backgroundColor: customColors[index] || "transparent" }}
                             />
                             <input
                               type="text"
@@ -307,4 +306,3 @@ export default function CustomColorPalette() {
     )
   )
 }
-

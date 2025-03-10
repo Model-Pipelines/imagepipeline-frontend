@@ -17,7 +17,7 @@ interface SettingPanelStore {
   setInputText: (text: string) => void;
   setImageUrl: (imageUrl: string | null) => void;
   toggleMagicPrompt: () => void;
-  togglePublic: () => void; // New action
+  togglePublic: () => void;
   setIsPublic: (value: boolean) => void;
 }
 
@@ -27,8 +27,8 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       text: "",
       image_url: null,
       magic_prompt: false,
-      isPublic: true, // Default to public for free users
-      hex_color: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
+      isPublic: true,
+      hex_color: Array(5).fill(""), // Initialize with empty strings
       selectedPaletteName: "Ember",
       paletteImages: {
         Ember: null,
@@ -58,7 +58,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           image_url: null,
           magic_prompt: false,
           isPublic: true,
-          hex_color: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
+          hex_color: Array(5).fill(""), // Reset to empty strings
           selectedPaletteName: "Ember",
           paletteImages: { Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
         }),
