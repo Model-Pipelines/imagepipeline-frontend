@@ -586,7 +586,44 @@ const ImagePromptUI = () => {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <TooltipProvider>
-              <Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "h-10 w-10 rounded-md border transition-colors",
+                        magic_prompt
+                          ? "bg-success text-text dark:text-text"
+                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-text",
+                        "hover:bg-muted dark:hover:bg-muted"
+                      )}
+                      onClick={handleMagicPromptClick}
+                      aria-label={`Toggle magic prompt ${
+                        magic_prompt ? "off" : "on"
+                      }`}
+                    >
+                      <motion.div
+                        animate={
+                          magic_prompt
+                            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
+                            : { scale: 1, rotate: 0 }
+                        }
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        <Wand2 className="h-5 w-5" />
+                      </motion.div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>
+                      {magic_prompt
+                        ? "Magic prompt is on"
+                        : "Magic prompt is off"}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
   <TooltipTrigger asChild>
     <Button
       variant="outline"
@@ -634,52 +671,6 @@ const ImagePromptUI = () => {
     )}
   </TooltipContent>
 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className={cn(
-                        "h-10 w-10 rounded-md border transition-colors",
-                        isPublic
-                          ? "bg-success text-text dark:text-notice"
-                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
-                        "hover:bg-muted dark:hover:bg-muted",
-                        !canMakePrivate() &&
-                          !isPublic &&
-                          "opacity-50 cursor-not-allowed"
-                      )}
-                      onClick={handleTogglePublic}
-                      aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
-                    >
-                      <motion.div
-                        animate={
-                          isPublic
-                            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
-                            : { scale: 1, rotate: 0 }
-                        }
-                        transition={{ duration: 0.5, ease: "easeInOut" }}
-                      >
-                        {isPublic ? (
-                          <Globe className="h-5 w-5" />
-                        ) : (
-                          <Lock className="h-5 w-5" />
-                        )}
-                      </motion.div>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {!canMakePrivate() && !isPublic ? (
-                      <p>Upgrade to make images private</p>
-                    ) : (
-                      <p>
-                        {isPublic
-                          ? "Image and prompt are public"
-                          : "Image and prompt are private"}
-                      </p>
-                    )}
-                  </TooltipContent>
-                </Tooltip>
               </TooltipProvider>
             </div>
             <div className="flex items-center gap-2">
