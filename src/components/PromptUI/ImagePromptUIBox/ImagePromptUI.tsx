@@ -385,7 +385,7 @@ const ImagePromptUI = () => {
 
   const getButtonText = () => {
     const palettes = [
-      { name: "Default", colors: [] },  // Add Default palette
+      { name: "None", colors: [] },  // Add Default palette
       {
         name: "Ember",
         colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
@@ -409,7 +409,7 @@ const ImagePromptUI = () => {
     // Check if current colors match any predefined palette
     for (const palette of palettes) {
       if (hex_color.length === 0) {
-        return "Default";
+        return "None";
       }
     
       // Check if current colors match any predefined palette
@@ -425,7 +425,7 @@ const ImagePromptUI = () => {
       }
     
       // Return Default if no matches found
-      return "Default";
+      return "None";
     }
   };
 

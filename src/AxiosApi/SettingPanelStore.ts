@@ -60,7 +60,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           magic_prompt: false,
           isPublic: true,
           hex_color: [], // Reset to an empty array
-          selectedPaletteName: "Default", // Reset to "Default"
+          selectedPaletteName: "None", // Reset to "Default"
           paletteImages: { Default: null, Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
         }),
       setPaletteImage: (paletteName, imageUrl) =>
