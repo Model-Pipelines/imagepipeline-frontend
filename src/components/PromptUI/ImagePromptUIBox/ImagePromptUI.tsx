@@ -548,8 +548,9 @@ const ImagePromptUI = () => {
                   value={text}
                   onChange={(e) => setInputTextStore(e.target.value)}
                   placeholder="Describe what you want to generate..."
-                  className="w-full pl-10 pr-2 bg-info dark:bg-bordergraydark resize-none rounded-lg"
+                  className="w-full pl-10 mt-9 pr-2 bg-info dark:bg-bordergraydark resize-none rounded-lg"
                   rows={3}
+                  style={{ height: "100%" }}
                 />
               </motion.div>
             </div>
