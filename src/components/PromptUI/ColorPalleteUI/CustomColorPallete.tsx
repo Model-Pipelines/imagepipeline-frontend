@@ -104,7 +104,8 @@ export default function CustomColorPalette() {
     setPaletteImage,
   } = useSettingPanelStore()
 
-  const [customColors, setCustomColors] = useState<string[]>(Array(5).fill("")) // Initialize with empty strings
+  // Initialize customColors based on hex_color (null or array)
+  const [customColors, setCustomColors] = useState<string[]>(hex_color || Array(5).fill(""))
   const [activeColorIndex, setActiveColorIndex] = useState<number | null>(null)
   const [inputValue, setInputValue] = useState<string>("")
   const [openPopoverIndex, setOpenPopoverIndex] = useState<number | null>(null)
@@ -112,8 +113,7 @@ export default function CustomColorPalette() {
 
   useEffect(() => {
     if (!isVisible && selectedPaletteName !== "custom") {
-      const resetColors = Array(5).fill("") // Reset to empty strings
-      setCustomColors(resetColors)
+      setCustomColors(Array(5).fill("")) // Reset to empty array
     }
   }, [isVisible, selectedPaletteName])
 
