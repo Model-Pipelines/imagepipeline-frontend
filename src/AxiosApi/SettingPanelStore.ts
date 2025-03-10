@@ -7,7 +7,7 @@ interface SettingPanelStore {
   image_url: string | null;
   magic_prompt: boolean;
   isPublic: boolean;
-  hex_color: string[];
+  hex_color: string[]; // This will now be initialized as an empty array
   selectedPaletteName: string;
   paletteImages: Record<string, string | null>;
   addSetting: (text: string, imageUrl: string | null, magicPrompt: boolean, hexColors: string[]) => void;
@@ -28,7 +28,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       image_url: null,
       magic_prompt: false,
       isPublic: true,
-      hex_color: Array(5).fill(""), // Initialize with empty strings
+      hex_color: [], // Initialize as an empty array
       selectedPaletteName: "Ember",
       paletteImages: {
         Ember: null,
@@ -58,7 +58,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           image_url: null,
           magic_prompt: false,
           isPublic: true,
-          hex_color: Array(5).fill(""), // Reset to empty strings
+          hex_color: [], // Reset to an empty array
           selectedPaletteName: "Ember",
           paletteImages: { Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
         }),
