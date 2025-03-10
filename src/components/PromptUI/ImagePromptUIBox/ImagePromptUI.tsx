@@ -462,7 +462,7 @@ const ImagePromptUI = () => {
 
   return (
     <>
-      <div className="relative bg-text dark:bg-secondary p-4 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
+      <div className="relative bg-text dark:bg-secondary px-4 pt-1 pb-2 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
         <div className="flex flex-col gap-4">
           {(isUploading || image_url) && (
             <div className="relative mt-4 z-[100]">
@@ -554,30 +554,33 @@ const ImagePromptUI = () => {
               </motion.div>
             </div>
             <motion.button
-              onClick={handleGenerateImage}
-              disabled={isGenerating || !!generateTaskId}
-              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
-                ${
-                  isGenerating || generateTaskId
-                    ? "bg-accent-500 cursor-not-allowed"
-                    : "bg-accent hover:bg-notice"
-                }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {isGenerating || generateTaskId ? (
-                <motion.div
-                  className="w-5 h-5 border-2 border-text border-t-transparent rounded-full"
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                />
-              ) : (
-                <>
-                  <span className="hidden sm:inline text-text">Generate</span>
-                  <span className="sm:hidden text-text">➜</span>
-                </>
-              )}
-            </motion.button>
+  onClick={handleGenerateImage}
+  disabled={isGenerating || !!generateTaskId}
+  className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
+    ${
+      isGenerating || !!generateTaskId
+        ? "bg-accent cursor-not-allowed"
+        : "bg-accent hover:bg-notice"
+    }`}
+  whileHover={{ scale: 1.05 }}
+  whileTap={{ scale: 0.95 }}
+>
+  {isGenerating || !!generateTaskId ? (
+    <motion.div
+      className="w-5 h-5 border-4 border-white border-t-transparent rounded-full shadow-md"
+      animate={{ rotate: 360 }}
+      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+      style={{
+        boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)"
+      }}
+    />
+  ) : (
+    <>
+      <span className="hidden sm:inline text-text">Generate</span>
+      <span className="sm:hidden text-text">➜</span>
+    </>
+  )}
+</motion.button>
           </div>
 
           <div className="flex items-center justify-between gap-2">
