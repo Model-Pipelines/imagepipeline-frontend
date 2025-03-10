@@ -300,7 +300,7 @@ const FaceTab = () => {
             key={position}
             onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
-            className="hover:bg-[var(--muted)] dark:bg-bordergraydark dark:hover:bg-[var(--muted-foreground)]"
+            className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
           >
             {position}
           </Button>
@@ -329,4 +329,4 @@ const FaceTab = () => {
   );
 };
 
-export default FaceTab; 
+export default FaceTab;
