@@ -7,11 +7,11 @@ interface SettingPanelStore {
   image_url: string | null;
   magic_prompt: boolean;
   isPublic: boolean;
-  hex_color: string[] | null; // Allow hex_color to be null
+  hex_color: string[];
   selectedPaletteName: string;
   paletteImages: Record<string, string | null>;
-  addSetting: (text: string, imageUrl: string | null, magicPrompt: boolean, hexColors: string[] | null) => void;
-  updateSetting: (text: string, imageUrl: string | null, magicPrompt: boolean, hexColors: string[] | null, paletteName: string) => void;
+  addSetting: (text: string, imageUrl: string | null, magicPrompt: boolean, hexColors: string[]) => void;
+  updateSetting: (text: string, imageUrl: string | null, magicPrompt: boolean, hexColors: string[], paletteName: string) => void;
   deleteSetting: () => void;
   setPaletteImage: (paletteName: string, imageUrl: string | null) => void;
   setInputText: (text: string) => void;
@@ -28,7 +28,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       image_url: null,
       magic_prompt: false,
       isPublic: true,
-      hex_color: null, // Initialize as null
+      hex_color: Array(5).fill(""), // Initialize with empty strings
       selectedPaletteName: "Ember",
       paletteImages: {
         Ember: null,
@@ -58,7 +58,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           image_url: null,
           magic_prompt: false,
           isPublic: true,
-          hex_color: null, // Reset to null
+          hex_color: Array(5).fill(""), // Reset to empty strings
           selectedPaletteName: "Ember",
           paletteImages: { Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
         }),
