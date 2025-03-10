@@ -245,7 +245,7 @@ const ImagePromptUI = () => {
         prompt: text.trim(),
         num_inference_steps: 30,
         samples: 1,
-        enhance_prompt: true,
+        enhance_prompt: magic_prompt,
         palette: hex_color,
         height: height,
         width: width,
