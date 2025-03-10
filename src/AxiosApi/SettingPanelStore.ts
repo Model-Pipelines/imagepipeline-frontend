@@ -29,8 +29,9 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
       magic_prompt: false,
       isPublic: true,
       hex_color: [], // Initialize as an empty array
-      selectedPaletteName: "Ember",
+      selectedPaletteName: "Default", // Set default palette to "Default"
       paletteImages: {
+        Default: null,
         Ember: null,
         Fresh: null,
         Jungle: null,
@@ -49,7 +50,7 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           text,
           image_url: imageUrl,
           magic_prompt: magicPrompt,
-          hex_color: hexColors,
+          hex_color: paletteName === "Default" ? [] : hexColors, // Reset to empty array if "Default" is selected
           selectedPaletteName: paletteName,
         })),
       deleteSetting: () =>
@@ -59,8 +60,8 @@ export const useSettingPanelStore = create<SettingPanelStore>()(
           magic_prompt: false,
           isPublic: true,
           hex_color: [], // Reset to an empty array
-          selectedPaletteName: "Ember",
-          paletteImages: { Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
+          selectedPaletteName: "Default", // Reset to "Default"
+          paletteImages: { Default: null, Ember: null, Fresh: null, Jungle: null, Magic: null, custom: null },
         }),
       setPaletteImage: (paletteName, imageUrl) =>
         set((state) => ({

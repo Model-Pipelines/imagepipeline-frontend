@@ -17,6 +17,7 @@ interface ColorPalette {
 }
 
 const defaultPalettes: ColorPalette[] = [
+  { name: "Default", colors: [] },  
   { name: "Ember", colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"] },
   { name: "Fresh", colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"] },
   { name: "Jungle", colors: ["#006400", "#228B22", "#32CD32", "#90EE90"] },
@@ -120,7 +121,10 @@ export default function CustomColorPalette() {
   const handlePaletteSelect = useCallback(
     (palette: ColorPalette) => {
       const newColors =
-        palette.name === "custom" ? customColors : palette.colors.concat(Array(5).fill("")).slice(0, 5)
+        palette.name === "custom" ? customColors : 
+        palette.name === "Default" ? [] :  // Handle Default palette explicitly
+        palette.colors.concat(Array(5).fill("")).slice(0, 5)
+      
       if (image_url) {
         const currentEmberImage = paletteImages["Ember"]
         if (palette.name !== "Ember" && currentEmberImage) {

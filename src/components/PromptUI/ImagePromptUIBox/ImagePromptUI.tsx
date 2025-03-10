@@ -384,14 +384,8 @@ const ImagePromptUI = () => {
   const handlePaperclipClick = () => fileInputRef.current?.click();
 
   const getButtonText = () => {
-    const defaultEmberColors = [
-      "#FF4D4D",
-      "#666666",
-      "#FFB4A1",
-      "#FF8585",
-      "#FF1A75",
-    ].join(",");
     const palettes = [
+      { name: "Default", colors: [] },  // Add Default palette
       {
         name: "Ember",
         colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
@@ -409,26 +403,30 @@ const ImagePromptUI = () => {
         colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"],
       },
     ];
-
+  
     const currentColors = hex_color.join(",");
-    if (
-      currentColors === defaultEmberColors &&
-      selectedPaletteName === "Ember"
-    ) {
+  
+    // Check if current colors match any predefined palette
+    for (const palette of palettes) {
+      if (hex_color.length === 0) {
+        return "Default";
+      }
+    
+      // Check if current colors match any predefined palette
+      for (const palette of palettes) {
+        if (palette.colors.join(",") === currentColors) {
+          return palette.name;
+        }
+      }
+    
+      // Check if using custom colors
+      if (hex_color.some((color) => color !== "")) {
+        return "Custom";
+      }
+    
+      // Return Default if no matches found
       return "Default";
     }
-
-    for (const palette of palettes) {
-      if (palette.colors.join(",") === currentColors) {
-        return palette.name;
-      }
-    }
-
-    if (hex_color.some((color) => color !== "#FFFFFF" && color !== "#000000")) {
-      return "Custom";
-    }
-
-    return selectedPaletteName;
   };
 
   const buttonText = getButtonText();
@@ -460,6 +458,7 @@ const ImagePromptUI = () => {
     };
     fetchPlanData();
   }, [userId, getToken]);
+
 
   return (
     <>
@@ -728,4 +727,5 @@ const ImagePromptUI = () => {
     </>
   );
 };
+
 export default ImagePromptUI;
