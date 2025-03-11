@@ -572,6 +572,166 @@ export default function ProfilePage() {
               )}
             </CardContent>
           </Card>
+
+            {/* Promotion Banner */}
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Card className="relative mt-8 overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
+            <div className="relative h-40 sm:h-48">
+              <img
+                src="https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop"
+                alt="Promotion"
+                className="object-cover w-full h-full"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
+                <div>
+                  <p className="text-xs sm:text-sm text-white">
+                    Limited Time Offer
+                  </p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">
+                    Upgrade to Premium
+                  </h3>
+                </div>
+                <Link href="https://www.imagepipeline.io/pricing"
+                 target="_blank"
+                 >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-white border-white bg-bg-white/10 hover:bg-white/20 dark:hover:bg-gray-700/20"
+                  >
+                    Learn More
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </Card>
+        </motion.section>
+        </section>
+
+        {/* Account Details */}
+        <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Account Details
+          </h2>
+          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+            <CardContent className="p-4 sm:p-6 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Username
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {username}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  Edit
+                </Button>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Email
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {email}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+         {/* server details  */}
+         <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Dedicated Servers
+          </h2>
+          <div className="space-y-4">
+            {dedicatedServer?.length > 0 ? (
+              dedicatedServer.map((server) => (
+                <Card key={server.subscription_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Plan: {server.plan}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Pod Id: {server.pod_id}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Pod Status: <span className="text-success">{server.pod_status}</span> 
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Status: {server.subscription_status}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Period: {new Date(server.period_start).toLocaleDateString()} - {new Date(server.period_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">You have zero dedicated GPU servers</p>
+            )}
+          </div>
+        </section>
+
+        {/* Your Models  */}
+        <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Your Models
+          </h2>
+          <div className="space-y-4">
+            {userModels?.length > 0 ? (
+              userModels.map((model) => (
+                <Card key={model.model_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Name: {model.model_name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Base Model: {model.base_model || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Type: {model.model_type || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Tags: {model.tags || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Visibility: {model.visibility || "None"}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {model.sample_images.length > 0 && model.sample_images[0] !== "" ? (
+                            model.sample_images.map((image, index) => (
+                              <img key={index} src={image} alt={`Sample ${index + 1}`} className="w-24 h-24 object-cover rounded-md" />
+                            ))
+                          ) : (
+                            <p className="text-gray-500 dark:text-gray-400">None</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">You have added 0 models so far</p>
+            )}
+          </div>
         </section>
 
         {/* Generated Images */}
@@ -822,164 +982,11 @@ export default function ProfilePage() {
           )}
         </section>
 
-        {/* Account Details */}
-        <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-            Account Details
-          </h2>
-          <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Username
-                  </p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {username}
-                  </p>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Edit
-                </Button>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Email
-                </p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {email}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
+        
 
-        {/* server details  */}
-        <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-            Dedicated Servers
-          </h2>
-          <div className="space-y-4">
-            {dedicatedServer?.length > 0 ? (
-              dedicatedServer.map((server) => (
-                <Card key={server.subscription_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
-                  <CardContent className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Plan: {server.plan}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Pod Id: {server.pod_id}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Pod Status: <span className="text-success">{server.pod_status}</span> 
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Status: {server.subscription_status}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Period: {new Date(server.period_start).toLocaleDateString()} - {new Date(server.period_end).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">You have zero dedicated GPU servers</p>
-            )}
-          </div>
-        </section>
+       
 
-        {/* Your Models  */}
-        <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-            Your Models
-          </h2>
-          <div className="space-y-4">
-            {userModels?.length > 0 ? (
-              userModels.map((model) => (
-                <Card key={model.model_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
-                  <CardContent className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Model Name: {model.model_name}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Base Model: {model.base_model || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Model Type: {model.model_type || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Tags: {model.tags || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Visibility: {model.visibility || "None"}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {model.sample_images.length > 0 && model.sample_images[0] !== "" ? (
-                            model.sample_images.map((image, index) => (
-                              <img key={index} src={image} alt={`Sample ${index + 1}`} className="w-24 h-24 object-cover rounded-md" />
-                            ))
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400">None</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">You have added 0 models so far</p>
-            )}
-          </div>
-        </section>
-
-        {/* Promotion Banner */}
-        <motion.section
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Card className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
-            <div className="relative h-40 sm:h-48">
-              <img
-                src="https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop"
-                alt="Promotion"
-                className="object-cover w-full h-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-xs sm:text-sm text-white">
-                    Limited Time Offer
-                  </p>
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">
-                    Upgrade to Premium
-                  </h3>
-                </div>
-                <Link href="https://www.imagepipeline.io/pricing">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-white border-white bg-bg-white/10 hover:bg-white/20 dark:hover:bg-gray-700/20"
-                  >
-                    Learn More
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </Card>
-        </motion.section>
-
+      
         {/* Delete Account */}
 
         {/* <section>
