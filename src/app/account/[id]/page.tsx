@@ -668,7 +668,7 @@ export default function ProfilePage() {
                           Pod Id: {server.pod_id}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Pod Status: <span className={server.pod_status === "UNKNOWN" ? "text-other" : "text-success"}>{server.pod_status}</span> 
+                          Pod Status: <span className={server.pod_status === "unknown" ? "text-gray-500" : "text-success"}>{server.pod_status}</span> 
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Status: {server.subscription_status}
