@@ -1,7 +1,13 @@
 "use client";
 
 import { v4 as uuidv4 } from "uuid";
-import { Upload, RotateCcw } from "lucide-react";
+import {
+  Upload,
+  RotateCcw,
+  CircleHelp,
+  MessageSquareShare,
+  Bug,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { ChangeEvent, useCallback } from "react";
@@ -11,6 +17,15 @@ import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import { useMutation } from "@tanstack/react-query"; // Import useMutation directly
 import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi"; // Import uploadBackendFiles directly
 import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuShortcut,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ToolbarProps {
   onUpload: () => void; // Kept for consistency, though not used in this version
@@ -24,7 +39,8 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
 
   // Define the mutation directly instead of using useUploadBackendFiles
   const { mutateAsync: uploadImage } = useMutation({
-    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
+    mutationFn: ({ data: file, token }: { data: File; token: string }) =>
+      uploadBackendFiles(file, token),
     onError: (error: any) => {
       toast({
         title: "Error",
@@ -55,7 +71,8 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
         });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB limit
         toast({
           title: "Error",
           description: "File size exceeds 5MB",
@@ -76,7 +93,10 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
 
       try {
         // Upload the file using the mutation
-        const uploadedImageUrl: string = await uploadImage({ data: file, token });
+        const uploadedImageUrl: string = await uploadImage({
+          data: file,
+          token,
+        });
         if (!uploadedImageUrl) {
           throw new Error("Invalid response: No image URL found");
         }
@@ -86,7 +106,8 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
         element.src = uploadedImageUrl;
         await new Promise<void>((resolve, reject) => {
           element.onload = () => resolve();
-          element.onerror = () => reject(new Error("Failed to load image element"));
+          element.onerror = () =>
+            reject(new Error("Failed to load image element"));
         });
 
         // Calculate size maintaining aspect ratio
@@ -144,7 +165,7 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
   };
 
   return (
-    <div className="toolbar absolute bottom-4 right-36 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+    <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
       {/* Upload Button */}
       <label className="cursor-pointer">
         <Button
@@ -175,6 +196,35 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
       >
         <RotateCcw className="h-4 w-4 text-white" />
       </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
+            size="icon"
+            title="Help"
+          >
+            <CircleHelp />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          {/* <DropdownMenuLabel></DropdownMenuLabel> */}
+          <DropdownMenuGroup>
+            <DropdownMenuItem>
+              Feedback
+              <DropdownMenuShortcut>
+                <MessageSquareShare />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              Report a Bug
+              <DropdownMenuShortcut>
+                <Bug />
+              </DropdownMenuShortcut>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

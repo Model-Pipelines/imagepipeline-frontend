@@ -462,3 +462,22 @@ export const fetchUserPlan = async (userId: string, token: string) => {
   });
   return response.data;
 };
+
+
+// new function to fetch user dedicated servers plan 
+
+export const fetchDedicatedServer = async (userId: string, token: string) => {
+  const response = await apiClient.get(`/user/${userId}/subscriptions`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+// new function to fetch user model 
+export const fetchUserModel = async (userId: string, token: string) => {
+  const response = await apiClient.get(`/user/${userId}/models`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+

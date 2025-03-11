@@ -1,17 +1,42 @@
-"use client"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { ArrowRight, LogOut, ImageOff, Home, Eye, EyeOff, Copy, RefreshCw, Download } from "lucide-react"
-import { useUser, useClerk, useAuth } from "@clerk/nextjs"
-import { Skeleton } from "@/components/ui/skeleton"
-import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { fetchSubscriptionDetails, fetchUserImages, resetApiKey, fetchImageDetails, UserImage } from "@/services/AccountServices"
-import Link from "next/link"
-import { toast } from "@/hooks/use-toast"
-import { fetchUserPlan } from "@/AxiosApi/GenerativeApi"
+// page.tsx
+"use client";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  ArrowRight,
+  LogOut,
+  ImageOff,
+  Home,
+  Eye,
+  EyeOff,
+  Copy,
+  RefreshCw,
+  Download,
+} from "lucide-react";
+import { useUser, useClerk, useAuth } from "@clerk/nextjs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  fetchSubscriptionDetails,
+  fetchUserImages,
+  resetApiKey,
+  fetchImageDetails,
+  UserImage,
+  fetchDedicatedServer,
+  fetchUserModel,
+} from "@/services/AccountServices";
+import Link from "next/link";
+import { toast } from "@/hooks/use-toast";
+import { fetchUserPlan } from "@/AxiosApi/GenerativeApi";
 import {
   MorphingDialog,
   MorphingDialogTrigger,
@@ -22,72 +47,114 @@ import {
   MorphingDialogClose,
   MorphingDialogDescription,
   MorphingDialogContainer,
-} from "@/components/ui/morphing-dialog"
+} from "@/components/ui/morphing-dialog";
 
 // Add types for the API response
 interface UserPlanData {
-  user_id: string
-  api_key: string
-  email: string
-  plan: string
-  tokens_remaining: number
-  model_trainings_remaining: number
-  private_model_loads_remaining: number
-  plan_expiry_date: string | null
+  user_id: string;
+  api_key: string;
+  email: string;
+  plan: string;
+  tokens_remaining: number;
+  model_trainings_remaining: number;
+  private_model_loads_remaining: number;
+  plan_expiry_date: string | null;
 }
 
 // Update the ImageData interface to match the API response
 interface ImageData extends UserImage {
-  prompt?: string
-  model?: string
+  prompt?: string;
+  model?: string;
 }
 
 // Add this interface to better type the image details
 interface DetailedImageData extends ImageData {
-  height?: number
-  width?: number
-  model_id?: string
-  controlnet?: string
-  json?: string
-  isLoading?: boolean
-  creation_timestamp?: string
+  height?: number;
+  width?: number;
+  model_id?: string;
+  controlnet?: string;
+  json?: string;
+  isLoading?: boolean;
+  creation_timestamp?: string;
 }
 
-function ImageWithSkeleton({ src, alt, className = "", ...props }: { src: string; alt: string; className?: string }) {
-  const [loaded, setLoaded] = useState(false)
+// Add interface for dedicated server data
+interface DedicatedServerData {
+  user_id: string;
+  subscription_id: string;
+  plan: string;
+  pod_id: string;
+  pod_status: string;
+  period_start: string;
+  period_end: string;
+  subscription_status: string;
+}
+
+// Add interface for user model data
+interface UserModelData {
+  model_id: string;
+  model_name: string;
+  base_model: string;
+  model_type: string;
+  tags: string;
+  sample_images: string[];
+  verified: boolean;
+  visibility: string;
+}
+
+function ImageWithSkeleton({
+  src,
+  alt,
+  className = "",
+  ...props
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+}) {
+  const [loaded, setLoaded] = useState(false);
   return (
     <div className="relative h-full w-full">
-      {!loaded && <Skeleton className="absolute inset-0 bg-gray-200 dark:bg-gray-700" />}
+      {!loaded && (
+        <Skeleton className="absolute inset-0 bg-gray-200 dark:bg-gray-700" />
+      )}
       <img
         src={src || "/placeholder.svg"}
         alt={alt}
         {...props}
-        className={`${className} ${!loaded ? "opacity-0" : "opacity-100"} transition-opacity duration-300 object-cover rounded-md`}
+        className={`${className} ${
+          !loaded ? "opacity-0" : "opacity-100"
+        } transition-opacity duration-300 object-cover rounded-md`}
         onLoad={() => setLoaded(true)}
       />
     </div>
-  )
+  );
 }
 
 export default function ProfilePage() {
-  const { user } = useUser()
-  const { signOut } = useClerk()
-  const { userId, getToken } = useAuth()
-  const [currentPage, setCurrentPage] = useState(0)
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null)
-  const itemsPerPage = 8
-  const queryClient = useQueryClient()
-  const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null)
+  const { user } = useUser();
+  const { signOut } = useClerk();
+  const { userId, getToken } = useAuth();
+  const [currentPage, setCurrentPage] = useState(0);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(
+    null
+  );
+  const itemsPerPage = 8;
+  const queryClient = useQueryClient();
+  const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
+  const [dedicatedServerData, setDedicatedServerData] = useState<DedicatedServerData[] | null>(null);
+  const [userModelData, setUserModelData] = useState<UserModelData[] | null>(null);
 
   // Add state for detailed image data
-  const [selectedImageDetails, setSelectedImageDetails] = useState<DetailedImageData | null>(null)
+  const [selectedImageDetails, setSelectedImageDetails] =
+    useState<DetailedImageData | null>(null);
 
   const fetchToken = async () => {
-    const token = await getToken()
-    if (!token) throw new Error("No authentication token available")
-    return token
-  }
+    const token = await getToken();
+    if (!token) throw new Error("No authentication token available");
+    return token;
+  };
 
   // Subscription Query
   const {
@@ -97,17 +164,19 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["subscription", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available")
-      const token = await fetchToken()
-      return fetchSubscriptionDetails(userId, token)
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      return fetchSubscriptionDetails(userId, token);
     },
     enabled: !!userId,
-  })
+  });
 
   // Update the image grid section with fixed dimensions and proper date sorting
   const sortImagesByDate = (images: UserImage[]) => {
-    return [...images].sort((a, b) => 
-      new Date(b.creation_timestamp).getTime() - new Date(a.creation_timestamp).getTime()
+    return [...images].sort(
+      (a, b) =>
+        new Date(b.creation_timestamp).getTime() -
+        new Date(a.creation_timestamp).getTime()
     );
   };
 
@@ -119,13 +188,13 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["userImages", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available")
-      const token = await fetchToken()
-      const images = await fetchUserImages(userId, token)
-      return sortImagesByDate(images)
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      const images = await fetchUserImages(userId, token);
+      return sortImagesByDate(images);
     },
     enabled: !!userId,
-  })
+  });
 
   // API Key Query
   const {
@@ -135,67 +204,101 @@ export default function ProfilePage() {
   } = useQuery({
     queryKey: ["apiKey", userId],
     queryFn: async () => {
-      if (!userId) throw new Error("User ID not available")
-      const token = await fetchToken()
-      return fetchSubscriptionDetails(userId, token)
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      return fetchSubscriptionDetails(userId, token);
     },
     enabled: !!userId,
-  })
+  });
 
   // Reset API Key Mutation
   const resetApiKeyMutation = useMutation({
     mutationFn: async () => {
-      if (!userId) throw new Error("User ID not available")
-      const token = await fetchToken()
-      return resetApiKey(userId, token)
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      return resetApiKey(userId, token);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["apiKey", userId] })
-      toast({ title: "API Key reset successfully" })
+      queryClient.invalidateQueries({ queryKey: ["apiKey", userId] });
+      toast({ title: "API Key reset successfully" });
     },
     onError: (error: any) => {
-      toast({ title: "Failed to reset API Key", description: error.message, variant: "destructive" })
+      toast({
+        title: "Failed to reset API Key",
+        description: error.message,
+        variant: "destructive",
+      });
     },
-  })
+  });
+
+  // Dedicated Server Query
+  const {
+    data: dedicatedServer,
+    isLoading: dedicatedServerLoading,
+    error: dedicatedServerError,
+  } = useQuery({
+    queryKey: ["dedicatedServer", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      return fetchDedicatedServer(userId, token);
+    },
+    enabled: !!userId,
+  });
+
+  // User Model Query
+  const {
+    data: userModels,
+    isLoading: userModelsLoading,
+    error: userModelsError,
+  } = useQuery({
+    queryKey: ["userModels", userId],
+    queryFn: async () => {
+      if (!userId) throw new Error("User ID not available");
+      const token = await fetchToken();
+      return fetchUserModel(userId, token);
+    },
+    enabled: !!userId,
+  });
 
   const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text)
-    toast({ title: "API Key copied to clipboard" })
-  }
+    navigator.clipboard.writeText(text);
+    toast({ title: "API Key copied to clipboard" });
+  };
 
   // Add the plan data fetch effect
   useEffect(() => {
     const fetchPlanData = async () => {
       try {
-        const token = await getToken()
+        const token = await getToken();
         if (token && userId) {
-          const planData = await fetchUserPlan(userId, token)
-          setUserPlanData(planData)
+          const planData = await fetchUserPlan(userId, token);
+          setUserPlanData(planData);
         }
       } catch (error) {
-        console.error("Error fetching user plan:", error)
+        console.error("Error fetching user plan:", error);
         toast({
           title: "Error",
           description: "Failed to fetch user plan",
           variant: "destructive",
-        })
+        });
       }
-    }
-    fetchPlanData()
-  }, [userId, getToken])
+    };
+    fetchPlanData();
+  }, [userId, getToken]);
 
   // Update the fetchImageDetails function in the component
   const fetchImageDetailsWithParsing = async (imageId: string) => {
     try {
-      const token = await getToken()
-      const data = await fetchImageDetails(imageId, token)
+      const token = await getToken();
+      const data = await fetchImageDetails(imageId, token);
 
       // Parse the JSON string if it exists
-      let parsedJson = {}
+      let parsedJson = {};
       try {
-        parsedJson = data.json ? JSON.parse(data.json) : {}
+        parsedJson = data.json ? JSON.parse(data.json) : {};
       } catch (e) {
-        console.error("Error parsing image JSON:", e)
+        console.error("Error parsing image JSON:", e);
       }
 
       return {
@@ -205,55 +308,55 @@ export default function ProfilePage() {
         width: parsedJson.width,
         controlnet: parsedJson.controlnet,
         isLoading: false,
-      }
+      };
     } catch (error) {
-      console.error("Error fetching image details:", error)
-      return null
+      console.error("Error fetching image details:", error);
+      return null;
     }
-  }
+  };
 
   // Update the handleImageSelect function
   const handleImageSelect = async (globalIndex: number) => {
-    setSelectedImageIndex(globalIndex)
-    const selectedImage = generatedImages[globalIndex]
+    setSelectedImageIndex(globalIndex);
+    const selectedImage = generatedImages[globalIndex];
 
     // Set loading state
-    setSelectedImageDetails({ ...selectedImage, isLoading: true })
+    setSelectedImageDetails({ ...selectedImage, isLoading: true });
 
     // Fetch detailed data using the image_id
-    const details = await fetchImageDetailsWithParsing(selectedImage.image_id)
+    const details = await fetchImageDetailsWithParsing(selectedImage.image_id);
     if (details) {
-      setSelectedImageDetails({ ...details, isLoading: false })
+      setSelectedImageDetails({ ...details, isLoading: false });
     }
-  }
+  };
 
   // Image navigation in dialog
   const navigateImage = (direction: "next" | "prev") => {
-    if (selectedImageIndex === null) return
+    if (selectedImageIndex === null) return;
 
-    const totalImages = generatedImages.length
-    let newIndex
+    const totalImages = generatedImages.length;
+    let newIndex;
 
     if (direction === "next") {
-      newIndex = (selectedImageIndex + 1) % totalImages
+      newIndex = (selectedImageIndex + 1) % totalImages;
     } else {
-      newIndex = (selectedImageIndex - 1 + totalImages) % totalImages
+      newIndex = (selectedImageIndex - 1 + totalImages) % totalImages;
     }
 
-    setSelectedImageIndex(newIndex)
-  }
+    setSelectedImageIndex(newIndex);
+  };
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
       hour: "2-digit",
       minute: "2-digit",
-    })
-  }
+    });
+  };
 
   if (!user) {
     return (
@@ -266,25 +369,25 @@ export default function ProfilePage() {
           <Skeleton className="h-8 w-24 bg-gray-200 dark:bg-gray-700" />
         </div>
       </div>
-    )
+    );
   }
 
-  const avatarUrl = user.imageUrl
-  const email = user.primaryEmailAddress?.emailAddress
-  const fullName = `${user.firstName} ${user.lastName}`
-  const username = user.username || (email ? email.split("@")[0] : "Not set")
-  const totalPages = Math.ceil(generatedImages.length / itemsPerPage)
-  const currentImages = generatedImages.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage)
-
-  // const deleteUser = async = () =>{
-  //   //need delete user functionality over here
-  // }
-
+  const avatarUrl = user.imageUrl;
+  const email = user.primaryEmailAddress?.emailAddress;
+  const fullName = `${user.firstName} ${user.lastName}`;
+  const username = user.username || (email ? email.split("@")[0] : "Not set");
+  const totalPages = Math.ceil(generatedImages.length / itemsPerPage);
+  const currentImages = generatedImages.slice(
+    currentPage * itemsPerPage,
+    (currentPage + 1) * itemsPerPage
+  );
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white px-4 py-6 sm:px-6 md:px-8 lg:px-12">
       {/* Header */}
       <header className="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Your Dashboard</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">
+          Your Dashboard
+        </h1>
         <div className="flex gap-3">
           <Button
             variant="outline"
@@ -325,14 +428,20 @@ export default function ProfilePage() {
               {user.lastName?.charAt(0)}
             </AvatarFallback>
           </Avatar>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-gray-100">{fullName}</h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-gray-100">
+            {fullName}
+          </h2>
           <p className="text-sm text-gray-600 dark:text-gray-400">{email}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">@{username}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+            @{username}
+          </p>
         </motion.section>
 
         {/* Subscription */}
         <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Subscription</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Subscription
+          </h2>
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg text-gray-900 dark:text-gray-100">
@@ -340,7 +449,9 @@ export default function ProfilePage() {
               </CardTitle>
               <CardDescription className="text-sm text-gray-500 dark:text-gray-400">
                 {userPlanData?.plan_expiry_date
-                  ? `Renews on ${new Date(userPlanData.plan_expiry_date).toLocaleDateString()}`
+                  ? `Renews on ${new Date(
+                      userPlanData.plan_expiry_date
+                    ).toLocaleDateString()}`
                   : "No expiry date"}
               </CardDescription>
             </CardHeader>
@@ -354,17 +465,25 @@ export default function ProfilePage() {
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Tokens Remaining</p>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{userPlanData.tokens_remaining}</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Tokens Remaining
+                    </p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">
+                      {userPlanData.tokens_remaining}
+                    </p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Model Trainings</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Model Trainings
+                    </p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
                       {userPlanData.model_trainings_remaining}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-500 dark:text-gray-400">Private Models</p>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Private Models
+                    </p>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
                       {userPlanData.private_model_loads_remaining}
                     </p>
@@ -383,33 +502,47 @@ export default function ProfilePage() {
 
         {/* API Key */}
         <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">API Key</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            API Key
+          </h2>
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardContent className="p-4 sm:p-6 space-y-4">
               {apiKeyLoading ? (
                 <Skeleton className="h-12 w-full bg-gray-200 dark:bg-gray-700" />
               ) : apiKeyError ? (
-                <p className="text-red-500 dark:text-red-400 text-sm">Error loading API key</p>
+                <p className="text-red-500 dark:text-red-400 text-sm">
+                  Error loading API key
+                </p>
               ) : (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <div className="flex-1 flex items-center gap-2 bg-gray-100 dark:bg-gray-700 p-3 rounded-md border border-gray-200 dark:border-gray-600 w-full">
                       <p className="text-sm font-mono truncate flex-1 text-gray-900 dark:text-gray-100">
-                        {showApiKey ? apiKeyData?.api_key : "••••••••••••••••••••••••••••••••"}
+                        {showApiKey
+                          ? apiKeyData?.api_key
+                          : "••••••••••••••••••••••••••••••••"}
                       </p>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setShowApiKey(!showApiKey)}
-                        aria-label={showApiKey ? "Hide API Key" : "Show API Key"}
+                        aria-label={
+                          showApiKey ? "Hide API Key" : "Show API Key"
+                        }
                         className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                       >
-                        {showApiKey ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        {showApiKey ? (
+                          <EyeOff className="h-5 w-5" />
+                        ) : (
+                          <Eye className="h-5 w-5" />
+                        )}
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleCopyToClipboard(apiKeyData?.api_key)}
+                        onClick={() =>
+                          handleCopyToClipboard(apiKeyData?.api_key)
+                        }
                         aria-label="Copy API Key"
                         className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                       >
@@ -423,13 +556,17 @@ export default function ProfilePage() {
                       disabled={resetApiKeyMutation.isPending}
                       className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
-                      <RefreshCw className={`h-4 w-4 mr-2 ${resetApiKeyMutation.isPending ? "animate-spin" : ""}`} />
+                      <RefreshCw
+                        className={`h-4 w-4 mr-2 ${
+                          resetApiKeyMutation.isPending ? "animate-spin" : ""
+                        }`}
+                      />
                       Reset
                     </Button>
                   </div>
                   <p className="text-xs text-yellow-600 dark:text-yellow-400">
-                    Warning: Keep your API key private. Sharing it publicly or with AI services may compromise your
-                    account.
+                    Warning: Keep your API key private. Sharing it publicly or
+                    with AI services may compromise your account.
                   </p>
                 </div>
               )}
@@ -439,15 +576,22 @@ export default function ProfilePage() {
 
         {/* Generated Images */}
         <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Generated Images</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Generated Images
+          </h2>
           {isImagesLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
               {Array.from({ length: itemsPerPage }).map((_, i) => (
-                <Skeleton key={i} className="h-40 w-full rounded-md bg-gray-200 dark:bg-gray-700" />
+                <Skeleton
+                  key={i}
+                  className="h-40 w-full rounded-md bg-gray-200 dark:bg-gray-700"
+                />
               ))}
             </div>
           ) : imagesError ? (
-            <p className="text-red-500 dark:text-red-400 text-sm">Error loading images</p>
+            <p className="text-red-500 dark:text-red-400 text-sm">
+              Error loading images
+            </p>
           ) : generatedImages.length === 0 ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -465,7 +609,7 @@ export default function ProfilePage() {
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {currentImages.map((img, i) => {
-                  const globalIndex = currentPage * itemsPerPage + i
+                  const globalIndex = currentPage * itemsPerPage + i;
                   return (
                     <motion.div
                       key={img.image_id}
@@ -487,7 +631,9 @@ export default function ProfilePage() {
                           className="w-full overflow-hidden border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
                           asChild
                         >
-                          <button onClick={() => handleImageSelect(globalIndex)}>
+                          <button
+                            onClick={() => handleImageSelect(globalIndex)}
+                          >
                             <div className="w-52 h-56 relative">
                               <MorphingDialogImage
                                 src={img.download_url}
@@ -523,13 +669,20 @@ export default function ProfilePage() {
                                 >
                                   <motion.div
                                     animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                                    transition={{
+                                      duration: 1,
+                                      repeat: Number.POSITIVE_INFINITY,
+                                      ease: "linear",
+                                    }}
                                     className="w-12 h-12 border-4 border-white border-t-transparent rounded-full"
                                   />
                                 </motion.div>
                               )}
                               <MorphingDialogImage
-                                src={selectedImageDetails?.download_url || img.download_url}
+                                src={
+                                  selectedImageDetails?.download_url ||
+                                  img.download_url
+                                }
                                 alt={`Generated image ${globalIndex + 1}`}
                                 className="w-full max-h-[40vh] object-contain"
                               />
@@ -541,16 +694,28 @@ export default function ProfilePage() {
                                 <div className="flex justify-between items-center mb-4">
                                   <div>
                                     <MorphingDialogTitle className="text-2xl text-gray-900 dark:text-gray-100">
-                                      Image {generatedImages.length - globalIndex} of {generatedImages.length}
+                                      Image{" "}
+                                      {generatedImages.length - globalIndex} of{" "}
+                                      {generatedImages.length}
                                     </MorphingDialogTitle>
                                     <MorphingDialogSubtitle className="text-gray-600 dark:text-gray-400">
-                                      Created on {formatDate(selectedImageDetails?.creation_timestamp || img.creation_timestamp)}
+                                      Created on{" "}
+                                      {formatDate(
+                                        selectedImageDetails?.creation_timestamp ||
+                                          img.creation_timestamp
+                                      )}
                                     </MorphingDialogSubtitle>
                                   </div>
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={() => window.open(selectedImageDetails?.download_url || img.download_url, '_blank')}
+                                    onClick={() =>
+                                      window.open(
+                                        selectedImageDetails?.download_url ||
+                                          img.download_url,
+                                        "_blank"
+                                      )
+                                    }
                                     className="flex items-center gap-2"
                                   >
                                     <Download className="h-4 w-4" />
@@ -568,28 +733,46 @@ export default function ProfilePage() {
                                   <div className="space-y-4 text-gray-600 dark:text-gray-400">
                                     {selectedImageDetails?.prompt && (
                                       <div>
-                                        <p className="font-medium text-gray-700 dark:text-gray-300">Prompt:</p>
-                                        <p className="mt-1">{selectedImageDetails.prompt}</p>
-                                      </div>
-                                    )}
-                                    {selectedImageDetails?.height && selectedImageDetails?.width && (
-                                      <div>
-                                        <p className="font-medium text-gray-700 dark:text-gray-300">Dimensions:</p>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">
+                                          Prompt:
+                                        </p>
                                         <p className="mt-1">
-                                          {selectedImageDetails.width} x {selectedImageDetails.height}
+                                          {selectedImageDetails.prompt}
                                         </p>
                                       </div>
                                     )}
+                                    {selectedImageDetails?.height &&
+                                      selectedImageDetails?.width && (
+                                        <div>
+                                          <p className="font-medium text-gray-700 dark:text-gray-300">
+                                            Dimensions:
+                                          </p>
+                                          <p className="mt-1">
+                                            {selectedImageDetails.width} x{" "}
+                                            {selectedImageDetails.height
+                                              ? selectedImageDetails.height
+                                              : "None"}
+                                          </p>
+                                        </div>
+                                      )}
                                     {selectedImageDetails?.model_id && (
                                       <div>
-                                        <p className="font-medium text-gray-700 dark:text-gray-300">Model:</p>
-                                        <p className="mt-1">{selectedImageDetails.model_id}</p>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">
+                                          Model:
+                                        </p>
+                                        <p className="mt-1">
+                                          {selectedImageDetails.model_id}
+                                        </p>
                                       </div>
                                     )}
                                     {selectedImageDetails?.controlnet && (
                                       <div>
-                                        <p className="font-medium text-gray-700 dark:text-gray-300">Control Net:</p>
-                                        <p className="mt-1">{selectedImageDetails.controlnet}</p>
+                                        <p className="font-medium text-gray-700 dark:text-gray-300">
+                                          Control Net:
+                                        </p>
+                                        <p className="mt-1">
+                                          {selectedImageDetails.controlnet}
+                                        </p>
                                       </div>
                                     )}
                                   </div>
@@ -601,7 +784,7 @@ export default function ProfilePage() {
                         </MorphingDialogContainer>
                       </MorphingDialog>
                     </motion.div>
-                  )
+                  );
                 })}
               </div>
               {totalPages > 1 && (
@@ -610,7 +793,9 @@ export default function ProfilePage() {
                     variant="outline"
                     size="sm"
                     disabled={currentPage === 0}
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 0))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 0))
+                    }
                     className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     Previous
@@ -622,7 +807,11 @@ export default function ProfilePage() {
                     variant="outline"
                     size="sm"
                     disabled={currentPage === totalPages - 1}
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) =>
+                        Math.min(prev + 1, totalPages - 1)
+                      )
+                    }
                     className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                     Next
@@ -635,13 +824,19 @@ export default function ProfilePage() {
 
         {/* Account Details */}
         <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Account Details</h2>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Account Details
+          </h2>
           <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
             <CardContent className="p-4 sm:p-6 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Username</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{username}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    Username
+                  </p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {username}
+                  </p>
                 </div>
                 <Button
                   variant="outline"
@@ -652,15 +847,108 @@ export default function ProfilePage() {
                 </Button>
               </div>
               <div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Email</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{email}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Email
+                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {email}
+                </p>
               </div>
             </CardContent>
           </Card>
         </section>
 
+        {/* server details  */}
+        <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Dedicated Servers
+          </h2>
+          <div className="space-y-4">
+            {dedicatedServer?.length > 0 ? (
+              dedicatedServer.map((server) => (
+                <Card key={server.subscription_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Plan: {server.plan}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Pod Id: {server.pod_id}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Pod Status: <span className="text-success">{server.pod_status}</span> 
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Status: {server.subscription_status}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Period: {new Date(server.period_start).toLocaleDateString()} - {new Date(server.period_end).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">You have zero dedicated GPU servers</p>
+            )}
+          </div>
+        </section>
+
+        {/* Your Models  */}
+        <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Your Models
+          </h2>
+          <div className="space-y-4">
+            {userModels?.length > 0 ? (
+              userModels.map((model) => (
+                <Card key={model.model_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Name: {model.model_name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Base Model: {model.base_model || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Type: {model.model_type || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Tags: {model.tags || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Visibility: {model.visibility || "None"}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {model.sample_images.length > 0 && model.sample_images[0] !== "" ? (
+                            model.sample_images.map((image, index) => (
+                              <img key={index} src={image} alt={`Sample ${index + 1}`} className="w-24 h-24 object-cover rounded-md" />
+                            ))
+                          ) : (
+                            <p className="text-gray-500 dark:text-gray-400">None</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">You have added 0 models so far</p>
+            )}
+          </div>
+        </section>
+
         {/* Promotion Banner */}
-        <motion.section initial={{ opacity: 0, y: 50 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+        <motion.section
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
           <Card className="relative overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
             <div className="relative h-40 sm:h-48">
               <img
@@ -670,8 +958,12 @@ export default function ProfilePage() {
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
                 <div>
-                  <p className="text-xs sm:text-sm text-white">Limited Time Offer</p>
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">Upgrade to Premium</h3>
+                  <p className="text-xs sm:text-sm text-white">
+                    Limited Time Offer
+                  </p>
+                  <h3 className="text-lg sm:text-xl font-semibold text-white">
+                    Upgrade to Premium
+                  </h3>
                 </div>
                 <Link href="https://www.imagepipeline.io/pricing">
                   <Button
@@ -715,6 +1007,5 @@ export default function ProfilePage() {
         </section> */}
       </main>
     </div>
-  )
+  );
 }
-
