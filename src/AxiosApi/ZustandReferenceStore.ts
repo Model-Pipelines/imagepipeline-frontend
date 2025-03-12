@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 
 interface ReferenceState {
-    controlnet: string | null; // null for logo, string for others
+    controlnet: string | null;
     prompt: string;
-    referenceImage: string; // Public URL for the image
+    referenceImage: string;
     num_inference_steps: number;
     samples: number;
-    model_id: string; // For sdxl/controlnet APIs
-    negative_prompt: string; // For sdxl/controlnet APIs
-    controlnet_weights: number[]; // For sdxl/controlnet APIs
-    logo_prompt: string; // For logo API
+    model_id: string;
+    negative_prompt: string;
+    controlnet_weights: number[];
+    logo_prompt: string;
     setControlNet: (controlnet: string | null) => void;
     setPrompt: (prompt: string) => void;
     setReferenceImage: (image: string) => void;
@@ -23,15 +23,15 @@ interface ReferenceState {
 }
 
 const useReferenceStore = create<ReferenceState>((set) => ({
-    controlnet: "none", // Default to "none"
+    controlnet: "none",
     prompt: "",
     referenceImage: "",
     num_inference_steps: 30,
     samples: 1,
-    model_id: "sdxl", // Default for sdxl/controlnet APIs
-    negative_prompt: "lowres, bad anatomy, worst quality, low quality", // Default for sdxl/controlnet APIs
-    controlnet_weights: [1.0], // Default for sdxl/controlnet APIs
-    logo_prompt: "", // Default for logo API
+    model_id: "sdxl",
+    negative_prompt: "lowres, bad anatomy, worst quality, low quality",
+    controlnet_weights: [1.0],
+    logo_prompt: "",
     setControlNet: (controlnet) => set({ controlnet }),
     setPrompt: (prompt) => set({ prompt }),
     setReferenceImage: (image) => set({ referenceImage: image }),

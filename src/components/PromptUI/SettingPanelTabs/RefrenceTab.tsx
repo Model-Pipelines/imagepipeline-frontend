@@ -308,9 +308,8 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
   const handleTypeChange = (newType: string) => {
     const selected = REFERENCE_TYPES.find((t) => t.value === newType);
     if (selected) {
-      setControlNet(selected.controlnet); // Set to API-specific controlnet value or null for logo
+      setControlNet(selected.controlnet);
       onTypeChange(newType);
-      // Reset logo_prompt if not logo
       if (newType !== "logo") {
         setLogoPrompt("");
       }
@@ -375,6 +374,13 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     toast({ title: "Saved", description: "Reference settings saved successfully!" });
   };
 
+  // Clear the global store and localStorage
+  const handleClear = () => {
+    reset(); // Reset the Zustand store to initial state
+    localStorage.removeItem("referenceStore"); // Clear the saved state from localStorage
+    toast({ title: "Cleared", description: "Reference settings have been reset!" });
+  };
+
   // Load saved state on mount
   useEffect(() => {
     const savedState = localStorage.getItem("referenceStore");
@@ -383,7 +389,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       if (parsedState.controlnet) {
         setControlNet(parsedState.controlnet ?? "none");
       } else if (parsedState.logo_prompt !== undefined) {
-        setControlNet(null); // Logo case
+        setControlNet(null);
       }
       setPrompt(parsedState.prompt || "");
       setReferenceImage(parsedState.image || parsedState.init_images?.[0] || "");
@@ -472,9 +478,14 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         {generateMutation.isPending ? "Generating..." : "Generate"}
       </Button>
 
-      <Button onClick={handleSave} className="w-full mt-4">
-        Save
-      </Button>
+      <div className="flex space-x-2">
+        <Button onClick={handleSave} className="w-full mt-4">
+          Save
+        </Button>
+        <Button onClick={handleClear} className="w-full mt-4" variant="outline">
+          Clear
+        </Button>
+      </div>
     </div>
   );
 };
