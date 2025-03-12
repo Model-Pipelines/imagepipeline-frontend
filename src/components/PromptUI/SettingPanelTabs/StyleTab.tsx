@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { useStyleTabStore } from "@/AxiosApi/ZustandStyleStore"; // Correct store
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -18,35 +20,28 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { v4 as uuidv4 } from "uuid";
 import { Info } from "lucide-react";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useAuth } from "@clerk/nextjs";
+import { useEffect } from "react";
+import { v4 as uuidv4 } from "uuid";
 
-// Define types for payloads and responses
-interface StylePayload {
-  prompt: string;
-  num_inference_steps: number;
-  enhance_prompt: boolean;
-  height: number;
-  width: number;
-  samples: number;
-  style: string;
-  palette: string[];
-  seed: number;
-}
-
-interface FaceControlPayload {
+// Define full payload type matching your JSON
+interface FullPayload {
   model_id: string;
   prompt: string;
   num_inference_steps: number;
   samples: number;
+  controlnet: string[];
+  init_image: string[];
+  controlnet_weight: number;
+  negative_prompt: string;
+  guidance_scale: number;
+  embeddings: string[];
+  scheduler: string;
+  seed: number;
   ip_adapter_image: string[];
   ip_adapter: string[];
   ip_adapter_scale: number[];
-  seed: number;
 }
 
 interface TaskResponse {
@@ -88,25 +83,71 @@ const InfoButton = ({ description }: { description: string }) => (
   </div>
 );
 
+const LOCAL_STORAGE_KEY = "styleTabState";
+
 const StyleTab = () => {
-  const [styleType, setStyleType] = useState<StyleOption | "">("");
-  const [prompt, setPrompt] = useState("");
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const {
+    model_id,
+    prompt,
+    num_inference_steps,
+    samples,
+    controlnet,
+    init_image,
+    controlnet_weight,
+    negative_prompt,
+    guidance_scale,
+    embeddings,
+    scheduler,
+    seed,
+    ip_adapter_image,
+    ip_adapter,
+    ip_adapter_scale,
+    styleType,
+    uploadSections,
+    generateTaskId,
+    images,
+    setPrompt,
+    setIpAdapterImage,
+    setStyleType,
+    setGenerateTaskId,
+    updateUploadSection,
+    removeImageFromSection,
+    addImage,
+    clearImages,
+    reset,
+  } = useStyleTabStore();
   const { addTask } = useGenerativeTaskStore();
   const { toast } = useToast();
-  const { addImage, images } = useImageStore();
-  const { getToken } = useAuth(); // Get token function from Clerk
+  const { getToken } = useAuth();
 
-  const [uploadSections, setUploadSections] = useState([
-    { id: 1, image: "", styleOption: "" },
-  ]);
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setPrompt(parsedState.prompt || "");
+      setIpAdapterImage(parsedState.ip_adapter_image?.[0] || ""); // Extract first item from array
+      setStyleType(parsedState.styleType || "");
+      parsedState.uploadSections?.forEach((section: any) =>
+        updateUploadSection(section.id, {
+          image: section.image || "",
+          styleOption: section.styleOption || "",
+        })
+      );
+      parsedState.images?.forEach((image: any) => addImage(image));
+    }
+  }, [setPrompt, setIpAdapterImage, setStyleType, updateUploadSection, addImage]);
 
   // Mutation for uploading style image
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
       uploadBackendFiles(file, token) as Promise<string>,
     onError: (error: any) =>
-      toast({ title: "Upload Failed", description: error.message || "Failed to upload image", variant: "destructive" }),
+      toast({
+        title: "Upload Failed",
+        description: error.message || "Failed to upload image",
+        variant: "destructive",
+      }),
   });
 
   // Mutation for generating style image
@@ -115,59 +156,62 @@ const StyleTab = () => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
 
-      const uploadedImages = uploadSections.filter((section) => section.image).map((section) => section.image);
-      const selectedStyle = uploadSections.find((section) => section.styleOption)?.styleOption || styleType;
+      const uploadedImages = uploadSections
+        .filter((section) => section.image)
+        .map((section) => section.image);
+      const selectedStyle =
+        uploadSections.find((section) => section.styleOption)?.styleOption || styleType;
 
-      if (uploadedImages.length === 0 && !selectedStyle) {
+      if (uploadedImages.length === 0 && !selectedStyle && !ip_adapter_image) {
         throw new Error("Please select a style or upload an image.");
       }
 
-      let response: TaskResponse;
-      if (uploadedImages.length > 0) {
-        // Use faceControl when an image is uploaded
-        const payload: FaceControlPayload = {
-          model_id: "sdxl",
-          prompt,
-          num_inference_steps: 30,
-          samples: 1,
-          ip_adapter_image: uploadedImages,
-          ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
-          ip_adapter_scale: Array(uploadedImages.length).fill(0.6),
-          seed: -1,
-        };
-        response = await faceControl(payload, token);
-      } else {
-        // Use generateStyle when only a style is selected
-        const payload: StylePayload = {
-          prompt,
-          num_inference_steps: 30,
-          enhance_prompt: true,
-          height: 1024,
-          width: 1024,
-          samples: 1,
-          style: selectedStyle,
-          palette: [],
-          seed: -1,
-        };
-        response = await generateStyle(payload, token);
-      }
+      // Use the full store state for the payload
+      const payload: FullPayload = {
+        model_id,
+        prompt,
+        num_inference_steps,
+        samples,
+        controlnet,
+        init_image: init_image ? [init_image] : ["public url for image"],
+        controlnet_weight,
+        negative_prompt,
+        guidance_scale,
+        embeddings,
+        scheduler,
+        seed,
+        ip_adapter_image: ip_adapter_image ? [ip_adapter_image] : uploadedImages.length > 0 ? uploadedImages : ["public url for style image"],
+        ip_adapter,
+        ip_adapter_scale,
+      };
+
+      const response: TaskResponse = await (uploadedImages.length > 0 || ip_adapter_image
+        ? faceControl(payload, token)
+        : generateStyle(payload, token));
 
       if (response?.id) {
         setGenerateTaskId(response.id);
         addTask(response.id, "style");
-        toast({ title: "Processing started", description: "Your image is being generated" });
+        toast({
+          title: "Processing started",
+          description: "Your image is being generated",
+        });
       } else {
         throw new Error("Missing task ID in response");
       }
       return response;
     },
     onError: (error: any) =>
-      toast({ title: "Error", description: error.message || "Failed to start generation process", variant: "destructive" }),
+      toast({
+        title: "Error",
+        description: error.message || "Failed to start generation process",
+        variant: "destructive",
+      }),
   });
 
   // Query for task status with token
   const { data: generateTaskStatus } = useQuery<TaskResponse>({
-    queryKey: ["styleTask", generateTaskId],
+    queryKey: ["styleTabTask", generateTaskId],
     queryFn: async () => {
       if (!generateTaskId) return null;
       const token = await getToken();
@@ -182,9 +226,14 @@ const StyleTab = () => {
     if (!generateTaskStatus) return;
 
     if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       if (!imageUrl) {
-        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
         setGenerateTaskId(null);
         return;
       }
@@ -192,66 +241,104 @@ const StyleTab = () => {
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        const lastImage = images[images.length - 1];
-        const newPosition = lastImage
-          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 };
-
         addImage({
           id: uuidv4(),
           url: imageUrl,
-          position: newPosition,
+          position: { x: 50, y: 60 },
           size: { width: 520, height: 520 },
-          element: img,
         });
-        toast({ title: "Success", description: "Image generated successfully!" });
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+        });
         setGenerateTaskId(null);
       };
       img.onerror = () => {
-        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
         setGenerateTaskId(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: generateTaskStatus.error || "Image generation failed", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast]);
+  }, [generateTaskStatus, addImage, toast, setGenerateTaskId]);
 
   const handleFaceUpload = async (file: File, id: number) => {
     const token = await getToken();
     if (!token) {
-      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Authentication token not available",
+        variant: "destructive",
+      });
       return;
     }
 
     try {
       const imageUrl = await uploadImageMutation({ data: file, token });
-      setUploadSections((prevSections) =>
-        prevSections.map((section) =>
-          section.id === id ? { ...section, image: imageUrl } : section
-        )
-      );
-      toast({ title: "Upload Successful", description: "Image uploaded successfully" });
+      updateUploadSection(id, { image: imageUrl });
+      setIpAdapterImage(imageUrl); // Sync with ip_adapter_image
+      toast({
+        title: "Upload Successful",
+        description: "Image uploaded successfully",
+      });
     } catch (error) {
       // Error handling is managed by the mutation's onError
     }
   };
 
   const handleRemoveImage = (id: number) => {
-    setUploadSections((prevSections) =>
-      prevSections.map((section) =>
-        section.id === id ? { ...section, image: "" } : section
-      )
-    );
+    removeImageFromSection(id);
+    if (uploadSections.every((section) => !section.image)) {
+      setIpAdapterImage(""); // Clear ip_adapter_image if no images remain
+    }
   };
 
   const handleStyleOptionChange = (value: string, id: number) => {
-    setUploadSections((prevSections) =>
-      prevSections.map((section) =>
-        section.id === id ? { ...section, styleOption: value } : section
-      )
-    );
-    setStyleType(value as StyleOption);
+    updateUploadSection(id, { styleOption: value });
+    setStyleType(value);
+  };
+
+  const handleSave = () => {
+    const stateToSave: FullPayload = {
+      model_id,
+      prompt,
+      num_inference_steps,
+      samples,
+      controlnet,
+      init_image: init_image ? [init_image] : ["public url for image"],
+      controlnet_weight,
+      negative_prompt,
+      guidance_scale,
+      embeddings,
+      scheduler,
+      seed,
+      ip_adapter_image: ip_adapter_image ? [ip_adapter_image] : ["public url for style image"],
+      ip_adapter,
+      ip_adapter_scale,
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    toast({
+      title: "Saved",
+      description: "State has been saved to local storage",
+    });
+  };
+
+  const handleClear = () => {
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    reset(); // Reset to store defaults, which match your JSON
+    toast({
+      title: "Cleared",
+      description: "State has been cleared from local storage",
+    });
   };
 
   return (
@@ -292,24 +379,39 @@ const StyleTab = () => {
         </div>
       ))}
 
-      <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium dark:text-text">Style Description</h3>
-        <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
+      <div className="space-y-2">
+        <div className="flex items-center mb-2">
+          <h3 className="text-sm font-medium dark:text-text">Style Description</h3>
+          <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
+        </div>
+        <Input
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Style description"
+          className="dark:text-text"
+        />
       </div>
-      <Input
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        placeholder="Style description"
-        className="dark:text-text"
-      />
 
-      <Button
-        onClick={() => mutate()}
-        disabled={uploadSections.every((section) => !section.image && !section.styleOption) || !prompt || isPending}
-        className="w-full"
-      >
-        {isPending ? "Applying Style..." : "Apply Style"}
-      </Button>
+      <div className="flex space-x-2">
+        <Button
+          onClick={() => mutate()}
+          disabled={
+            uploadSections.every((section) => !section.image && !section.styleOption) &&
+            !prompt &&
+            !ip_adapter_image ||
+            isPending
+          }
+          className="flex-1"
+        >
+          {isPending ? "Applying Style..." : "Apply Style"}
+        </Button>
+        <Button onClick={handleSave} className="flex-1">
+          Save
+        </Button>
+        <Button onClick={handleClear} variant="destructive" className="flex-1">
+          Clear
+        </Button>
+      </div>
     </div>
   );
 };
