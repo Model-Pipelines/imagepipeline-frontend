@@ -139,42 +139,42 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
 
 // Global Store Definition with localStorage
 interface GlobalState {
-  savedFaceTabStates: Record<string, FaceControlPayload>;
+  FaceTabStore: Record<string, FaceControlPayload>;
   saveFaceTabState: (id: string, state: FaceControlPayload) => void;
   clearFaceTabState: (id: string) => void;
-  clearAllFaceTabStates: () => void; // New method to clear all saved states
+  clearAllFaceTabStates: () => void;
 }
 
 const loadFromLocalStorage = (): Record<string, FaceControlPayload> => {
   if (typeof window === 'undefined') return {};
-  const saved = localStorage.getItem('savedFaceTabStates');
+  const saved = localStorage.getItem('FaceTabStore');
   return saved ? JSON.parse(saved) : {};
 };
 
 const saveToLocalStorage = (states: Record<string, FaceControlPayload>) => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('savedFaceTabStates', JSON.stringify(states));
+    localStorage.setItem('FaceTabStore', JSON.stringify(states));
   }
 };
 
 export const useGlobalStore = create<GlobalState>((set) => ({
-  savedFaceTabStates: loadFromLocalStorage(),
+  FaceTabStore: loadFromLocalStorage(),
   saveFaceTabState: (id, state) => set((prev) => {
-    const newStates = { ...prev.savedFaceTabStates, [id]: state };
+    const newStates = { ...prev.FaceTabStore, [id]: state };
     saveToLocalStorage(newStates);
-    return { savedFaceTabStates: newStates };
+    return { FaceTabStore: newStates };
   }),
   clearFaceTabState: (id) => set((prev) => {
-    const newStates = { ...prev.savedFaceTabStates };
+    const newStates = { ...prev.FaceTabStore };
     delete newStates[id];
     saveToLocalStorage(newStates);
-    return { savedFaceTabStates: newStates };
+    return { FaceTabStore: newStates };
   }),
   clearAllFaceTabStates: () => set(() => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('savedFaceTabStates');
+      localStorage.removeItem('FaceTabStore');
     }
-    return { savedFaceTabStates: {} };
+    return { FaceTabStore: {} };
   }),
 }));
 
