@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { create } from 'zustand';
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -11,17 +12,9 @@ import { toast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
 import { Info } from "lucide-react";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useAuth } from "@clerk/nextjs";
 
-// Define types for API responses and payloads
-interface FaceControlResponse {
-  id: string;
-  status?: string;
-  download_urls?: string[];
-  image_url?: string;
-  error?: string;
-}
-
+// FaceTab Store Definition with Full Payload
 interface FaceControlPayload {
   model_id: string;
   prompt: string;
@@ -40,6 +33,160 @@ interface FaceControlPayload {
   ip_adapter_scale: number[];
 }
 
+interface FaceTabState extends FaceControlPayload {
+  generateTaskId: string | null;
+  setFaceImages: (images: string[]) => void;
+  addFaceImage: (image: string) => void;
+  removeFaceImage: (index: number) => void;
+  setSelectedPositions: (positions: ('center' | 'left' | 'right')[]) => void;
+  togglePosition: (position: 'center' | 'left' | 'right') => void;
+  setPrompt: (prompt: string) => void;
+  setGenerateTaskId: (id: string | null) => void;
+  getPayload: () => FaceControlPayload;
+  clear: () => void; // Kept for interface compatibility but will be a no-op
+}
+
+export const useFaceTabStore = create<FaceTabState>((set, get) => ({
+  model_id: "sdxl",
+  prompt: "",
+  num_inference_steps: 30,
+  samples: 1,
+  negative_prompt: "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+  guidance_scale: 5.0,
+  height: 1024,
+  width: 1024,
+  ip_adapter_mask_images: [],
+  embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
+  scheduler: "DPMSolverMultistepSchedulerSDE",
+  seed: -1,
+  ip_adapter_image: [],
+  ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
+  ip_adapter_scale: [],
+  generateTaskId: null,
+
+  setFaceImages: (images) => set({ 
+    ip_adapter_image: images,
+    ip_adapter_scale: Array(images.length).fill(0.6)
+  }),
+  
+  addFaceImage: (image) => set((state) => ({
+    ip_adapter_image: [...state.ip_adapter_image, image].slice(0, 3),
+    ip_adapter_scale: [...state.ip_adapter_image, image].slice(0, 3).map(() => 0.6)
+  })),
+
+  removeFaceImage: (index) => set((state) => ({
+    ip_adapter_image: state.ip_adapter_image.filter((_, i) => i !== index),
+    ip_adapter_scale: state.ip_adapter_scale.filter((_, i) => i !== index)
+  })),
+
+  setSelectedPositions: (positions) => set({ 
+    ip_adapter_mask_images: positions.map(pos => ({
+      center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+      left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+      right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+    }[pos]))
+  }),
+
+  togglePosition: (position) => set((state) => {
+    const currentPositions = state.ip_adapter_mask_images.map(url => 
+      Object.entries({
+        center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+        left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+        right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+      }).find(([_, value]) => value === url)?.[0] as 'center' | 'left' | 'right' | undefined
+    ).filter(Boolean) as ('center' | 'left' | 'right')[];
+    
+    const newPositions = currentPositions.includes(position)
+      ? currentPositions.filter((p) => p !== position)
+      : [...currentPositions, position];
+    
+    return {
+      ip_adapter_mask_images: newPositions.map(pos => ({
+        center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+        left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+        right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+      }[pos]))
+    };
+  }),
+
+  setPrompt: (prompt) => set({ prompt }),
+
+  setGenerateTaskId: (id) => set({ generateTaskId: id }),
+
+  getPayload: () => {
+    const state = get();
+    return {
+      model_id: state.model_id,
+      prompt: state.prompt,
+      num_inference_steps: state.num_inference_steps,
+      samples: state.samples,
+      negative_prompt: state.negative_prompt,
+      guidance_scale: state.guidance_scale,
+      height: state.height,
+      width: state.width,
+      ip_adapter_mask_images: state.ip_adapter_mask_images,
+      embeddings: state.embeddings,
+      scheduler: state.scheduler,
+      seed: state.seed,
+      ip_adapter_image: state.ip_adapter_image,
+      ip_adapter: state.ip_adapter,
+      ip_adapter_scale: state.ip_adapter_scale,
+    };
+  },
+
+  clear: () => set({}), // No-op, kept for interface compatibility
+}));
+
+// Global Store Definition with localStorage
+interface GlobalState {
+  savedFaceTabStates: Record<string, FaceControlPayload>;
+  saveFaceTabState: (id: string, state: FaceControlPayload) => void;
+  clearFaceTabState: (id: string) => void;
+  clearAllFaceTabStates: () => void; // New method to clear all saved states
+}
+
+const loadFromLocalStorage = (): Record<string, FaceControlPayload> => {
+  if (typeof window === 'undefined') return {};
+  const saved = localStorage.getItem('savedFaceTabStates');
+  return saved ? JSON.parse(saved) : {};
+};
+
+const saveToLocalStorage = (states: Record<string, FaceControlPayload>) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('savedFaceTabStates', JSON.stringify(states));
+  }
+};
+
+export const useGlobalStore = create<GlobalState>((set) => ({
+  savedFaceTabStates: loadFromLocalStorage(),
+  saveFaceTabState: (id, state) => set((prev) => {
+    const newStates = { ...prev.savedFaceTabStates, [id]: state };
+    saveToLocalStorage(newStates);
+    return { savedFaceTabStates: newStates };
+  }),
+  clearFaceTabState: (id) => set((prev) => {
+    const newStates = { ...prev.savedFaceTabStates };
+    delete newStates[id];
+    saveToLocalStorage(newStates);
+    return { savedFaceTabStates: newStates };
+  }),
+  clearAllFaceTabStates: () => set(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('savedFaceTabStates');
+    }
+    return { savedFaceTabStates: {} };
+  }),
+}));
+
+// Component Types and Constants
+interface FaceControlResponse {
+  id: string;
+  status?: string;
+  download_urls?: string[];
+  image_url?: string;
+  error?: string;
+}
+
 const POSITION_MAP = {
   center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
   left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
@@ -48,7 +195,6 @@ const POSITION_MAP = {
 
 type Position = keyof typeof POSITION_MAP;
 
-// Component descriptions
 const COMPONENT_DESCRIPTIONS = {
   imageUploader: "Upload up to 3 face images to use as reference",
   positionButtons: "Select where each face should appear in the generated image",
@@ -56,7 +202,6 @@ const COMPONENT_DESCRIPTIONS = {
   generateButton: "Generate a new image using the uploaded faces and positions",
 };
 
-// InfoButton component
 const InfoButton = ({ description }: { description: string }) => (
   <div className="relative inline-block ml-2 group">
     <Info size={16} className="text-muted-foreground hover:text-bordergraydark cursor-help" />
@@ -66,17 +211,28 @@ const InfoButton = ({ description }: { description: string }) => (
   </div>
 );
 
+// Component
 const FaceTab = () => {
-  const [faceImages, setFaceImages] = useState<string[]>([]);
-  const [selectedPositions, setSelectedPositions] = useState<Position[]>([]);
-  const [prompt, setPrompt] = useState("");
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const {
+    ip_adapter_image: faceImages,
+    ip_adapter_mask_images,
+    prompt,
+    generateTaskId,
+    setFaceImages,
+    addFaceImage,
+    removeFaceImage,
+    togglePosition,
+    setPrompt,
+    setGenerateTaskId,
+    getPayload,
+    clear,
+  } = useFaceTabStore();
 
+  const { saveFaceTabState, clearAllFaceTabStates } = useGlobalStore();
   const { addImage, images } = useImageStore();
   const { addTask } = useGenerativeTaskStore();
-  const { getToken } = useAuth(); // Get token function from Clerk
+  const { getToken } = useAuth();
 
-  // Mutations with token support
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token) as Promise<string>,
     onError: (error: any) => {
@@ -99,7 +255,6 @@ const FaceTab = () => {
     },
   });
 
-  // Query with token support
   const { data: generateTaskStatus } = useQuery({
     queryKey: ["faceControlTask", generateTaskId],
     queryFn: async () => {
@@ -113,7 +268,7 @@ const FaceTab = () => {
       if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
         return false;
       }
-      return 5000; //5 seconds testing
+      return 5000;
     },
   });
 
@@ -166,7 +321,7 @@ const FaceTab = () => {
       });
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast]);
+  }, [generateTaskStatus, addImage, images, setGenerateTaskId]);
 
   const handleUpload = async (file: File) => {
     const token = await getToken();
@@ -181,22 +336,14 @@ const FaceTab = () => {
 
     try {
       const imageUrl = await uploadImageMutation({ data: file, token });
-      setFaceImages((prev) => [...prev, imageUrl]);
+      addFaceImage(imageUrl);
       toast({
         title: "Upload Successful",
         description: "Face image uploaded",
       });
     } catch (error) {
-      // Error handling is managed by the mutation's onError testing with 5 seconds 
+      // Error handling is managed by the mutation's onError
     }
-  };
-
-  const togglePosition = (position: Position) => {
-    setSelectedPositions((prev) =>
-      prev.includes(position)
-        ? prev.filter((p) => p !== position)
-        : [...prev, position]
-    );
   };
 
   const handleSubmit = async () => {
@@ -209,7 +356,7 @@ const FaceTab = () => {
       return;
     }
 
-    if (faceImages.length !== selectedPositions.length) {
+    if (faceImages.length !== ip_adapter_mask_images.length) {
       toast({
         title: "Error",
         description: `Please select exactly ${faceImages.length} position${faceImages.length > 1 ? "s" : ""} for your face image${faceImages.length > 1 ? "s" : ""}.`,
@@ -229,24 +376,7 @@ const FaceTab = () => {
     }
 
     try {
-      const payload: FaceControlPayload = {
-        model_id: "sdxl",
-        prompt,
-        num_inference_steps: 30,
-        samples: 1,
-        negative_prompt: "pixelated, low res, blurry faces, jpeg artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, deformed eyes, glitch, noise, noisy, off-center, deformed, cross-eyed, bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
-        guidance_scale: 5.0,
-        height: 1024,
-        width: 1024,
-        ip_adapter_mask_images: selectedPositions.map((pos) => POSITION_MAP[pos]),
-        embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-        scheduler: "DPMSolverMultistepSchedulerSDE",
-        seed: -1,
-        ip_adapter_image: faceImages,
-        ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
-        ip_adapter_scale: Array(faceImages.length).fill(0.6),
-      };
-
+      const payload = getPayload();
       const response = await faceControlMutation({ data: payload, token });
       if (response?.id) {
         setGenerateTaskId(response.id);
@@ -263,6 +393,44 @@ const FaceTab = () => {
     }
   };
 
+  const handleSave = () => {
+    const currentState = useFaceTabStore.getState();
+    const saveId = uuidv4();
+    saveFaceTabState(saveId, {
+      model_id: currentState.model_id,
+      prompt: currentState.prompt,
+      num_inference_steps: currentState.num_inference_steps,
+      samples: currentState.samples,
+      negative_prompt: currentState.negative_prompt,
+      guidance_scale: currentState.guidance_scale,
+      height: currentState.height,
+      width: currentState.width,
+      ip_adapter_mask_images: currentState.ip_adapter_mask_images,
+      embeddings: currentState.embeddings,
+      scheduler: currentState.scheduler,
+      seed: currentState.seed,
+      ip_adapter_image: currentState.ip_adapter_image,
+      ip_adapter: currentState.ip_adapter,
+      ip_adapter_scale: currentState.ip_adapter_scale,
+    });
+    toast({
+      title: "Saved",
+      description: `FaceTab state saved with ID: ${saveId}`,
+    });
+  };
+
+  const handleClear = () => {
+    clearAllFaceTabStates();
+    toast({
+      title: "Cleared",
+      description: "All saved FaceTab states have been removed from storage",
+    });
+  };
+
+  const selectedPositions = ip_adapter_mask_images.map(url => 
+    Object.entries(POSITION_MAP).find(([_, value]) => value === url)?.[0] as Position | undefined
+  ).filter(Boolean) as Position[];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center mb-2">
@@ -276,7 +444,7 @@ const FaceTab = () => {
               <ImageUploader
                 image={faceImages[index]}
                 onUpload={handleUpload}
-                onRemove={() => setFaceImages((prev) => prev.filter((_, i) => i !== index))}
+                onRemove={() => removeFaceImage(index)}
               />
             </div>
           ) : faceImages.length < 3 ? (
@@ -284,7 +452,7 @@ const FaceTab = () => {
               key={index}
               image=""
               onUpload={handleUpload}
-              onRemove={() => { }}
+              onRemove={() => {}}
             />
           ) : null
         )}
@@ -318,13 +486,28 @@ const FaceTab = () => {
         className="dark:text-text"
       />
 
-      <Button
-        onClick={handleSubmit}
-        disabled={!prompt || faceImages.length === 0 || faceImages.length !== selectedPositions.length}
-        className="w-full hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
-      >
-        Generate
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          onClick={handleSubmit}
+          disabled={!prompt || faceImages.length === 0 || faceImages.length !== ip_adapter_mask_images.length}
+          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+        >
+          Generate
+        </Button>
+        <Button
+          onClick={handleSave}
+          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+        >
+          Save
+        </Button>
+        <Button
+          onClick={handleClear}
+          variant="outline"
+          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+        >
+          Clear
+        </Button>
+      </div>
     </div>
   );
 };
