@@ -24,54 +24,33 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Info } from "lucide-react";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useAuth } from "@clerk/nextjs";
+import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 
-// Define types for payloads and responses
+// Define types for payloads
 interface ControlNetPayload {
-  prompt: string;
-  samples: number;
-  num_inference_steps: number;
   controlnet: string;
+  prompt: string;
   image?: string;
+  num_inference_steps: number;
+  samples: number;
 }
 
-interface RenderSketchPayload {
+interface SdxlControlNetPayload {
   model_id: string;
-  prompt: string;
-  samples: number;
-  num_inference_steps: number;
   controlnets: string[];
-  init_images: string[];
-  controlnet_weights: number[];
-  negative_prompt: string;
-}
-
-interface RecolorImagePayload {
-  model_id: string;
   prompt: string;
-  samples: number;
-  num_inference_steps: number;
-  controlnets: string[];
-  init_images: string[];
-  controlnet_weights: number[];
   negative_prompt: string;
-}
-
-interface InteriorDesignPayload {
-  model_id: string;
-  prompt: string;
-  samples: number;
-  num_inference_steps: number;
-  controlnets: string[];
   init_images: string[];
+  num_inference_steps: number;
+  samples: number;
   controlnet_weights: number[];
-  negative_prompt: string;
 }
 
 interface GenerateLogoPayload {
   logo_prompt: string;
-  image: string;
   prompt: string;
+  image: string;
 }
 
 interface TaskResponse {
@@ -82,15 +61,16 @@ interface TaskResponse {
   error?: string;
 }
 
+// Define reference types with API-specific controlnet values and endpoints
 const REFERENCE_TYPES = [
-  { value: "none", label: "None", api: "controlNet" },
-  { value: "outline", label: "Outline", api: "controlNet" },
-  { value: "depth", label: "Depth", api: "controlNet" },
-  { value: "pose", label: "Pose", api: "controlNet" },
-  { value: "sketch", label: "Render Sketch", api: "renderSketch" },
-  { value: "recolor", label: "Recolor", api: "recolorImage" },
-  { value: "interior", label: "Interior Design", api: "interiorDesign" },
-  { value: "logo", label: "Logo", api: "generateLogo" },
+  { value: "none", label: "None", api: "controlNet", controlnet: "none", endpoint: "https://api.imagepipeline.io/control/v1" },
+  { value: "canny", label: "Outline", api: "controlNet", controlnet: "canny", endpoint: "https://api.imagepipeline.io/control/v1" },
+  { value: "depth", label: "Depth", api: "controlNet", controlnet: "depth", endpoint: "https://api.imagepipeline.io/control/v1" },
+  { value: "openpose", label: "Pose", api: "controlNet", controlnet: "openpose", endpoint: "https://api.imagepipeline.io/control/v1" },
+  { value: "scribble", label: "Render Sketch", api: "renderSketch", controlnet: "scribble", endpoint: "https://api.imagepipeline.io/sdxl/controlnet/v1" },
+  { value: "reference-only", label: "Recolor", api: "recolorImage", controlnet: "reference-only", endpoint: "https://api.imagepipeline.io/sdxl/controlnet/v1" },
+  { value: "mlsd", label: "Interior Design", api: "interiorDesign", controlnet: "mlsd", endpoint: "https://api.imagepipeline.io/sdxl/controlnet/v1" },
+  { value: "logo", label: "Logo", api: "generateLogo", controlnet: null, endpoint: "https://api.imagepipeline.io/logo/v1" },
 ] as const;
 
 type ReferenceType = typeof REFERENCE_TYPES[number]["value"];
@@ -100,6 +80,7 @@ const COMPONENT_DESCRIPTIONS = {
   typeSelector: "Choose the type of reference-based generation",
   imageUploader: "Upload a reference image to guide the generation",
   prompt: "Describe how you want to transform or use the reference",
+  logoPrompt: "Provide a specific prompt for logo generation",
   generateButton: "Generate a new image based on your reference and settings",
 };
 
@@ -114,15 +95,34 @@ const InfoButton = ({ description }: { description: string }) => (
 );
 
 const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }) => {
-  const [type, setType] = useState<ReferenceType>("none");
-  const [referenceImage, setReferenceImage] = useState("");
-  const [prompt, setPrompt] = useState("");
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+
+  // Use the Zustand store
+  const {
+    controlnet,
+    prompt,
+    referenceImage,
+    num_inference_steps,
+    samples,
+    model_id,
+    negative_prompt,
+    controlnet_weights,
+    logo_prompt,
+    setControlNet,
+    setPrompt,
+    setReferenceImage,
+    setNumInferenceSteps,
+    setSamples,
+    setModelId,
+    setNegativePrompt,
+    setControlnetWeights,
+    setLogoPrompt,
+    reset,
+  } = useReferenceStore();
 
   const { addImage, images } = useImageStore();
   const { addTask } = useGenerativeTaskStore();
-  const { getToken } = useAuth(); // Get token function from Clerk
-
+  const { getToken } = useAuth();
 
   // Mutation for uploading reference image
   const { mutateAsync: uploadImageMutation } = useMutation({
@@ -132,73 +132,52 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       toast({ title: "Upload Failed", description: error.message || "Failed to upload reference image", variant: "destructive" }),
   });
 
-  // Mutation for generating images based on type
+  // Mutation for generating images
   const generateMutation = useMutation({
     mutationFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
 
-      if (type !== "none" && !referenceImage) {
+      if (controlnet !== "none" && controlnet !== null && !referenceImage) {
         throw new Error("Reference image is required for this type.");
       }
-      const selected = REFERENCE_TYPES.find((t) => t.value === type);
-      if (!selected) throw new Error("Invalid type");
 
-      const basePayload = {
-        prompt,
-        samples: 1,
-        num_inference_steps: 30,
-      };
+      const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
+      if (!selected) throw new Error("Invalid controlnet type");
+
       let payload;
-
-      switch (type) {
+      switch (selected.value) {
         case "none":
-          payload = { ...basePayload, controlnet: "none" } as ControlNetPayload;
-          break;
-        case "outline":
-          payload = { ...basePayload, controlnet: "canny", image: referenceImage } as ControlNetPayload;
-          break;
+        case "canny":
         case "depth":
-          payload = { ...basePayload, controlnet: "depth", image: referenceImage } as ControlNetPayload;
-          break;
-        case "pose":
-          payload = { ...basePayload, controlnet: "openpose", image: referenceImage } as ControlNetPayload;
-          break;
-        case "sketch":
+        case "openpose":
           payload = {
-            model_id: "sdxl",
-            controlnets: ["scribble"],
-            init_images: [referenceImage],
-            controlnet_weights: [1.0],
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            ...basePayload,
-          } as RenderSketchPayload;
+            controlnet: selected.controlnet,
+            prompt,
+            image: referenceImage,
+            num_inference_steps,
+            samples,
+          } as ControlNetPayload;
           break;
-        case "recolor":
+        case "scribble":
+        case "reference-only":
+        case "mlsd":
           payload = {
-            model_id: "sdxl",
-            controlnets: ["reference-only"],
+            model_id,
+            controlnets: [selected.controlnet!],
+            prompt,
+            negative_prompt,
             init_images: [referenceImage],
-            controlnet_weights: [1.0],
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            ...basePayload,
-          } as RecolorImagePayload;
-          break;
-        case "interior":
-          payload = {
-            model_id: "sdxl",
-            controlnets: ["mlsd"],
-            init_images: [referenceImage],
-            controlnet_weights: [1.0],
-            negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-            ...basePayload,
-          } as InteriorDesignPayload;
+            num_inference_steps,
+            samples,
+            controlnet_weights,
+          } as SdxlControlNetPayload;
           break;
         case "logo":
           payload = {
-            logo_prompt: prompt,
+            logo_prompt,
+            prompt,
             image: referenceImage,
-            prompt: prompt,
           } as GenerateLogoPayload;
           break;
         default:
@@ -226,10 +205,10 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           throw new Error("Invalid API name");
       }
 
-      const taskId = response?.id; // Assuming 'id' is the task identifier
+      const taskId = response?.id;
       if (taskId) {
         setGenerateTaskId(taskId);
-        const taskType = type === "none" || type === "outline" || type === "depth" || type === "pose" ? "controlnet" : type;
+        const taskType = ["none", "canny", "depth", "openpose"].includes(selected.value) ? "controlnet" : selected.value;
         addTask(taskId, taskType);
         toast({ title: "Started", description: "Image generation in progress" });
       } else {
@@ -241,15 +220,15 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       toast({ title: "Error", description: error.message || "Failed to generate image", variant: "destructive" }),
   });
 
-  // Query for task status with token
+  // Query for task status
   const { data: generateTaskStatus } = useQuery<TaskResponse>({
-    queryKey: ["generateImageTask", generateTaskId, type],
+    queryKey: ["generateImageTask", generateTaskId, controlnet],
     queryFn: async () => {
       if (!generateTaskId) return null;
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
 
-      const selected = REFERENCE_TYPES.find((t) => t.value === type);
+      const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
       if (!selected) return null;
 
       switch (selected.api) {
@@ -267,10 +246,8 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           throw new Error("Invalid API name");
       }
     },
-    enabled: !!generateTaskId && !!type,
+    enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "PENDING" ? 5000 : false),
-
-
   });
 
   useEffect(() => {
@@ -310,7 +287,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       toast({ title: "Error", description: generateTaskStatus.error || "Image generation failed", variant: "destructive" });
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast]);
+  }, [generateTaskStatus, addImage, images]);
 
   const handleUpload = async (file: File) => {
     const token = await getToken();
@@ -329,8 +306,15 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
   };
 
   const handleTypeChange = (newType: string) => {
-    setType(newType as ReferenceType);
-    onTypeChange(newType);
+    const selected = REFERENCE_TYPES.find((t) => t.value === newType);
+    if (selected) {
+      setControlNet(selected.controlnet); // Set to API-specific controlnet value or null for logo
+      onTypeChange(newType);
+      // Reset logo_prompt if not logo
+      if (newType !== "logo") {
+        setLogoPrompt("");
+      }
+    }
   };
 
   const handleGenerateImageByReference = async () => {
@@ -343,15 +327,97 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     }
   };
 
+  // Save state in the exact JSON format required by the selected API
+  const handleSave = () => {
+    const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
+    if (!selected) return;
+
+    let referenceState;
+    switch (selected.value) {
+      case "none":
+      case "canny":
+      case "depth":
+      case "openpose":
+        referenceState = {
+          controlnet: controlnet,
+          prompt,
+          image: referenceImage,
+          num_inference_steps,
+          samples,
+        };
+        break;
+      case "scribble":
+      case "reference-only":
+      case "mlsd":
+        referenceState = {
+          model_id,
+          controlnets: [controlnet],
+          prompt,
+          negative_prompt,
+          init_images: [referenceImage],
+          num_inference_steps,
+          samples,
+          controlnet_weights,
+        };
+        break;
+      case "logo":
+        referenceState = {
+          logo_prompt,
+          prompt,
+          image: referenceImage,
+        };
+        break;
+      default:
+        return;
+    }
+
+    localStorage.setItem("referenceStore", JSON.stringify(referenceState));
+    toast({ title: "Saved", description: "Reference settings saved successfully!" });
+  };
+
+  // Load saved state on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem("referenceStore");
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      if (parsedState.controlnet) {
+        setControlNet(parsedState.controlnet ?? "none");
+      } else if (parsedState.logo_prompt !== undefined) {
+        setControlNet(null); // Logo case
+      }
+      setPrompt(parsedState.prompt || "");
+      setReferenceImage(parsedState.image || parsedState.init_images?.[0] || "");
+      setNumInferenceSteps(parsedState.num_inference_steps || 30);
+      setSamples(parsedState.samples || 1);
+      setModelId(parsedState.model_id || "sdxl");
+      setNegativePrompt(parsedState.negative_prompt || "lowres, bad anatomy, worst quality, low quality");
+      setControlnetWeights(parsedState.controlnet_weights || [1.0]);
+      setLogoPrompt(parsedState.logo_prompt || "");
+    }
+  }, [
+    setControlNet,
+    setPrompt,
+    setReferenceImage,
+    setNumInferenceSteps,
+    setSamples,
+    setModelId,
+    setNegativePrompt,
+    setControlnetWeights,
+    setLogoPrompt,
+  ]);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center mb-2">
         <h3 className="text-sm font-medium dark:text-text">Reference Type</h3>
         <InfoButton description={COMPONENT_DESCRIPTIONS.typeSelector} />
       </div>
-      <Select value={type} onValueChange={handleTypeChange}>
+      <Select
+        value={REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null))?.value || "none"}
+        onValueChange={handleTypeChange}
+      >
         <SelectTrigger className="dark:text-text">
-          <SelectValue  placeholder="Select type" />
+          <SelectValue placeholder="Select type" />
         </SelectTrigger>
         <SelectContent>
           {REFERENCE_TYPES.map((t) => (
@@ -362,7 +428,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         </SelectContent>
       </Select>
 
-      {type !== "none" && (
+      {controlnet !== "none" && (
         <>
           <div className="flex items-center mb-2">
             <h3 className="text-sm font-medium dark:text-text">Reference Image</h3>
@@ -378,12 +444,36 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       </div>
       <Input value={prompt} className="dark:text-text" onChange={(e) => setPrompt(e.target.value)} placeholder="Description" />
 
+      {controlnet === null && (
+        <>
+          <div className="flex items-center mb-2">
+            <h3 className="text-sm font-medium dark:text-text">Logo Prompt</h3>
+            <InfoButton description={COMPONENT_DESCRIPTIONS.logoPrompt} />
+          </div>
+          <Input
+            value={logo_prompt}
+            className="dark:text-text"
+            onChange={(e) => setLogoPrompt(e.target.value)}
+            placeholder="Logo-specific prompt"
+          />
+        </>
+      )}
+
       <Button
         onClick={() => handleSubmit("Reference")}
-        disabled={!type || (!referenceImage && type !== "none") || !prompt || generateMutation.isPending}
+        disabled={
+          !prompt ||
+          (!referenceImage && controlnet !== "none" && controlnet !== null) ||
+          (controlnet === null && !logo_prompt) ||
+          generateMutation.isPending
+        }
         className="w-full"
       >
         {generateMutation.isPending ? "Generating..." : "Generate"}
+      </Button>
+
+      <Button onClick={handleSave} className="w-full mt-4">
+        Save
       </Button>
     </div>
   );
