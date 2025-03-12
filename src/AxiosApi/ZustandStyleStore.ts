@@ -67,7 +67,7 @@ export const useStyleTabStore = create<StyleTabState>((set) => ({
   prompt: "",
   num_inference_steps: 30,
   samples: 1,
-  controlnet: ["selected option value"],
+  controlnet: ["sdxl"],
   init_image: "",
   controlnet_weight: 1.0,
   negative_prompt:
