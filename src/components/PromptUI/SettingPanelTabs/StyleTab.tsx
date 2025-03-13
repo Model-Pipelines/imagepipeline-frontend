@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import {
   generateImage as generateStyle,
   faceControl,
-  getStyleImageStatus,
   uploadBackendFiles,
+  getStyleImageStatusNoReference
 } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
 import {
@@ -233,7 +233,7 @@ const StyleTab = () => {
       if (!generateTaskId) return null;
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
-      return getStyleImageStatus(generateTaskId, token);
+      return getStyleImageStatusNoReference(generateTaskId, token);
     },
     enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "PENDING" ? 5000 : false),
