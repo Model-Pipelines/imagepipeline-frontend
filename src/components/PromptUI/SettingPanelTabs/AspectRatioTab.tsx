@@ -10,7 +10,6 @@ import { Info } from "lucide-react";
 
 const aspectRatios = ["1:1", "9:16", "3:4", "4:3", "16:9", "21:9"];
 
-// Add component descriptions
 const COMPONENT_DESCRIPTIONS = {
   presetRatios: "Quick select common aspect ratios for your images",
   customDimensions: "Enter custom width and height values (64px to 1440px)",
@@ -33,7 +32,7 @@ const COMPONENT_INFO = {
     description: "Set image height in pixels (min: 64px, max: 1440px)"
   },
   widthInput: {
-    title: "Width", 
+    title: "Width",
     description: "Set image width in pixels (min: 64px, max: 1440px)"
   }
 };
@@ -95,11 +94,19 @@ const AspectRatioTab = () => {
   const [width, setWidth] = useState(storedWidth.toString());
   const { toast } = useToast();
 
-  // Sync local state with store
+  // Sync local state with store and load from localStorage
   useEffect(() => {
-    setHeight(storedHeight.toString());
-    setWidth(storedWidth.toString());
-  }, [storedHeight, storedWidth]);
+    const savedData = localStorage.getItem("AspectRatioStore");
+    if (savedData) {
+      const { height: savedHeight, width: savedWidth } = JSON.parse(savedData);
+      setHeight(savedHeight.toString());
+      setWidth(savedWidth.toString());
+      setDimensions(savedHeight, savedWidth);
+    } else {
+      setHeight(storedHeight.toString());
+      setWidth(storedWidth.toString());
+    }
+  }, [storedHeight, storedWidth, setDimensions]);
 
   const handleRatioClick = (ratio: string) => {
     const { height: newHeight, width: newWidth } = calculateDimensions(ratio);
@@ -107,6 +114,12 @@ const AspectRatioTab = () => {
     setWidth(newWidth.toString());
     setStoredAspectRatio(ratio);
     setDimensions(newHeight, newWidth);
+    // Save to localStorage
+    localStorage.setItem("AspectRatioStore", JSON.stringify({
+      height: newHeight,
+      width: newWidth,
+      ratio
+    }));
   };
 
   const handleDimensionChange = (value: string, type: 'height' | 'width') => {
@@ -161,6 +174,13 @@ const AspectRatioTab = () => {
     }
 
     setDimensions(parsedHeight, parsedWidth);
+    // Save to localStorage
+    localStorage.setItem("AspectRatioStore", JSON.stringify({
+      height: parsedHeight,
+      width: parsedWidth,
+      ratio: getAspectRatioFromDimensions(parsedHeight, parsedWidth)
+    }));
+    
     toast({
       title: "Success",
       description: `Dimensions set to ${parsedWidth}x${parsedHeight}`,

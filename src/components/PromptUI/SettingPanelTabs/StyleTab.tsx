@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useStyleTabStore } from "@/AxiosApi/ZustandStyleStore"; // Correct store
+import { useStyleStore } from "@/AxiosApi/ZustandStyleStore"; // Updated store
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -25,7 +25,6 @@ import { useAuth } from "@clerk/nextjs";
 import { useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-// Define full payload type matching your JSON
 interface FullPayload {
   model_id: string;
   prompt: string;
@@ -66,7 +65,6 @@ const STYLE_OPTIONS = [
 
 type StyleOption = typeof STYLE_OPTIONS[number];
 
-// Component descriptions
 const COMPONENT_DESCRIPTIONS = {
   styleSelector: "Choose from predefined artistic styles or upload your own style image",
   styleUploader: "Upload an image to use as a style reference",
@@ -83,7 +81,7 @@ const InfoButton = ({ description }: { description: string }) => (
   </div>
 );
 
-const LOCAL_STORAGE_KEY = "styleTabState";
+const LOCAL_STORAGE_KEY = "styleState"; // Updated to match store
 
 const StyleTab = () => {
   const {
@@ -91,9 +89,6 @@ const StyleTab = () => {
     prompt,
     num_inference_steps,
     samples,
-    controlnet,
-    init_image,
-    controlnet_weight,
     negative_prompt,
     guidance_scale,
     embeddings,
@@ -102,43 +97,70 @@ const StyleTab = () => {
     ip_adapter_image,
     ip_adapter,
     ip_adapter_scale,
-    styleType,
     uploadSections,
     generateTaskId,
     images,
+    setModelId,
     setPrompt,
+    setNumInferenceSteps,
+    setSamples,
+    setNegativePrompt,
+    setGuidanceScale,
+    setEmbeddings,
+    setScheduler,
+    setSeed,
     setIpAdapterImage,
-    setStyleType,
+    setIpAdapter,
+    setIpAdapterScale,
     setGenerateTaskId,
     updateUploadSection,
     removeImageFromSection,
     addImage,
     clearImages,
     reset,
-  } = useStyleTabStore();
+    saveToLocalStorage,
+  } = useStyleStore();
   const { addTask } = useGenerativeTaskStore();
   const { toast } = useToast();
   const { getToken } = useAuth();
 
-  // Load state from localStorage on mount
+  // Load only the specified JSON parameters from localStorage on mount
   useEffect(() => {
     const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedState) {
       const parsedState = JSON.parse(savedState);
+      setModelId(parsedState.model_id || "sdxl");
       setPrompt(parsedState.prompt || "");
-      setIpAdapterImage(parsedState.ip_adapter_image?.[0] || ""); // Extract first item from array
-      setStyleType(parsedState.styleType || "");
-      parsedState.uploadSections?.forEach((section: any) =>
-        updateUploadSection(section.id, {
-          image: section.image || "",
-          styleOption: section.styleOption || "",
-        })
+      setNumInferenceSteps(parsedState.num_inference_steps || 30);
+      setSamples(parsedState.samples || 1);
+      setNegativePrompt(
+        parsedState.negative_prompt ||
+          "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white"
       );
-      parsedState.images?.forEach((image: any) => addImage(image));
+      setGuidanceScale(parsedState.guidance_scale || 5.0);
+      setEmbeddings(parsedState.embeddings || ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"]);
+      setScheduler(parsedState.scheduler || "DPMSolverMultistepSchedulerSDE");
+      setSeed(parsedState.seed || -1);
+      setIpAdapterImage(parsedState.ip_adapter_image || ["public url for style"]);
+      setIpAdapter(parsedState.ip_adapter || ["ip-adapter-plus_sdxl_vit-h"]);
+      setIpAdapterScale(parsedState.ip_adapter_scale || [0.6]);
+      // Note: uploadSections and images are not loaded from localStorage
     }
-  }, [setPrompt, setIpAdapterImage, setStyleType, updateUploadSection, addImage]);
+  }, [
+    setModelId,
+    setPrompt,
+    setNumInferenceSteps,
+    setSamples,
+    setNegativePrompt,
+    setGuidanceScale,
+    setEmbeddings,
+    setScheduler,
+    setSeed,
+    setIpAdapterImage,
+    setIpAdapter,
+    setIpAdapterScale,
+  ]);
 
-  // Mutation for uploading style image
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
       uploadBackendFiles(file, token) as Promise<string>,
@@ -150,7 +172,6 @@ const StyleTab = () => {
       }),
   });
 
-  // Mutation for generating style image
   const { mutate, isPending } = useMutation({
     mutationFn: async () => {
       const token = await getToken();
@@ -159,33 +180,30 @@ const StyleTab = () => {
       const uploadedImages = uploadSections
         .filter((section) => section.image)
         .map((section) => section.image);
-      const selectedStyle =
-        uploadSections.find((section) => section.styleOption)?.styleOption || styleType;
 
-      if (uploadedImages.length === 0 && !selectedStyle && !ip_adapter_image) {
-        throw new Error("Please select a style or upload an image.");
+      if (uploadedImages.length === 0 && !prompt) {
+        throw new Error("Please upload an image or provide a prompt.");
       }
 
-      // Use the full store state for the payload
       const payload: FullPayload = {
         model_id,
         prompt,
         num_inference_steps,
         samples,
-        controlnet,
-        init_image: init_image ? [init_image] : ["public url for image"],
-        controlnet_weight,
+        controlnet: ["sdxl"], // Hardcoded default
+        init_image: ["public url for image"], // Hardcoded default
+        controlnet_weight: 1.0, // Hardcoded default
         negative_prompt,
         guidance_scale,
         embeddings,
         scheduler,
         seed,
-        ip_adapter_image: ip_adapter_image ? [ip_adapter_image] : uploadedImages.length > 0 ? uploadedImages : ["public url for style image"],
+        ip_adapter_image: uploadedImages.length > 0 ? uploadedImages : ip_adapter_image,
         ip_adapter,
         ip_adapter_scale,
       };
 
-      const response: TaskResponse = await (uploadedImages.length > 0 || ip_adapter_image
+      const response: TaskResponse = await (uploadedImages.length > 0
         ? faceControl(payload, token)
         : generateStyle(payload, token));
 
@@ -209,7 +227,6 @@ const StyleTab = () => {
       }),
   });
 
-  // Query for task status with token
   const { data: generateTaskStatus } = useQuery<TaskResponse>({
     queryKey: ["styleTabTask", generateTaskId],
     queryFn: async () => {
@@ -285,7 +302,7 @@ const StyleTab = () => {
     try {
       const imageUrl = await uploadImageMutation({ data: file, token });
       updateUploadSection(id, { image: imageUrl });
-      setIpAdapterImage(imageUrl); // Sync with ip_adapter_image
+      setIpAdapterImage([imageUrl]); // Sync with ip_adapter_image
       toast({
         title: "Upload Successful",
         description: "Image uploaded successfully",
@@ -298,34 +315,16 @@ const StyleTab = () => {
   const handleRemoveImage = (id: number) => {
     removeImageFromSection(id);
     if (uploadSections.every((section) => !section.image)) {
-      setIpAdapterImage(""); // Clear ip_adapter_image if no images remain
+      setIpAdapterImage(["public url for style"]); // Reset to default
     }
   };
 
   const handleStyleOptionChange = (value: string, id: number) => {
     updateUploadSection(id, { styleOption: value });
-    setStyleType(value);
   };
 
   const handleSave = () => {
-    const stateToSave: FullPayload = {
-      model_id,
-      prompt,
-      num_inference_steps,
-      samples,
-      controlnet,
-      init_image: init_image ? [init_image] : ["public url for image"],
-      controlnet_weight,
-      negative_prompt,
-      guidance_scale,
-      embeddings,
-      scheduler,
-      seed,
-      ip_adapter_image: ip_adapter_image ? [ip_adapter_image] : ["public url for style image"],
-      ip_adapter,
-      ip_adapter_scale,
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    saveToLocalStorage(); // Use store's method, which saves only JSON params
     toast({
       title: "Saved",
       description: "State has been saved to local storage",
@@ -334,7 +333,7 @@ const StyleTab = () => {
 
   const handleClear = () => {
     localStorage.removeItem(LOCAL_STORAGE_KEY);
-    reset(); // Reset to store defaults, which match your JSON
+    reset();
     toast({
       title: "Cleared",
       description: "State has been cleared from local storage",
@@ -398,7 +397,6 @@ const StyleTab = () => {
           disabled={
             uploadSections.every((section) => !section.image && !section.styleOption) &&
             !prompt &&
-            !ip_adapter_image ||
             isPending
           }
           className="flex-1"

@@ -42,8 +42,40 @@ import {
 } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
 import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
-import { useUser, useClerk, useAuth } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
+
+// Storage keys for all tabs
+const STORAGE_KEYS = {
+  "Aspect-Ratio": "AspectRatioStore",
+  "Reference": "referenceStore",
+  "Face": "FaceTabStore",
+  "Style": "styleTabState"
+};
+
+// Function to calculate number of tabs with saved states
+const getSavedTabsCount = () => {
+  let count = 0;
+  
+  Object.values(STORAGE_KEYS).forEach((key) => {
+    const storedData = localStorage.getItem(key);
+    if (storedData) {
+      try {
+        const parsed = JSON.parse(storedData);
+        // Count as 1 if there's any data (array or object)
+        if ((Array.isArray(parsed) && parsed.length > 0) || 
+            (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length > 0)) {
+          count++;
+        }
+      } catch (e) {
+        // If parsing fails but data exists, count it
+        count++;
+      }
+    }
+  });
+  
+  return count;
+};
 
 const ImagePromptUI = () => {
   const [isSettingsPanelVisible, setIsSettingsPanelVisible] = useState(false);
@@ -51,6 +83,7 @@ const ImagePromptUI = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
+  const [savedTabsCount, setSavedTabsCount] = useState(0);
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -146,6 +179,18 @@ const ImagePromptUI = () => {
     setInputTextStore("");
     setTimeout(animateText, 100);
   };
+
+  // Update saved tabs count on mount and storage changes
+  useEffect(() => {
+    setSavedTabsCount(getSavedTabsCount());
+    const handleStorageChange = () => {
+      setSavedTabsCount(getSavedTabsCount());
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!describeTaskStatus) return;
@@ -385,7 +430,7 @@ const ImagePromptUI = () => {
 
   const getButtonText = () => {
     const palettes = [
-      { name: "None", colors: [] },  // Add Default palette
+      { name: "None", colors: [] },
       {
         name: "Ember",
         colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
@@ -403,30 +448,22 @@ const ImagePromptUI = () => {
         colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"],
       },
     ];
-  
+
     const currentColors = hex_color.join(",");
-  
-    // Check if current colors match any predefined palette
+
+    if (hex_color.length === 0) return "None";
+
     for (const palette of palettes) {
-      if (hex_color.length === 0) {
-        return "None";
+      if (palette.colors.join(",") === currentColors) {
+        return palette.name;
       }
-    
-      // Check if current colors match any predefined palette
-      for (const palette of palettes) {
-        if (palette.colors.join(",") === currentColors) {
-          return palette.name;
-        }
-      }
-    
-      // Check if using custom colors
-      if (hex_color.some((color) => color !== "")) {
-        return "Custom";
-      }
-    
-      // Return Default if no matches found
-      return "None";
     }
+
+    if (hex_color.some((color) => color !== "")) {
+      return "Custom";
+    }
+
+    return "None";
   };
 
   const buttonText = getButtonText();
@@ -458,7 +495,6 @@ const ImagePromptUI = () => {
     };
     fetchPlanData();
   }, [userId, getToken]);
-
 
   return (
     <>
@@ -529,7 +565,6 @@ const ImagePromptUI = () => {
                   e.target.files?.[0] && handleFileUpload(e.target.files[0])
                 }
               />
-
               <button
                 onClick={handlePaperclipClick}
                 className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
@@ -554,33 +589,33 @@ const ImagePromptUI = () => {
               </motion.div>
             </div>
             <motion.button
-  onClick={handleGenerateImage}
-  disabled={isGenerating || !!generateTaskId}
-  className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
-    ${
-      isGenerating || !!generateTaskId
-        ? "bg-accent cursor-not-allowed"
-        : "bg-accent hover:bg-notice"
-    }`}
-  whileHover={{ scale: 1.05 }}
-  whileTap={{ scale: 0.95 }}
->
-  {isGenerating || !!generateTaskId ? (
-    <motion.div
-      className="w-5 h-5 border-4 border-white border-t-transparent rounded-full shadow-md"
-      animate={{ rotate: 360 }}
-      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-      style={{
-        boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)"
-      }}
-    />
-  ) : (
-    <>
-      <span className="hidden sm:inline text-text">Generate</span>
-      <span className="sm:hidden text-text">➜</span>
-    </>
-  )}
-</motion.button>
+              onClick={handleGenerateImage}
+              disabled={isGenerating || !!generateTaskId}
+              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg 
+                ${
+                  isGenerating || !!generateTaskId
+                    ? "bg-accent cursor-not-allowed"
+                    : "bg-accent hover:bg-notice"
+                }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {isGenerating || !!generateTaskId ? (
+                <motion.div
+                  className="w-5 h-5 border-4 border-white border-t-transparent rounded-full shadow-md"
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  style={{
+                    boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)"
+                  }}
+                />
+              ) : (
+                <>
+                  <span className="hidden sm:inline text-text">Generate</span>
+                  <span className="sm:hidden text-text">➜</span>
+                </>
+              )}
+            </motion.button>
           </div>
 
           <div className="flex items-center justify-between gap-2">
@@ -624,53 +659,50 @@ const ImagePromptUI = () => {
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-  <TooltipTrigger asChild>
-    <Button
-      variant="outline"
-      size="icon"
-      className={cn(
-        "h-10 w-10 rounded-md border transition-colors",
-        isPublic
-          ? "bg-success text-text dark:text-notice"
-          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
-        "hover:bg-muted dark:hover:bg-muted"
-      )}
-      onClick={handleTogglePublic}
-      aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
-    >
-      <motion.div
-        animate={
-          isPublic
-            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
-            : { scale: 1, rotate: 0 }
-        }
-        transition={{ duration: 0.5, ease: "easeInOut" }}
-      >
-        {/* Always show Globe for free plan users, show Lock/Globe for paid users */}
-        {isFreePlan() ? (
-          <Globe className="h-5 w-5" />
-        ) : (
-          isPublic ? (
-            <Globe className="h-5 w-5" />
-          ) : (
-            <Lock className="h-5 w-5" />
-          )
-        )}
-      </motion.div>
-    </Button>
-  </TooltipTrigger>
-  <TooltipContent>
-    {isFreePlan() ? (
-      <p>Upgrade to make images private</p>
-    ) : (
-      <p>
-        {isPublic
-          ? "Image and prompt are public"
-          : "Image and prompt are private"}
-      </p>
-    )}
-  </TooltipContent>
-</Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className={cn(
+                        "h-10 w-10 rounded-md border transition-colors",
+                        isPublic
+                          ? "bg-success text-text dark:text-notice"
+                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
+                        "hover:bg-muted dark:hover:bg-muted"
+                      )}
+                      onClick={handleTogglePublic}
+                      aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
+                    >
+                      <motion.div
+                        animate={
+                          isPublic
+                            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
+                            : { scale: 1, rotate: 0 }
+                        }
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        {isFreePlan() ? (
+                          <Globe className="h-5 w-5" />
+                        ) : isPublic ? (
+                          <Globe className="h-5 w-5" />
+                        ) : (
+                          <Lock className="h-5 w-5" />
+                        )}
+                      </motion.div>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {isFreePlan() ? (
+                      <p>Upgrade to make images private</p>
+                    ) : (
+                      <p>
+                        {isPublic
+                          ? "Image and prompt are public"
+                          : "Image and prompt are private"}
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               </TooltipProvider>
             </div>
             <div className="flex items-center gap-2">
@@ -692,7 +724,7 @@ const ImagePromptUI = () => {
               </Button>
               <Button
                 onClick={toggleSettingsPanel}
-                className={`w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
+                className={`relative w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
                   isSettingsPanelVisible
                     ? "bg-accent hover:bg-notice"
                     : "bg-bordergray hover:bg-gray-300"
@@ -707,6 +739,11 @@ const ImagePromptUI = () => {
                 <span className="hidden lg:ml-2 lg:inline text-bordergraydark">
                   Settings
                 </span>
+                {savedTabsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full">
+                    {savedTabsCount}
+                  </span>
+                )}
               </Button>
             </div>
           </div>
