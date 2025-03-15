@@ -19,14 +19,14 @@ const TAB_LABELS = {
   "Aspect-Ratio": "Aspect Ratio",
   "Reference": "Reference",
   "Face": "Face",
-  "Style": "Style"
+  "Style": "Style",
 };
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
   "Reference": "referenceStore",
   "Face": "FaceTabStore",
-  "Style": "styleTabState"
+  "Style": "styleTabState",
 };
 
 const SettingsPanel = ({
@@ -42,39 +42,51 @@ const SettingsPanel = ({
     "Style": 0,
   });
 
+  // Function to update saved counts based on localStorage data
   const updateSavedCounts = () => {
-    const counts = Object.fromEntries(
-      Object.entries(STORAGE_KEYS).map(([tab, key]) => {
-        const storedData = localStorage.getItem(key);
-        let count = 0;
-        
-        if (storedData) {
-          try {
-            const parsed = JSON.parse(storedData);
-            // Handle different storage formats
-            if (Array.isArray(parsed)) {
-              count = parsed.length;
-            } else if (typeof parsed === 'object' && parsed !== null) {
-              count = Object.keys(parsed).length || 1;
-            }
-          } catch (e) {
-            count = 1; // If parsing fails but data exists, count as 1
+    const counts = { ...savedCounts }; // Create a copy of the current state
+
+    Object.entries(STORAGE_KEYS).forEach(([tab, key]) => {
+      const storedData = localStorage.getItem(key);
+      let count = 0;
+
+      if (storedData) {
+        try {
+          const parsed = JSON.parse(storedData);
+
+          // Handle different storage formats
+          if (Array.isArray(parsed)) {
+            count = parsed.length; // Count array items
+          } else if (typeof parsed === "object" && parsed !== null) {
+            count = Object.keys(parsed).length; // Count object keys
+          } else {
+            count = 1; // Single item
           }
+        } catch (e) {
+          console.error(`Error parsing localStorage data for ${key}:`, e);
+          count = 0; // Reset count if parsing fails
         }
-        return [tab, count];
-      })
-    );
-    setSavedCounts(counts);
+      }
+
+      counts[tab] = count; // Update the count for the current tab
+    });
+
+    setSavedCounts(counts); // Update the state with the new counts
   };
 
+  // Update saved counts on component mount
   useEffect(() => {
     updateSavedCounts();
   }, []);
 
+  // Listen for storage changes and update counts
   useEffect(() => {
-    const handleStorageChange = () => {
-      updateSavedCounts();
+    const handleStorageChange = (event: StorageEvent) => {
+      if (Object.values(STORAGE_KEYS).includes(event.key || "")) {
+        updateSavedCounts(); // Update counts if the changed key matches a storage key
+      }
     };
+
     window.addEventListener("storage", handleStorageChange);
     return () => {
       window.removeEventListener("storage", handleStorageChange);

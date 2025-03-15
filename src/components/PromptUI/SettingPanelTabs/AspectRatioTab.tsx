@@ -108,6 +108,23 @@ const AspectRatioTab = () => {
     }
   }, [storedHeight, storedWidth, setDimensions]);
 
+    // Listen for changes in localStorage
+    useEffect(() => {
+      const handleStorageChange = (event: StorageEvent) => {
+        if (event.key === "AspectRatioStore") {
+          const savedData = JSON.parse(event.newValue || "{}");
+          setHeight(savedData.height.toString());
+          setWidth(savedData.width.toString());
+          setDimensions(savedData.height, savedData.width);
+        }
+      };
+      window.addEventListener("storage", handleStorageChange);
+      return () => {
+        window.removeEventListener("storage", handleStorageChange);
+      };
+    }, [setDimensions]);
+  
+
   const handleRatioClick = (ratio: string) => {
     const { height: newHeight, width: newWidth } = calculateDimensions(ratio);
     setHeight(newHeight.toString());

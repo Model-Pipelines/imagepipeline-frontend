@@ -1,13 +1,17 @@
 "use client";
 
-import { create } from 'zustand';
+import { create } from "zustand";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { getFaceControlStatusFaceDailog, uploadBackendFiles, faceControl } from "@/AxiosApi/GenerativeApi";
+import {
+  getFaceControlStatusFaceDailog,
+  uploadBackendFiles,
+  faceControl,
+} from "@/AxiosApi/GenerativeApi";
 import { toast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { v4 as uuidv4 } from "uuid";
@@ -38,20 +42,23 @@ interface FaceTabState extends FaceControlPayload {
   setFaceImages: (images: string[]) => void;
   addFaceImage: (image: string) => void;
   removeFaceImage: (index: number) => void;
-  setSelectedPositions: (positions: ('center' | 'left' | 'right')[]) => void;
-  togglePosition: (position: 'center' | 'left' | 'right') => void;
+  setSelectedPositions: (positions: ("center" | "left" | "right")[]) => void;
+  togglePosition: (position: "center" | "left" | "right") => void;
   setPrompt: (prompt: string) => void;
   setGenerateTaskId: (id: string | null) => void;
   getPayload: () => FaceControlPayload;
-  clear: () => void; // Kept for interface compatibility but will be a no-op
+  clear: () => void;
 }
+
+const LOCAL_STORAGE_KEY = "FaceTabStore";
 
 export const useFaceTabStore = create<FaceTabState>((set, get) => ({
   model_id: "sdxl",
   prompt: "",
   num_inference_steps: 30,
   samples: 1,
-  negative_prompt: "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+  negative_prompt:
+    "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
   guidance_scale: 5.0,
   height: 1024,
   width: 1024,
@@ -64,50 +71,57 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
   ip_adapter_scale: [],
   generateTaskId: null,
 
-  setFaceImages: (images) => set({ 
-    ip_adapter_image: images,
-    ip_adapter_scale: Array(images.length).fill(0.6)
-  }),
-  
-  addFaceImage: (image) => set((state) => ({
-    ip_adapter_image: [...state.ip_adapter_image, image].slice(0, 3),
-    ip_adapter_scale: [...state.ip_adapter_image, image].slice(0, 3).map(() => 0.6)
-  })),
+  setFaceImages: (images) =>
+    set({
+      ip_adapter_image: images,
+      ip_adapter_scale: Array(images.length).fill(0.6),
+    }),
 
-  removeFaceImage: (index) => set((state) => ({
-    ip_adapter_image: state.ip_adapter_image.filter((_, i) => i !== index),
-    ip_adapter_scale: state.ip_adapter_scale.filter((_, i) => i !== index)
-  })),
+  addFaceImage: (image) =>
+    set((state) => ({
+      ip_adapter_image: [...state.ip_adapter_image, image].slice(0, 3),
+      ip_adapter_scale: [...state.ip_adapter_image, image].slice(0, 3).map(() => 0.6),
+    })),
 
-  setSelectedPositions: (positions) => set({ 
-    ip_adapter_mask_images: positions.map(pos => ({
-      center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
-      left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
-      right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
-    }[pos]))
-  }),
+  removeFaceImage: (index) =>
+    set((state) => ({
+      ip_adapter_image: state.ip_adapter_image.filter((_, i) => i !== index),
+      ip_adapter_scale: state.ip_adapter_scale.filter((_, i) => i !== index),
+    })),
 
-  togglePosition: (position) => set((state) => {
-    const currentPositions = state.ip_adapter_mask_images.map(url => 
-      Object.entries({
+  setSelectedPositions: (positions) =>
+    set({
+      ip_adapter_mask_images: positions.map((pos) => ({
         center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
         left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
         right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
-      }).find(([_, value]) => value === url)?.[0] as 'center' | 'left' | 'right' | undefined
-    ).filter(Boolean) as ('center' | 'left' | 'right')[];
-    
-    const newPositions = currentPositions.includes(position)
-      ? currentPositions.filter((p) => p !== position)
-      : [...currentPositions, position];
-    
-    return {
-      ip_adapter_mask_images: newPositions.map(pos => ({
-        center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
-        left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
-        right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
-      }[pos]))
-    };
-  }),
+      }[pos])),
+    }),
+
+  togglePosition: (position) =>
+    set((state) => {
+      const currentPositions = state.ip_adapter_mask_images
+        .map((url) =>
+          Object.entries({
+            center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+            left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+            right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+          }).find(([_, value]) => value === url)?.[0] as "center" | "left" | "right" | undefined
+        )
+        .filter(Boolean) as ("center" | "left" | "right")[];
+
+      const newPositions = currentPositions.includes(position)
+        ? currentPositions.filter((p) => p !== position)
+        : [...currentPositions, position];
+
+      return {
+        ip_adapter_mask_images: newPositions.map((pos) => ({
+          center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+          left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+          right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+        }[pos])),
+      };
+    }),
 
   setPrompt: (prompt) => set({ prompt }),
 
@@ -134,48 +148,26 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
     };
   },
 
-  clear: () => set({}), // No-op, kept for interface compatibility
-}));
-
-// Global Store Definition with localStorage
-interface GlobalState {
-  FaceTabStore: Record<string, FaceControlPayload>;
-  saveFaceTabState: (id: string, state: FaceControlPayload) => void;
-  clearFaceTabState: (id: string) => void;
-  clearAllFaceTabStates: () => void;
-}
-
-const loadFromLocalStorage = (): Record<string, FaceControlPayload> => {
-  if (typeof window === 'undefined') return {};
-  const saved = localStorage.getItem('FaceTabStore');
-  return saved ? JSON.parse(saved) : {};
-};
-
-const saveToLocalStorage = (states: Record<string, FaceControlPayload>) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('FaceTabStore', JSON.stringify(states));
-  }
-};
-
-export const useGlobalStore = create<GlobalState>((set) => ({
-  FaceTabStore: loadFromLocalStorage(),
-  saveFaceTabState: (id, state) => set((prev) => {
-    const newStates = { ...prev.FaceTabStore, [id]: state };
-    saveToLocalStorage(newStates);
-    return { FaceTabStore: newStates };
-  }),
-  clearFaceTabState: (id) => set((prev) => {
-    const newStates = { ...prev.FaceTabStore };
-    delete newStates[id];
-    saveToLocalStorage(newStates);
-    return { FaceTabStore: newStates };
-  }),
-  clearAllFaceTabStates: () => set(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('FaceTabStore');
-    }
-    return { FaceTabStore: {} };
-  }),
+  clear: () =>
+    set({
+      model_id: "sdxl",
+      prompt: "",
+      num_inference_steps: 30,
+      samples: 1,
+      negative_prompt:
+        "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+      guidance_scale: 5.0,
+      height: 1024,
+      width: 1024,
+      ip_adapter_mask_images: [],
+      embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
+      scheduler: "DPMSolverMultistepSchedulerSDE",
+      seed: -1,
+      ip_adapter_image: [],
+      ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
+      ip_adapter_scale: [],
+      generateTaskId: null,
+    }),
 }));
 
 // Component Types and Constants
@@ -226,15 +218,37 @@ const FaceTab = () => {
     setGenerateTaskId,
     getPayload,
     clear,
+    setSelectedPositions, // Add this line
   } = useFaceTabStore();
 
-  const { saveFaceTabState, clearAllFaceTabStates } = useGlobalStore();
   const { addImage, images } = useImageStore();
   const { addTask } = useGenerativeTaskStore();
   const { getToken } = useAuth();
 
+  // Load state from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedState) {
+      const parsedState = JSON.parse(savedState);
+      setFaceImages(parsedState.ip_adapter_image || []);
+      const positions = (parsedState.ip_adapter_mask_images || [])
+        .map((url: string) =>
+          Object.entries(POSITION_MAP).find(([_, value]) => value === url)?.[0] as Position | undefined
+        )
+        .filter(Boolean) as Position[];
+      setSelectedPositions(positions);
+      setPrompt(parsedState.prompt || "");
+    }
+  }, [setFaceImages, setPrompt, setSelectedPositions]);
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    const state = getPayload();
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+  }, [faceImages, ip_adapter_mask_images, prompt]);
+
   const { mutateAsync: uploadImageMutation } = useMutation({
-    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token) as Promise<string>,
+    mutationFn: ({ data: file, token }: { data: File; token: string }) =>
+      uploadBackendFiles(file, token) as Promise<string>,
     onError: (error: any) => {
       toast({
         title: "Upload Failed",
@@ -245,7 +259,8 @@ const FaceTab = () => {
   });
 
   const { mutateAsync: faceControlMutation } = useMutation({
-    mutationFn: ({ data, token }: { data: FaceControlPayload; token: string }) => faceControl(data, token) as Promise<FaceControlResponse>,
+    mutationFn: ({ data, token }: { data: FaceControlPayload; token: string }) =>
+      faceControl(data, token) as Promise<FaceControlResponse>,
     onError: (error: any) => {
       toast({
         title: "Error",
@@ -394,42 +409,28 @@ const FaceTab = () => {
   };
 
   const handleSave = () => {
-    const currentState = useFaceTabStore.getState();
-    const saveId = uuidv4();
-    saveFaceTabState(saveId, {
-      model_id: currentState.model_id,
-      prompt: currentState.prompt,
-      num_inference_steps: currentState.num_inference_steps,
-      samples: currentState.samples,
-      negative_prompt: currentState.negative_prompt,
-      guidance_scale: currentState.guidance_scale,
-      height: currentState.height,
-      width: currentState.width,
-      ip_adapter_mask_images: currentState.ip_adapter_mask_images,
-      embeddings: currentState.embeddings,
-      scheduler: currentState.scheduler,
-      seed: currentState.seed,
-      ip_adapter_image: currentState.ip_adapter_image,
-      ip_adapter: currentState.ip_adapter,
-      ip_adapter_scale: currentState.ip_adapter_scale,
-    });
+    const payload = getPayload();
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
     toast({
       title: "Saved",
-      description: `FaceTab state saved with ID: ${saveId}`,
+      description: "FaceTab state saved successfully!",
     });
   };
 
   const handleClear = () => {
-    clearAllFaceTabStates();
+    clear();
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     toast({
       title: "Cleared",
-      description: "All saved FaceTab states have been removed from storage",
+      description: "All FaceTab settings have been reset!",
     });
   };
 
-  const selectedPositions = ip_adapter_mask_images.map(url => 
-    Object.entries(POSITION_MAP).find(([_, value]) => value === url)?.[0] as Position | undefined
-  ).filter(Boolean) as Position[];
+  const selectedPositions = ip_adapter_mask_images
+    .map((url) =>
+      Object.entries(POSITION_MAP).find(([_, value]) => value === url)?.[0] as Position | undefined
+    )
+    .filter(Boolean) as Position[];
 
   return (
     <div className="space-y-4">
@@ -448,12 +449,7 @@ const FaceTab = () => {
               />
             </div>
           ) : faceImages.length < 3 ? (
-            <ImageUploader
-              key={index}
-              image=""
-              onUpload={handleUpload}
-              onRemove={() => {}}
-            />
+            <ImageUploader key={index} image="" onUpload={handleUpload} onRemove={() => {}} />
           ) : null
         )}
       </div>
