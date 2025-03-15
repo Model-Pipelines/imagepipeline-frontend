@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
 import { Input } from "@/components/ui/input";
@@ -218,12 +218,15 @@ const FaceTab = () => {
     setGenerateTaskId,
     getPayload,
     clear,
-    setSelectedPositions, // Add this line
+    setSelectedPositions,
   } = useFaceTabStore();
 
   const { addImage, images } = useImageStore();
   const { addTask } = useGenerativeTaskStore();
   const { getToken } = useAuth();
+
+  // Add a flag to prevent saving to localStorage after clear
+  const [isCleared, setIsCleared] = useState(false);
 
   // Load state from localStorage on mount
   useEffect(() => {
@@ -238,13 +241,21 @@ const FaceTab = () => {
         .filter(Boolean) as Position[];
       setSelectedPositions(positions);
       setPrompt(parsedState.prompt || "");
+      setGenerateTaskId(parsedState.generateTaskId || null);
     }
-  }, [setFaceImages, setPrompt, setSelectedPositions]);
-  // Save state to localStorage whenever it changes
+  }, [setFaceImages, setPrompt, setSelectedPositions, setGenerateTaskId]);
+
+  // Save state to localStorage only when not cleared
   useEffect(() => {
-    const state = getPayload();
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-  }, [faceImages, ip_adapter_mask_images, prompt]);
+    if (!isCleared) {
+      const state = getPayload();
+      const saveState = {
+        ...state,
+        generateTaskId: generateTaskId,
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saveState));
+    }
+  }, [faceImages, ip_adapter_mask_images, prompt, generateTaskId, isCleared]);
 
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
@@ -352,6 +363,7 @@ const FaceTab = () => {
     try {
       const imageUrl = await uploadImageMutation({ data: file, token });
       addFaceImage(imageUrl);
+      setIsCleared(false); // Allow saving after new input
       toast({
         title: "Upload Successful",
         description: "Face image uploaded",
@@ -396,6 +408,7 @@ const FaceTab = () => {
       if (response?.id) {
         setGenerateTaskId(response.id);
         addTask(response.id, "face");
+        setIsCleared(false); // Allow saving after generation starts
         toast({
           title: "Processing started",
           description: "Your image is being generated",
@@ -410,7 +423,12 @@ const FaceTab = () => {
 
   const handleSave = () => {
     const payload = getPayload();
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+    const saveState = {
+      ...payload,
+      generateTaskId: generateTaskId,
+    };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saveState));
+    setIsCleared(false); // Allow saving after explicit save
     toast({
       title: "Saved",
       description: "FaceTab state saved successfully!",
@@ -418,8 +436,14 @@ const FaceTab = () => {
   };
 
   const handleClear = () => {
-    clear();
-    localStorage.removeItem(LOCAL_STORAGE_KEY);
+    clear(); // Reset Zustand store to initial state
+    localStorage.removeItem(LOCAL_STORAGE_KEY); // Remove from localStorage
+    setIsCleared(true); // Prevent immediate re-save in useEffect
+    setFaceImages([]);
+    setSelectedPositions([]);
+    setPrompt("");
+    setGenerateTaskId(null);
+
     toast({
       title: "Cleared",
       description: "All FaceTab settings have been reset!",
@@ -462,7 +486,10 @@ const FaceTab = () => {
         {(Object.keys(POSITION_MAP) as Position[]).map((position) => (
           <Button
             key={position}
-            onClick={() => togglePosition(position)}
+            onClick={() => {
+              togglePosition(position);
+              setIsCleared(false); // Allow saving after position change
+            }}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
             className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
           >
@@ -477,7 +504,10 @@ const FaceTab = () => {
       </div>
       <Input
         value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
+        onChange={(e) => {
+          setPrompt(e.target.value);
+          setIsCleared(false); // Allow saving after prompt change
+        }}
         placeholder="Description"
         className="dark:text-text"
       />
