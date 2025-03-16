@@ -479,10 +479,10 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       </Button>
 
       <div className="flex space-x-2">
-        <Button onClick={handleSave} className="w-full mt-4">
+        <Button onClick={handleSave} className="w-full mt-4 bg-green-500 dark:text-white">
           Save
         </Button>
-        <Button onClick={handleClear} className="w-full mt-4" variant="outline">
+        <Button onClick={handleClear} className="w-full mt-4 bg-red-500 dark:text-white" variant="outline">
           Clear
         </Button>
       </div>

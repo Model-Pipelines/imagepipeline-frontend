@@ -491,7 +491,7 @@ const FaceTab = () => {
               setIsCleared(false); // Allow saving after position change
             }}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
-            className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
+            className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-textPrimary dark:text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
           >
             {position}
           </Button>
@@ -522,14 +522,14 @@ const FaceTab = () => {
         </Button>
         <Button
           onClick={handleSave}
-          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] bg-green-500 dark:text-white"
         >
           Save
         </Button>
         <Button
           onClick={handleClear}
           variant="outline"
-          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] bg-red-500 dark:text-white"
         >
           Clear
         </Button>

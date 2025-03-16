@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useEffect, useState } from "react";
-import { useAspectRatioStore, calculateDimensions } from "@/AxiosApi/ZustandAspectRatioStore";
+import {
+  useAspectRatioStore,
+  calculateDimensions,
+} from "@/AxiosApi/ZustandAspectRatioStore";
 import { useToast } from "@/hooks/use-toast";
 import { Info } from "lucide-react";
 
@@ -15,32 +18,32 @@ const COMPONENT_DESCRIPTIONS = {
   customDimensions: "Enter custom width and height values (64px to 1440px)",
   heightInput: "Set image height in pixels (min: 64px, max: 1440px)",
   widthInput: "Set image width in pixels (min: 64px, max: 1440px)",
-  saveButton: "Save and apply the selected dimensions to your image"
+  saveButton: "Save and apply the selected dimensions to your image",
 };
 
 const COMPONENT_INFO = {
   presetRatios: {
     title: "Preset Ratios",
-    description: "Quick select common aspect ratios for your images"
+    description: "Quick select common aspect ratios for your images",
   },
   customDimensions: {
     title: "Custom Dimensions",
-    description: "Enter specific width and height values (64px to 1440px)"
+    description: "Enter specific width and height values (64px to 1440px)",
   },
   heightInput: {
     title: "Height",
-    description: "Set image height in pixels (min: 64px, max: 1440px)"
+    description: "Set image height in pixels (min: 64px, max: 1440px)",
   },
   widthInput: {
     title: "Width",
-    description: "Set image width in pixels (min: 64px, max: 1440px)"
-  }
+    description: "Set image width in pixels (min: 64px, max: 1440px)",
+  },
 };
 
 const InfoButton = ({ description }: { description: string }) => (
   <div className="relative inline-block ml-2 group">
-    <Info 
-      size={16} 
+    <Info
+      size={16}
       className="text-muted-foreground hover:text-chart-3 cursor-help"
     />
     <div className="absolute hidden group-hover:block bg-textPrimary text-text text-xs p-2 rounded w-48 z-50 -translate-y-full -translate-x-1/2 left-1/2 mb-2">
@@ -49,13 +52,13 @@ const InfoButton = ({ description }: { description: string }) => (
   </div>
 );
 
-const DimensionInput = ({ 
-  label, 
-  id, 
-  value, 
+const DimensionInput = ({
+  label,
+  id,
+  value,
   onChange,
-  description 
-}: { 
+  description,
+}: {
   label: string;
   id: string;
   value: string;
@@ -64,7 +67,10 @@ const DimensionInput = ({
 }) => (
   <div className="flex flex-col items-start w-1/2">
     <div className="flex items-center">
-      <Label htmlFor={id} className="text-sm font-semibold text-chart-3 dark:text-bordergray">
+      <Label
+        htmlFor={id}
+        className="text-sm font-semibold text-chart-3 dark:text-bordergray"
+      >
         {label}
       </Label>
       <InfoButton description={description} />
@@ -81,15 +87,15 @@ const DimensionInput = ({
 );
 
 const AspectRatioTab = () => {
-  const { 
-    aspectRatio: storedRatio, 
-    height: storedHeight, 
-    width: storedWidth, 
-    setAspectRatio: setStoredAspectRatio, 
+  const {
+    aspectRatio: storedRatio,
+    height: storedHeight,
+    width: storedWidth,
+    setAspectRatio: setStoredAspectRatio,
     setDimensions,
-    getAspectRatioFromDimensions
+    getAspectRatioFromDimensions,
   } = useAspectRatioStore();
-  
+
   const [height, setHeight] = useState(storedHeight.toString());
   const [width, setWidth] = useState(storedWidth.toString());
   const { toast } = useToast();
@@ -108,22 +114,21 @@ const AspectRatioTab = () => {
     }
   }, [storedHeight, storedWidth, setDimensions]);
 
-    // Listen for changes in localStorage
-    useEffect(() => {
-      const handleStorageChange = (event: StorageEvent) => {
-        if (event.key === "AspectRatioStore") {
-          const savedData = JSON.parse(event.newValue || "{}");
-          setHeight(savedData.height.toString());
-          setWidth(savedData.width.toString());
-          setDimensions(savedData.height, savedData.width);
-        }
-      };
-      window.addEventListener("storage", handleStorageChange);
-      return () => {
-        window.removeEventListener("storage", handleStorageChange);
-      };
-    }, [setDimensions]);
-  
+  // Listen for changes in localStorage
+  useEffect(() => {
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === "AspectRatioStore") {
+        const savedData = JSON.parse(event.newValue || "{}");
+        setHeight(savedData.height.toString());
+        setWidth(savedData.width.toString());
+        setDimensions(savedData.height, savedData.width);
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
+  }, [setDimensions]);
 
   const handleRatioClick = (ratio: string) => {
     const { height: newHeight, width: newWidth } = calculateDimensions(ratio);
@@ -132,27 +137,30 @@ const AspectRatioTab = () => {
     setStoredAspectRatio(ratio);
     setDimensions(newHeight, newWidth);
     // Save to localStorage
-    localStorage.setItem("AspectRatioStore", JSON.stringify({
-      height: newHeight,
-      width: newWidth,
-      ratio
-    }));
+    localStorage.setItem(
+      "AspectRatioStore",
+      JSON.stringify({
+        height: newHeight,
+        width: newWidth,
+        ratio,
+      })
+    );
   };
 
-  const handleDimensionChange = (value: string, type: 'height' | 'width') => {
+  const handleDimensionChange = (value: string, type: "height" | "width") => {
     const parsedValue = parseInt(value);
-    
-    if (type === 'height') {
+
+    if (type === "height") {
       setHeight(value);
     } else {
       setWidth(value);
     }
 
     if (!isNaN(parsedValue)) {
-      const otherValue = type === 'height' ? parseInt(width) : parseInt(height);
+      const otherValue = type === "height" ? parseInt(width) : parseInt(height);
       if (!isNaN(otherValue)) {
-        const newHeight = type === 'height' ? parsedValue : otherValue;
-        const newWidth = type === 'width' ? parsedValue : otherValue;
+        const newHeight = type === "height" ? parsedValue : otherValue;
+        const newWidth = type === "width" ? parsedValue : otherValue;
         const newRatio = getAspectRatioFromDimensions(newHeight, newWidth);
         setStoredAspectRatio(newRatio);
       }
@@ -167,7 +175,7 @@ const AspectRatioTab = () => {
       toast({
         title: "Error",
         description: "Please enter valid dimensions",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -175,8 +183,9 @@ const AspectRatioTab = () => {
     if (parsedHeight > 1440 || parsedWidth > 1440) {
       toast({
         title: "Error",
-        description: "Maximum dimension allowed is 1440px. Please enter a value less than or equal to 1440.",
-        variant: "destructive"
+        description:
+          "Maximum dimension allowed is 1440px. Please enter a value less than or equal to 1440.",
+        variant: "destructive",
       });
       return;
     }
@@ -185,22 +194,45 @@ const AspectRatioTab = () => {
       toast({
         title: "Error",
         description: "Minimum dimension allowed is 64px",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     setDimensions(parsedHeight, parsedWidth);
     // Save to localStorage
-    localStorage.setItem("AspectRatioStore", JSON.stringify({
-      height: parsedHeight,
-      width: parsedWidth,
-      ratio: getAspectRatioFromDimensions(parsedHeight, parsedWidth)
-    }));
-    
+    localStorage.setItem(
+      "AspectRatioStore",
+      JSON.stringify({
+        height: parsedHeight,
+        width: parsedWidth,
+        ratio: getAspectRatioFromDimensions(parsedHeight, parsedWidth),
+      })
+    );
+
     toast({
       title: "Success",
       description: `Dimensions set to ${parsedWidth}x${parsedHeight}`,
+    });
+  };
+
+  const handleClear = () => {
+    // Reset to default values
+    const defaultHeight = 1024;
+    const defaultWidth = 1024;
+    const defaultRatio = '1:1';
+
+    setHeight(defaultHeight.toString());
+    setWidth(defaultWidth.toString());
+    setStoredAspectRatio(defaultRatio);
+    setDimensions(defaultHeight, defaultWidth);
+
+    // Clear localStorage
+    localStorage.removeItem("AspectRatioStore");
+
+    toast({
+      title: "Cleared",
+      description: "Dimensions reset to default (1024x1024)",
     });
   };
 
@@ -216,8 +248,8 @@ const AspectRatioTab = () => {
             key={ratio}
             variant={storedRatio === ratio ? "default" : "outline"}
             className={`px-2 dark:text-text ${
-              storedRatio === ratio 
-                ? "bg-accent text-text" 
+              storedRatio === ratio
+                ? "bg-accent text-text"
                 : "bg-gray-bordergray hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
             }`}
             onClick={() => handleRatioClick(ratio)}
@@ -228,35 +260,45 @@ const AspectRatioTab = () => {
       </div>
 
       <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium dark:text-text">Custom Dimensions</h3>
+        <h3 className="text-sm font-medium dark:text-text">
+          Custom Dimensions
+        </h3>
         <InfoButton description="Enter custom width and height values (64px to 1440px)" />
       </div>
       <div className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 p-4 rounded-lg">
         <div className="flex items-center justify-between space-x-4">
-          <DimensionInput 
-            label="Height" 
-            id="height" 
+          <DimensionInput
+            label="Height"
+            id="height"
             value={height}
-            onChange={(e) => handleDimensionChange(e.target.value, 'height')}
+            onChange={(e) => handleDimensionChange(e.target.value, "height")}
             description="Set image height in pixels (min: 64px, max: 1440px)"
           />
           <span className="text-xl font-bold text-gray-400">×</span>
-          <DimensionInput 
-            label="Width" 
-            id="width" 
+          <DimensionInput
+            label="Width"
+            id="width"
             value={width}
-            onChange={(e) => handleDimensionChange(e.target.value, 'width')}
+            onChange={(e) => handleDimensionChange(e.target.value, "width")}
             description="Set image width in pixels (min: 64px, max: 1440px)"
           />
         </div>
       </div>
 
-      <Button 
-        onClick={handleSave}
-        className="w-full bg-accent hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] text-text"
-      >
-        Save Dimensions
-      </Button>
+      <div className="flex flex-row gap-2">
+        <Button
+          onClick={handleSave}
+          className="w-1/2 bg-accent hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] text-text"
+        >
+          Save Dimensions
+        </Button>
+        <Button
+          onClick={handleClear}
+          className="w-1/2 bg-red-500 hover:bg-red-600 text-white"
+        >
+          Clear
+        </Button>
+      </div>
     </div>
   );
 };

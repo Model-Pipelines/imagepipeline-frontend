@@ -372,10 +372,10 @@ const StyleTab = () => {
         >
           {isPending ? "Applying Style..." : "Apply Style"}
         </Button>
-        <Button onClick={handleSave} className="flex-1">
+        <Button onClick={handleSave} className="flex-1 bg-green-500 dark:text-white">
           Save
         </Button>
-        <Button onClick={handleClear} variant="destructive" className="flex-1">
+        <Button onClick={handleClear} variant="destructive" className="flex-1 bg-red-500 dark:text-white">
           Clear
         </Button>
       </div>
