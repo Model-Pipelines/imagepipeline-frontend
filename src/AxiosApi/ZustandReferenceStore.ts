@@ -20,6 +20,8 @@ interface ReferenceState {
     reset: () => void;
 }
 
+
+
 const useReferenceStore = create<ReferenceState>((set) => ({
     controlnet: "none",
     referenceImage: "",
