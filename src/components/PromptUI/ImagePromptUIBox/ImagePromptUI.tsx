@@ -474,4 +474,5 @@ const ImagePromptUI = () => {
   );
 };
 
+
 export default ImagePromptUI;
