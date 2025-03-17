@@ -22,7 +22,7 @@ import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 import { GenerateHandler } from "./GenerateHandler";
-import  useReferenceStore  from "@/AxiosApi/ZustandReferenceStore";
+import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 
 // Storage keys for all tabs
 const STORAGE_KEYS = {
@@ -106,11 +106,6 @@ const ImagePromptUI = () => {
     enabled: !!describeTaskId,
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
   });
-
-  const canMakePrivate = () => {
-    const allowedPlans = ["BASIC", "STANDARD", "SUPERCHARGE", "EPTRIAL", "EPBASIC", "EPSTANDARD"];
-    return userPlanData?.plan && allowedPlans.includes(userPlanData.plan);
-  };
 
   const isFreePlan = () => {
     return !userPlanData?.plan || userPlanData.plan === "FREE";
@@ -208,10 +203,10 @@ const ImagePromptUI = () => {
   }, [generateTaskStatus, addImage, images, toast]);
 
   const handleTogglePublic = () => {
-    // if (isFreePlan()) {
-    //   openUpgradePopup();
-    //   return;
-    // }
+    if (isFreePlan()) {
+      openUpgradePopup();
+      return;
+    }
     togglePublic();
   };
 
@@ -285,10 +280,7 @@ const ImagePromptUI = () => {
   const buttonText = getButtonText();
 
   const handleMagicPromptClick = () => {
-    if (!magic_prompt && isFreePlan()) {
-      openUpgradePopup();
-      return;
-    }
+    // No subscription check for Magic Prompt, just toggle it
     toggleMagicPrompt();
   };
 
@@ -432,12 +424,12 @@ const ImagePromptUI = () => {
                       aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
                     >
                       <motion.div animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.5, ease: "easeInOut" }}>
-                        {isFreePlan() ? <Globe className="h-5 w-5" /> : isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                        {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
                       </motion.div>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isFreePlan() ? <p>Upgrade to make images private</p> : <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>}
+                    {isFreePlan() ? <p>Upgrade to make images private</p> : <p>{isPublic ? "Image and prompt are public" : "Image com prompt are private"}</p>}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
