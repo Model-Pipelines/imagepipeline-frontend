@@ -208,10 +208,10 @@ const ImagePromptUI = () => {
   }, [generateTaskStatus, addImage, images, toast]);
 
   const handleTogglePublic = () => {
-    if (isFreePlan()) {
-      openUpgradePopup();
-      return;
-    }
+    // if (isFreePlan()) {
+    //   openUpgradePopup();
+    //   return;
+    // }
     togglePublic();
   };
 
