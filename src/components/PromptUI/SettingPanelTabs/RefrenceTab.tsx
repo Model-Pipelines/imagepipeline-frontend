@@ -1,65 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ImageUploader from "./ImageUploader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  controlNet,
-  renderSketch,
-  recolorImage,
-  interiorDesign,
-  generateLogo,
-  uploadBackendFiles,
-  getControlNetTaskStatus,
-  getRenderSketchStatus,
-  getRecolorImageStatus,
-  getInteriorDesignStatus,
-  getGenerateLogoStatus,
-} from "@/AxiosApi/GenerativeApi";
-import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { toast } from "@/hooks/use-toast";
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { v4 as uuidv4 } from "uuid";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
-
-// Define types for payloads
-interface ControlNetPayload {
-  controlnet: string;
-  prompt: string;
-  image?: string;
-  num_inference_steps: number;
-  samples: number;
-}
-
-interface SdxlControlNetPayload {
-  model_id: string;
-  controlnets: string[];
-  prompt: string;
-  negative_prompt: string;
-  init_images: string[];
-  num_inference_steps: number;
-  samples: number;
-  controlnet_weights: number[];
-}
-
-interface GenerateLogoPayload {
-  logo_prompt: string;
-  prompt: string;
-  image: string;
-}
-
-interface TaskResponse {
-  id: string;
-  status: "PENDING" | "SUCCESS" | "FAILURE";
-  download_urls?: string[];
-  image_url?: string;
-  error?: string;
-}
 
 // Define reference types with API-specific controlnet values and endpoints
 const REFERENCE_TYPES = [
@@ -73,15 +24,12 @@ const REFERENCE_TYPES = [
   { value: "logo", label: "Logo", api: "generateLogo", controlnet: null, endpoint: "https://api.imagepipeline.io/logo/v1" },
 ] as const;
 
-type ReferenceType = typeof REFERENCE_TYPES[number]["value"];
-
 // Component descriptions
 const COMPONENT_DESCRIPTIONS = {
   typeSelector: "Choose the type of reference-based generation",
   imageUploader: "Upload a reference image to guide the generation",
   prompt: "Describe how you want to transform or use the reference",
   logoPrompt: "Provide a specific prompt for logo generation",
-  generateButton: "Generate a new image based on your reference and settings",
 };
 
 // InfoButton component
@@ -95,8 +43,6 @@ const InfoButton = ({ description }: { description: string }) => (
 );
 
 const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }) => {
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
-
   // Use the Zustand store
   const {
     controlnet,
@@ -120,8 +66,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     reset,
   } = useReferenceStore();
 
-  const { addImage, images } = useImageStore();
-  const { addTask } = useGenerativeTaskStore();
   const { getToken } = useAuth();
 
   // Mutation for uploading reference image
@@ -131,163 +75,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     onError: (error: any) =>
       toast({ title: "Upload Failed", description: error.message || "Failed to upload reference image", variant: "destructive" }),
   });
-
-  // Mutation for generating images
-  const generateMutation = useMutation({
-    mutationFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-
-      if (controlnet !== "none" && controlnet !== null && !referenceImage) {
-        throw new Error("Reference image is required for this type.");
-      }
-
-      const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
-      if (!selected) throw new Error("Invalid controlnet type");
-
-      let payload;
-      switch (selected.value) {
-        case "none":
-        case "canny":
-        case "depth":
-        case "openpose":
-          payload = {
-            controlnet: selected.controlnet,
-            prompt,
-            image: referenceImage,
-            num_inference_steps,
-            samples,
-          } as ControlNetPayload;
-          break;
-        case "scribble":
-        case "reference-only":
-        case "mlsd":
-          payload = {
-            model_id,
-            controlnets: [selected.controlnet!],
-            prompt,
-            negative_prompt,
-            init_images: [referenceImage],
-            num_inference_steps,
-            samples,
-            controlnet_weights,
-          } as SdxlControlNetPayload;
-          break;
-        case "logo":
-          payload = {
-            logo_prompt,
-            prompt,
-            image: referenceImage,
-          } as GenerateLogoPayload;
-          break;
-        default:
-          throw new Error("Unsupported type");
-      }
-
-      let response: TaskResponse;
-      switch (selected.api) {
-        case "controlNet":
-          response = await controlNet(payload, token);
-          break;
-        case "renderSketch":
-          response = await renderSketch(payload, token);
-          break;
-        case "recolorImage":
-          response = await recolorImage(payload, token);
-          break;
-        case "interiorDesign":
-          response = await interiorDesign(payload, token);
-          break;
-        case "generateLogo":
-          response = await generateLogo(payload, token);
-          break;
-        default:
-          throw new Error("Invalid API name");
-      }
-
-      const taskId = response?.id;
-      if (taskId) {
-        setGenerateTaskId(taskId);
-        const taskType = ["none", "canny", "depth", "openpose"].includes(selected.value) ? "controlnet" : selected.value;
-        addTask(taskId, taskType);
-        toast({ title: "Started", description: "Image generation in progress" });
-      } else {
-        throw new Error("Missing task ID in response");
-      }
-      return response;
-    },
-    onError: (error: any) =>
-      toast({ title: "Error", description: error.message || "Failed to generate image", variant: "destructive" }),
-  });
-
-  // Query for task status
-  const { data: generateTaskStatus } = useQuery<TaskResponse>({
-    queryKey: ["generateImageTask", generateTaskId, controlnet],
-    queryFn: async () => {
-      if (!generateTaskId) return null;
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-
-      const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
-      if (!selected) return null;
-
-      switch (selected.api) {
-        case "controlNet":
-          return getControlNetTaskStatus(generateTaskId, token);
-        case "renderSketch":
-          return getRenderSketchStatus(generateTaskId, token);
-        case "recolorImage":
-          return getRecolorImageStatus(generateTaskId, token);
-        case "interiorDesign":
-          return getInteriorDesignStatus(generateTaskId, token);
-        case "generateLogo":
-          return getGenerateLogoStatus(generateTaskId, token);
-        default:
-          throw new Error("Invalid API name");
-      }
-    },
-    enabled: !!generateTaskId,
-    refetchInterval: (data) => (data?.status === "PENDING" ? 5000 : false),
-  });
-
-  useEffect(() => {
-    if (!generateTaskStatus) return;
-
-    if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
-      if (!imageUrl) {
-        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
-        setGenerateTaskId(null);
-        return;
-      }
-
-      const img = new Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        const lastImage = images[images.length - 1];
-        const newPosition = lastImage
-          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 };
-
-        addImage({
-          id: uuidv4(),
-          url: imageUrl,
-          position: newPosition,
-          size: { width: 520, height: 520 },
-          element: img,
-        });
-        toast({ title: "Success", description: "Image generated successfully!" });
-        setGenerateTaskId(null);
-      };
-      img.onerror = () => {
-        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
-        setGenerateTaskId(null);
-      };
-    } else if (generateTaskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: generateTaskStatus.error || "Image generation failed", variant: "destructive" });
-      setGenerateTaskId(null);
-    }
-  }, [generateTaskStatus, addImage, images]);
 
   const handleUpload = async (file: File) => {
     const token = await getToken();
@@ -313,16 +100,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       if (newType !== "logo") {
         setLogoPrompt("");
       }
-    }
-  };
-
-  const handleGenerateImageByReference = async () => {
-    await generateMutation.mutateAsync();
-  };
-
-  const handleSubmit = async (tabKey: string) => {
-    if (tabKey === "Reference") {
-      await handleGenerateImageByReference();
     }
   };
 
@@ -464,19 +241,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           />
         </>
       )}
-
-      <Button
-        onClick={() => handleSubmit("Reference")}
-        disabled={
-          !prompt ||
-          (!referenceImage && controlnet !== "none" && controlnet !== null) ||
-          (controlnet === null && !logo_prompt) ||
-          generateMutation.isPending
-        }
-        className="w-full"
-      >
-        {generateMutation.isPending ? "Generating..." : "Generate"}
-      </Button>
 
       <div className="flex space-x-2">
         <Button onClick={handleSave} className="w-full mt-4 bg-green-500 dark:text-white">
