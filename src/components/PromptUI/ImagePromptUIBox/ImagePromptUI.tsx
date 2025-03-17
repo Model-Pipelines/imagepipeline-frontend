@@ -81,7 +81,7 @@ const ImagePromptUI = () => {
   } | null>(null);
 
   const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
-  const { controlnet } = useReferenceStore(); // To determine the active API
+  const { controlnet } = useReferenceStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
@@ -134,7 +134,7 @@ const ImagePromptUI = () => {
       }
       return getGenerateImage(generateTaskId!, token);
     },
-    enabled: !!generateTaskId, // Only fetch when we have a task ID
+    enabled: !!generateTaskId,
     refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
   });
 
@@ -371,7 +371,7 @@ const ImagePromptUI = () => {
               </motion.div>
             </div>
             <motion.button
-              onClick={handleGenerate} // Triggers POST via GenerateHandler
+              onClick={handleGenerate}
               disabled={isGenerating || !!generateTaskId}
               className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg ${isGenerating || !!generateTaskId ? "bg-accent cursor-not-allowed" : "bg-accent hover:bg-notice"}`}
               whileHover={{ scale: 1.05 }}

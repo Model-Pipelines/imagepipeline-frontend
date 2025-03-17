@@ -3,8 +3,9 @@
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@clerk/nextjs";
-import useReferenceStore  from "@/AxiosApi/ZustandReferenceStore";
+import  useReferenceStore  from "@/AxiosApi/ZustandReferenceStore";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
+import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore"; // Added import
 import { controlNet, renderSketch, recolorImage, interiorDesign, generateLogo, generateImage } from "@/AxiosApi/GenerativeApi";
 
 const REFERENCE_TYPES = [
@@ -27,7 +28,8 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
   const { getToken } = useAuth();
 
   const { controlnet, prompt: refPrompt, referenceImage, num_inference_steps, samples, model_id, negative_prompt, controlnet_weights, logo_prompt } = useReferenceStore();
-  const { text, magic_prompt, hex_color, height, width } = useSettingPanelStore();
+  const { text, magic_prompt, hex_color } = useSettingPanelStore();
+  const { height, width } = useAspectRatioStore(); // Fetch height and width from store
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -71,11 +73,11 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
           samples: 1,
           enhance_prompt: magic_prompt,
           palette: hex_color,
-          height,
-          width,
+          height, // Include height from useAspectRatioStore
+          width,  // Include width from useAspectRatioStore
           seed: -1,
         };
-        return await generateImage(payload, token); // Use POST endpoint directly
+        return await generateImage(payload, token); // POST request with height and width
       }
     },
     onSuccess: (response) => {
