@@ -45,32 +45,34 @@ const SettingsPanel = ({
   // Function to update saved counts based on localStorage data
   const updateSavedCounts = () => {
     const counts = { ...savedCounts }; // Create a copy of the current state
-
+  
     Object.entries(STORAGE_KEYS).forEach(([tab, key]) => {
       const storedData = localStorage.getItem(key);
       let count = 0;
-
+  
       if (storedData) {
         try {
           const parsed = JSON.parse(storedData);
-
+  
           // Handle different storage formats
           if (Array.isArray(parsed)) {
             count = parsed.length; // Count array items
           } else if (typeof parsed === "object" && parsed !== null) {
             count = Object.keys(parsed).length; // Count object keys
-          } else {
+          } else if (typeof parsed === "string" || typeof parsed === "number") {
             count = 1; // Single item
+          } else {
+            count = 0; // Default to 0 if the format is unexpected
           }
         } catch (e) {
           console.error(`Error parsing localStorage data for ${key}:`, e);
           count = 0; // Reset count if parsing fails
         }
       }
-
+  
       counts[tab] = count; // Update the count for the current tab
     });
-
+  
     setSavedCounts(counts); // Update the state with the new counts
   };
 
