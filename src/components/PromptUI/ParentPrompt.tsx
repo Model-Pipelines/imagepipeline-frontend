@@ -28,4 +28,5 @@ const ParentPrompt = () => {
   )
 }
 
-export default ParentPrompt
+export default ParentPrompt;
+

@@ -2,7 +2,6 @@ import { create } from 'zustand';
 
 interface ReferenceState {
     controlnet: string | null;
-    prompt: string;
     referenceImage: string;
     num_inference_steps: number;
     samples: number;
@@ -11,7 +10,6 @@ interface ReferenceState {
     controlnet_weights: number[];
     logo_prompt: string;
     setControlNet: (controlnet: string | null) => void;
-    setPrompt: (prompt: string) => void;
     setReferenceImage: (image: string) => void;
     setNumInferenceSteps: (steps: number) => void;
     setSamples: (samples: number) => void;
@@ -24,7 +22,6 @@ interface ReferenceState {
 
 const useReferenceStore = create<ReferenceState>((set) => ({
     controlnet: "none",
-    prompt: "",
     referenceImage: "",
     num_inference_steps: 30,
     samples: 1,
@@ -33,7 +30,6 @@ const useReferenceStore = create<ReferenceState>((set) => ({
     controlnet_weights: [1.0],
     logo_prompt: "",
     setControlNet: (controlnet) => set({ controlnet }),
-    setPrompt: (prompt) => set({ prompt }),
     setReferenceImage: (image) => set({ referenceImage: image }),
     setNumInferenceSteps: (steps) => set({ num_inference_steps: steps }),
     setSamples: (samples) => set({ samples }),
@@ -43,7 +39,6 @@ const useReferenceStore = create<ReferenceState>((set) => ({
     setLogoPrompt: (logo_prompt) => set({ logo_prompt }),
     reset: () => set({
         controlnet: "none",
-        prompt: "",
         referenceImage: "",
         num_inference_steps: 30,
         samples: 1,

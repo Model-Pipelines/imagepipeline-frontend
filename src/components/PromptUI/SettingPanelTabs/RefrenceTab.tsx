@@ -11,6 +11,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
+import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore"; // Import for text
 
 // Define reference types with API-specific controlnet values and endpoints
 const REFERENCE_TYPES = [
@@ -28,7 +29,6 @@ const REFERENCE_TYPES = [
 const COMPONENT_DESCRIPTIONS = {
   typeSelector: "Choose the type of reference-based generation",
   imageUploader: "Upload a reference image to guide the generation",
-  prompt: "Describe how you want to transform or use the reference",
   logoPrompt: "Provide a specific prompt for logo generation",
 };
 
@@ -43,10 +43,8 @@ const InfoButton = ({ description }: { description: string }) => (
 );
 
 const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }) => {
-  // Use the Zustand store
   const {
     controlnet,
-    prompt,
     referenceImage,
     num_inference_steps,
     samples,
@@ -55,7 +53,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     controlnet_weights,
     logo_prompt,
     setControlNet,
-    setPrompt,
     setReferenceImage,
     setNumInferenceSteps,
     setSamples,
@@ -66,9 +63,9 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     reset,
   } = useReferenceStore();
 
+  const { text } = useSettingPanelStore(); // Get text from ImagePromptUI
   const { getToken } = useAuth();
 
-  // Mutation for uploading reference image
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
       uploadBackendFiles(file, token) as Promise<string>,
@@ -103,7 +100,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     }
   };
 
-  // Save state in the exact JSON format required by the selected API
   const handleSave = () => {
     const selected = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
     if (!selected) return;
@@ -116,7 +112,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       case "openpose":
         referenceState = {
           controlnet: controlnet,
-          prompt,
+          prompt: text, // Use text from ImagePromptUI
           image: referenceImage,
           num_inference_steps,
           samples,
@@ -128,7 +124,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         referenceState = {
           model_id,
           controlnets: [controlnet],
-          prompt,
+          prompt: text, // Use text from ImagePromptUI
           negative_prompt,
           init_images: [referenceImage],
           num_inference_steps,
@@ -139,7 +135,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       case "logo":
         referenceState = {
           logo_prompt,
-          prompt,
+          prompt: text, // Use text from ImagePromptUI as secondary prompt
           image: referenceImage,
         };
         break;
@@ -151,14 +147,12 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     toast({ title: "Saved", description: "Reference settings saved successfully!" });
   };
 
-  // Clear the global store and localStorage
   const handleClear = () => {
-    reset(); // Reset the Zustand store to initial state
-    localStorage.removeItem("referenceStore"); // Clear the saved state from localStorage
+    reset();
+    localStorage.removeItem("referenceStore");
     toast({ title: "Cleared", description: "Reference settings have been reset!" });
   };
 
-  // Load saved state on mount
   useEffect(() => {
     const savedState = localStorage.getItem("referenceStore");
     if (savedState) {
@@ -168,7 +162,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       } else if (parsedState.logo_prompt !== undefined) {
         setControlNet(null);
       }
-      setPrompt(parsedState.prompt || "");
       setReferenceImage(parsedState.image || parsedState.init_images?.[0] || "");
       setNumInferenceSteps(parsedState.num_inference_steps || 30);
       setSamples(parsedState.samples || 1);
@@ -179,7 +172,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     }
   }, [
     setControlNet,
-    setPrompt,
     setReferenceImage,
     setNumInferenceSteps,
     setSamples,
@@ -220,12 +212,6 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
           <ImageUploader image={referenceImage} onUpload={handleUpload} onRemove={() => setReferenceImage("")} />
         </>
       )}
-
-      <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium dark:text-text">Image Description</h3>
-        <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
-      </div>
-      <Input value={prompt} className="dark:text-text" onChange={(e) => setPrompt(e.target.value)} placeholder="Description" />
 
       {controlnet === null && (
         <>
