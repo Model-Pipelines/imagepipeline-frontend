@@ -12,19 +12,29 @@ import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
-import { describeImage, getDescribeImageStatus, fetchUserPlan, getGenerateImage, getControlNetTaskStatus, getRenderSketchStatus, getRecolorImageStatus, getInteriorDesignStatus, getGenerateLogoStatus } from "@/AxiosApi/GenerativeApi";
+import {
+  describeImage,
+  getDescribeImageStatus,
+  fetchUserPlan,
+  getGenerateImage,
+  getControlNetTaskStatus,
+  getRenderSketchStatus,
+  getRecolorImageStatus,
+  getInteriorDesignStatus,
+  getGenerateLogoStatus,
+  getFaceControlStatusFaceDailog,
+} from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
-import { UpgradePopup } from "@/components/upgradePopup/UpgradePopup";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
+import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 
-// Storage keys for all tabs
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
   "Reference": "referenceStore",
@@ -32,7 +42,6 @@ const STORAGE_KEYS = {
   "Style": "styleTabState",
 };
 
-// Function to calculate number of tabs with saved states
 const getSavedTabsCount = () => {
   let count = 0;
   Object.values(STORAGE_KEYS).forEach((key) => {
@@ -51,7 +60,6 @@ const getSavedTabsCount = () => {
   return count;
 };
 
-// Reference types for dynamic API selection
 const REFERENCE_TYPES = [
   { value: "none", label: "None", api: "controlNet", controlnet: "none" },
   { value: "canny", label: "Outline", api: "controlNet", controlnet: "canny" },
@@ -82,6 +90,7 @@ const ImagePromptUI = () => {
 
   const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
   const { controlnet } = useReferenceStore();
+  const { ip_adapter_image, setFaceImages, setSelectedPositions } = useFaceTabStore(); // Removed setFacePrompt
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
@@ -92,6 +101,25 @@ const ImagePromptUI = () => {
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
   const { handleGenerate, isGenerating } = GenerateHandler({ onTaskStarted: (taskId) => setGenerateTaskId(taskId) });
+
+  // Sync FaceTab store with localStorage on mount
+  useEffect(() => {
+    const savedFaceTabState = localStorage.getItem("FaceTabStore");
+    if (savedFaceTabState) {
+      const parsedState = JSON.parse(savedFaceTabState);
+      if (parsedState.ip_adapter_image?.length > 0) {
+        setFaceImages(parsedState.ip_adapter_image);
+        const positions = parsedState.ip_adapter_mask_images.map((url: string) =>
+          Object.entries({
+            center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+            left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+            right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+          }).find(([_, value]) => value === url)?.[0] as "center" | "left" | "right" | undefined
+        ).filter(Boolean) as ("center" | "left" | "right")[];
+        setSelectedPositions(positions);
+      }
+    }
+  }, [setFaceImages, setSelectedPositions]); // Removed setFacePrompt
 
   const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
   const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
@@ -111,22 +139,45 @@ const ImagePromptUI = () => {
     return !userPlanData?.plan || userPlanData.plan === "FREE";
   };
 
+  const getActiveTab = () => {
+    const savedFaceTabState = localStorage.getItem("FaceTabStore");
+    const savedReferenceTabState = localStorage.getItem("referenceStore");
+    const hasFaceTab = savedFaceTabState && JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
+    const hasReferenceTab = savedReferenceTabState && JSON.parse(savedReferenceTabState).controlnet && JSON.parse(savedReferenceTabState).controlnet !== "none";
+
+    const activeTabsCount = (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
+    if (activeTabsCount > 1) return "multiple";
+    if (hasFaceTab) return "face";
+    if (hasReferenceTab) return "reference";
+    return "none";
+  };
+
   const { data: generateTaskStatus } = useQuery({
-    queryKey: ["generateImageTask", generateTaskId, controlnet],
+    queryKey: ["generateImageTask", generateTaskId, controlnet, ip_adapter_image],
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
-      const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
-      if (selectedRef && selectedRef.value !== "none") {
-        switch (selectedRef.api) {
-          case "controlNet": return getControlNetTaskStatus(generateTaskId!, token);
-          case "renderSketch": return getRenderSketchStatus(generateTaskId!, token);
-          case "recolorImage": return getRecolorImageStatus(generateTaskId!, token);
-          case "interiorDesign": return getInteriorDesignStatus(generateTaskId!, token);
-          case "generateLogo": return getGenerateLogoStatus(generateTaskId!, token);
-          default: return getGenerateImage(generateTaskId!, token);
+
+      const activeTab = getActiveTab();
+
+      if (activeTab === "face") {
+        return getFaceControlStatusFaceDailog(generateTaskId!, token);
+      }
+
+      if (activeTab === "reference") {
+        const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
+        if (selectedRef && selectedRef.value !== "none") {
+          switch (selectedRef.api) {
+            case "controlNet": return getControlNetTaskStatus(generateTaskId!, token);
+            case "renderSketch": return getRenderSketchStatus(generateTaskId!, token);
+            case "recolorImage": return getRecolorImageStatus(generateTaskId!, token);
+            case "interiorDesign": return getInteriorDesignStatus(generateTaskId!, token);
+            case "generateLogo": return getGenerateLogoStatus(generateTaskId!, token);
+            default: return getGenerateImage(generateTaskId!, token);
+          }
         }
       }
+
       return getGenerateImage(generateTaskId!, token);
     },
     enabled: !!generateTaskId,
@@ -280,7 +331,6 @@ const ImagePromptUI = () => {
   const buttonText = getButtonText();
 
   const handleMagicPromptClick = () => {
-    // No subscription check for Magic Prompt, just toggle it
     toggleMagicPrompt();
   };
 
@@ -473,6 +523,5 @@ const ImagePromptUI = () => {
     </>
   );
 };
-
 
 export default ImagePromptUI;

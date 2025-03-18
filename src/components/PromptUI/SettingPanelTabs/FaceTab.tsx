@@ -1,27 +1,19 @@
 "use client";
 
 import { create } from "zustand";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
-import { Input } from "@/components/ui/input";
-import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import {
-  getFaceControlStatusFaceDailog,
-  uploadBackendFiles,
-  faceControl,
-} from "@/AxiosApi/GenerativeApi";
+import { useMutation } from "@tanstack/react-query";
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { toast } from "@/hooks/use-toast";
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { v4 as uuidv4 } from "uuid";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 
-// FaceTab Store Definition with Full Payload
+// FaceTab Store Definition (no prompt)
 interface FaceControlPayload {
   model_id: string;
-  prompt: string;
+  prompt: string; // Sourced from ImagePromptUI at generation time
   num_inference_steps: number;
   samples: number;
   negative_prompt: string;
@@ -37,16 +29,13 @@ interface FaceControlPayload {
   ip_adapter_scale: number[];
 }
 
-interface FaceTabState extends FaceControlPayload {
-  generateTaskId: string | null;
+interface FaceTabState extends Omit<FaceControlPayload, "prompt"> {
   setFaceImages: (images: string[]) => void;
   addFaceImage: (image: string) => void;
   removeFaceImage: (index: number) => void;
   setSelectedPositions: (positions: ("center" | "left" | "right")[]) => void;
   togglePosition: (position: "center" | "left" | "right") => void;
-  setPrompt: (prompt: string) => void;
-  setGenerateTaskId: (id: string | null) => void;
-  getPayload: () => FaceControlPayload;
+  getPayload: () => Omit<FaceControlPayload, "prompt">;
   clear: () => void;
 }
 
@@ -54,7 +43,6 @@ const LOCAL_STORAGE_KEY = "FaceTabStore";
 
 export const useFaceTabStore = create<FaceTabState>((set, get) => ({
   model_id: "sdxl",
-  prompt: "",
   num_inference_steps: 30,
   samples: 1,
   negative_prompt:
@@ -69,7 +57,6 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
   ip_adapter_image: [],
   ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
   ip_adapter_scale: [],
-  generateTaskId: null,
 
   setFaceImages: (images) =>
     set({
@@ -123,15 +110,10 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
       };
     }),
 
-  setPrompt: (prompt) => set({ prompt }),
-
-  setGenerateTaskId: (id) => set({ generateTaskId: id }),
-
   getPayload: () => {
     const state = get();
     return {
       model_id: state.model_id,
-      prompt: state.prompt,
       num_inference_steps: state.num_inference_steps,
       samples: state.samples,
       negative_prompt: state.negative_prompt,
@@ -151,7 +133,6 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
   clear: () =>
     set({
       model_id: "sdxl",
-      prompt: "",
       num_inference_steps: 30,
       samples: 1,
       negative_prompt:
@@ -166,19 +147,10 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
       ip_adapter_image: [],
       ip_adapter: ["ip-adapter-plus-face_sdxl_vit-h"],
       ip_adapter_scale: [],
-      generateTaskId: null,
     }),
 }));
 
 // Component Types and Constants
-interface FaceControlResponse {
-  id: string;
-  status?: string;
-  download_urls?: string[];
-  image_url?: string;
-  error?: string;
-}
-
 const POSITION_MAP = {
   center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
   left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
@@ -190,8 +162,6 @@ type Position = keyof typeof POSITION_MAP;
 const COMPONENT_DESCRIPTIONS = {
   imageUploader: "Upload up to 3 face images to use as reference",
   positionButtons: "Select where each face should appear in the generated image",
-  prompt: "Describe the scene or context for the faces",
-  generateButton: "Generate a new image using the uploaded faces and positions",
 };
 
 const InfoButton = ({ description }: { description: string }) => (
@@ -208,27 +178,18 @@ const FaceTab = () => {
   const {
     ip_adapter_image: faceImages,
     ip_adapter_mask_images,
-    prompt,
-    generateTaskId,
     setFaceImages,
     addFaceImage,
     removeFaceImage,
     togglePosition,
-    setPrompt,
-    setGenerateTaskId,
     getPayload,
     clear,
     setSelectedPositions,
   } = useFaceTabStore();
 
-  const { addImage, images } = useImageStore();
-  const { addTask } = useGenerativeTaskStore();
   const { getToken } = useAuth();
 
-  // Add a flag to prevent saving to localStorage after clear
-  const [isCleared, setIsCleared] = useState(false);
-
-  // Load state from localStorage on mount
+  // Load state from localStorage on mount only
   useEffect(() => {
     const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedState) {
@@ -240,22 +201,8 @@ const FaceTab = () => {
         )
         .filter(Boolean) as Position[];
       setSelectedPositions(positions);
-      setPrompt(parsedState.prompt || "");
-      setGenerateTaskId(parsedState.generateTaskId || null);
     }
-  }, [setFaceImages, setPrompt, setSelectedPositions, setGenerateTaskId]);
-
-  // Save state to localStorage only when not cleared
-  useEffect(() => {
-    if (!isCleared) {
-      const state = getPayload();
-      const saveState = {
-        ...state,
-        generateTaskId: generateTaskId,
-      };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saveState));
-    }
-  }, [faceImages, ip_adapter_mask_images, prompt, generateTaskId, isCleared]);
+  }, [setFaceImages, setSelectedPositions]);
 
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
@@ -268,86 +215,6 @@ const FaceTab = () => {
       });
     },
   });
-
-  const { mutateAsync: faceControlMutation } = useMutation({
-    mutationFn: ({ data, token }: { data: FaceControlPayload; token: string }) =>
-      faceControl(data, token) as Promise<FaceControlResponse>,
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start generation process",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const { data: generateTaskStatus } = useQuery({
-    queryKey: ["faceControlTask", generateTaskId],
-    queryFn: async () => {
-      if (!generateTaskId) return null;
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-      return getFaceControlStatusFaceDailog(generateTaskId, token) as Promise<FaceControlResponse>;
-    },
-    enabled: !!generateTaskId,
-    refetchInterval: (data) => {
-      if (!data || data.status === "SUCCESS" || data.status === "FAILURE") {
-        return false;
-      }
-      return 5000;
-    },
-  });
-
-  useEffect(() => {
-    if (!generateTaskStatus) return;
-
-    if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
-      if (!imageUrl) {
-        toast({
-          title: "Error",
-          description: "Image URL not found",
-          variant: "destructive",
-        });
-        setGenerateTaskId(null);
-        return;
-      }
-
-      const img = new Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        const lastImage = images[images.length - 1];
-        const newPosition = lastImage
-          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 };
-
-        addImage({
-          id: uuidv4(),
-          url: imageUrl,
-          position: newPosition,
-          size: { width: 520, height: 520 },
-          element: img,
-        });
-        toast({ title: "Success", description: "Image generated successfully!" });
-        setGenerateTaskId(null);
-      };
-      img.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to load generated image",
-          variant: "destructive",
-        });
-        setGenerateTaskId(null);
-      };
-    } else if (generateTaskStatus.status === "FAILURE") {
-      toast({
-        title: "Error",
-        description: generateTaskStatus.error || "Image generation failed",
-        variant: "destructive",
-      });
-      setGenerateTaskId(null);
-    }
-  }, [generateTaskStatus, addImage, images, setGenerateTaskId]);
 
   const handleUpload = async (file: File) => {
     const token = await getToken();
@@ -363,7 +230,6 @@ const FaceTab = () => {
     try {
       const imageUrl = await uploadImageMutation({ data: file, token });
       addFaceImage(imageUrl);
-      setIsCleared(false); // Allow saving after new input
       toast({
         title: "Upload Successful",
         description: "Face image uploaded",
@@ -373,62 +239,9 @@ const FaceTab = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (faceImages.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please upload at least one face image.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (faceImages.length !== ip_adapter_mask_images.length) {
-      toast({
-        title: "Error",
-        description: `Please select exactly ${faceImages.length} position${faceImages.length > 1 ? "s" : ""} for your face image${faceImages.length > 1 ? "s" : ""}.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const token = await getToken();
-    if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const payload = getPayload();
-      const response = await faceControlMutation({ data: payload, token });
-      if (response?.id) {
-        setGenerateTaskId(response.id);
-        addTask(response.id, "face");
-        setIsCleared(false); // Allow saving after generation starts
-        toast({
-          title: "Processing started",
-          description: "Your image is being generated",
-        });
-      } else {
-        throw new Error("Missing task ID in response");
-      }
-    } catch (error) {
-      // Error handling is managed by the mutation's onError
-    }
-  };
-
   const handleSave = () => {
     const payload = getPayload();
-    const saveState = {
-      ...payload,
-      generateTaskId: generateTaskId,
-    };
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saveState));
-    setIsCleared(false); // Allow saving after explicit save
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
     toast({
       title: "Saved",
       description: "FaceTab state saved successfully!",
@@ -436,14 +249,10 @@ const FaceTab = () => {
   };
 
   const handleClear = () => {
-    clear(); // Reset Zustand store to initial state
-    localStorage.removeItem(LOCAL_STORAGE_KEY); // Remove from localStorage
-    setIsCleared(true); // Prevent immediate re-save in useEffect
+    clear();
+    localStorage.removeItem(LOCAL_STORAGE_KEY);
     setFaceImages([]);
     setSelectedPositions([]);
-    setPrompt("");
-    setGenerateTaskId(null);
-
     toast({
       title: "Cleared",
       description: "All FaceTab settings have been reset!",
@@ -486,10 +295,7 @@ const FaceTab = () => {
         {(Object.keys(POSITION_MAP) as Position[]).map((position) => (
           <Button
             key={position}
-            onClick={() => {
-              togglePosition(position);
-              setIsCleared(false); // Allow saving after position change
-            }}
+            onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
             className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-textPrimary dark:text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
           >
@@ -498,28 +304,7 @@ const FaceTab = () => {
         ))}
       </div>
 
-      <div className="flex items-center mb-2">
-        <h3 className="text-sm font-medium dark:text-text">Scene Description</h3>
-        <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
-      </div>
-      <Input
-        value={prompt}
-        onChange={(e) => {
-          setPrompt(e.target.value);
-          setIsCleared(false); // Allow saving after prompt change
-        }}
-        placeholder="Description"
-        className="dark:text-text"
-      />
-
       <div className="flex gap-2">
-        <Button
-          onClick={handleSubmit}
-          disabled={!prompt || faceImages.length === 0 || faceImages.length !== ip_adapter_mask_images.length}
-          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
-        >
-          Generate
-        </Button>
         <Button
           onClick={handleSave}
           className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] bg-green-500 dark:text-white"
