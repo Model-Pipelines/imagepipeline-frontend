@@ -15,6 +15,7 @@ import {
   generateLogo,
   generateImage,
   faceControl,
+  generateImage as generateStyle, // Alias for StyleTab
 } from "@/AxiosApi/GenerativeApi";
 
 const REFERENCE_TYPES = [
@@ -61,6 +62,13 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
 
+      // Check StyleTab state from localStorage
+      const savedStyleTabState = localStorage.getItem("styleTabState");
+      const hasStyleTab = savedStyleTabState && (
+        JSON.parse(savedStyleTabState).ip_adapter_image?.length > 0 ||
+        JSON.parse(savedStyleTabState).uploadSections?.some((section: any) => section.image || section.styleOption)
+      );
+
       // Check FaceTab state from localStorage
       const savedFaceTabState = localStorage.getItem("FaceTabStore");
       const hasFaceTab = savedFaceTabState && JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
@@ -68,6 +76,39 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
       // Check ReferenceTab state from useReferenceStore
       const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
       const hasReferenceTab = selectedRef && selectedRef.value !== "none";
+
+      // StyleTab logic
+      if (hasStyleTab) {
+        const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
+        const uploadedImages = styleTabState.uploadSections
+          ?.filter((section: any) => section.image)
+          .map((section: any) => section.image) || [];
+
+        const payload = {
+          model_id: styleTabState.model_id || "sdxl",
+          prompt: text, // Use ImagePromptUI's text
+          num_inference_steps: styleTabState.num_inference_steps || 30,
+          samples: styleTabState.samples || 1,
+          negative_prompt: styleTabState.negative_prompt || "",
+          guidance_scale: styleTabState.guidance_scale || 5.0,
+          embeddings: styleTabState.embeddings || [],
+          scheduler: styleTabState.scheduler || "DPMSolverMultistepSchedulerSDE",
+          seed: styleTabState.seed || -1,
+          ip_adapter_image: uploadedImages.length > 0 ? uploadedImages : styleTabState.ip_adapter_image || [],
+          ip_adapter: styleTabState.ip_adapter || ["ip-adapter-plus-face_sdxl_vit-h"],
+          ip_adapter_scale: styleTabState.ip_adapter_scale || (uploadedImages.length > 0 ? uploadedImages.map(() => 0.6) : []),
+        };
+
+        if (!text.trim()) throw new Error("Please enter a description in the Prompt UI.");
+        if (uploadedImages.length === 0 && styleTabState.uploadSections?.every((section: any) => !section.styleOption)) {
+          throw new Error("Please upload an image or select a style in StyleTab.");
+        }
+
+        console.log("StyleTab Payload:", payload);
+        return await (uploadedImages.length > 0
+          ? faceControl(payload, token) // Use faceControl if images are uploaded
+          : generateStyle(payload, token)); // Use generateStyle if no images
+      }
 
       // FaceTab logic
       if (hasFaceTab) {
@@ -99,10 +140,10 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         if (!text.trim()) throw new Error("Please enter a description in the Prompt UI.");
 
         console.log("FaceTab Payload:", payload);
-        return await faceControl(payload, token); // Routes to FaceTab endpoint
+        return await faceControl(payload, token);
       }
 
-      // ReferenceTab logic (restored from your old code)
+      // ReferenceTab logic
       if (hasReferenceTab) {
         if (!text.trim()) throw new Error("Please enter a description in the Prompt UI");
         if (controlnet !== null && !referenceImage) throw new Error("Reference image is required for this type");

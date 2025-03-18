@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { X, Settings, Palette, Globe, Lock, Wand2, ScanEye } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +23,7 @@ import {
   getInteriorDesignStatus,
   getGenerateLogoStatus,
   getFaceControlStatusFaceDailog,
+  getStyleImageStatusNoReference,
 } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
@@ -88,9 +89,9 @@ const ImagePromptUI = () => {
     private_model_loads_remaining: number;
   } | null>(null);
 
-  const { text, image_url, magic_prompt, isPublic, hex_color, selectedPaletteName, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
+  const { text, image_url, magic_prompt, isPublic, hex_color, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
   const { controlnet } = useReferenceStore();
-  const { ip_adapter_image, setFaceImages, setSelectedPositions } = useFaceTabStore(); // Removed setFacePrompt
+  const { ip_adapter_image, setFaceImages, setSelectedPositions } = useFaceTabStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
@@ -102,7 +103,6 @@ const ImagePromptUI = () => {
 
   const { handleGenerate, isGenerating } = GenerateHandler({ onTaskStarted: (taskId) => setGenerateTaskId(taskId) });
 
-  // Sync FaceTab store with localStorage on mount
   useEffect(() => {
     const savedFaceTabState = localStorage.getItem("FaceTabStore");
     if (savedFaceTabState) {
@@ -119,7 +119,7 @@ const ImagePromptUI = () => {
         setSelectedPositions(positions);
       }
     }
-  }, [setFaceImages, setSelectedPositions]); // Removed setFacePrompt
+  }, [setFaceImages, setSelectedPositions]);
 
   const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
   const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
@@ -140,13 +140,19 @@ const ImagePromptUI = () => {
   };
 
   const getActiveTab = () => {
+    const savedStyleTabState = localStorage.getItem("styleTabState");
     const savedFaceTabState = localStorage.getItem("FaceTabStore");
     const savedReferenceTabState = localStorage.getItem("referenceStore");
+    const hasStyleTab = savedStyleTabState && (
+      JSON.parse(savedStyleTabState).ip_adapter_image?.length > 0 ||
+      JSON.parse(savedStyleTabState).uploadSections?.some((section: any) => section.image || section.styleOption)
+    );
     const hasFaceTab = savedFaceTabState && JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
     const hasReferenceTab = savedReferenceTabState && JSON.parse(savedReferenceTabState).controlnet && JSON.parse(savedReferenceTabState).controlnet !== "none";
 
-    const activeTabsCount = (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
+    const activeTabsCount = (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
     if (activeTabsCount > 1) return "multiple";
+    if (hasStyleTab) return "style";
     if (hasFaceTab) return "face";
     if (hasReferenceTab) return "reference";
     return "none";
@@ -160,10 +166,12 @@ const ImagePromptUI = () => {
 
       const activeTab = getActiveTab();
 
+      if (activeTab === "style") {
+        return getStyleImageStatusNoReference(generateTaskId!, token);
+      }
       if (activeTab === "face") {
         return getFaceControlStatusFaceDailog(generateTaskId!, token);
       }
-
       if (activeTab === "reference") {
         const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
         if (selectedRef && selectedRef.value !== "none") {
@@ -177,7 +185,6 @@ const ImagePromptUI = () => {
           }
         }
       }
-
       return getGenerateImage(generateTaskId!, token);
     },
     enabled: !!generateTaskId,
