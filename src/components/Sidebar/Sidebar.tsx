@@ -7,8 +7,7 @@ import { MdOutlinePhotoSizeSelectActual, MdVideoLibrary, MdHeadset } from "react
 import AccountDropdown from "./AccountDropdown";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import MobileAccountDropdown from "./MobileAccountDropdown";
-
-
+import Image from "next/image";
 
 const Sidebar: FC = () => {
   const setSelectedType = usePromptUIStore((state) => state.setSelectedType);
@@ -30,14 +29,12 @@ const Sidebar: FC = () => {
   const renderSidebarContent = () => (
     <>
       <Link href="/" aria-label="Logo">
-      
-      <div className="w-12 h-12 bg-[#EFB718] rounded-full flex items-center justify-center shadow-lg">
-        <span className="text-text text-xl font-bold">i p</span>
-      </div>
-    
+        <div className="w-12 h-12 rounded-full flex items-center justify-center shadow-lg overflow-hidden"> {/* Added overflow-hidden for circular effect */}
+          <Image src="/logo.webp" alt="Logo" width={48} height={48} /> {/* Using logo.webp with width and height */}
+        </div>
       </Link>
 
-      <div className=" flex flex-col items-center space-y-20">
+      <div className="flex flex-col items-center space-y-20">
         {sidebarItems.map((item) => (
           <div
             key={item.type}
