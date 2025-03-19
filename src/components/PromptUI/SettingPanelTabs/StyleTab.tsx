@@ -26,6 +26,8 @@ interface FullPayload {
   ip_adapter_image: string[];
   ip_adapter: string[];
   ip_adapter_scale: number[];
+  height: number;
+  width: number;
 }
 
 interface TaskResponse {
@@ -69,6 +71,8 @@ const StyleTab = () => {
     ip_adapter_image,
     ip_adapter,
     ip_adapter_scale,
+    height,
+    width,
     uploadSections,
     generateTaskId,
     images,
@@ -83,6 +87,8 @@ const StyleTab = () => {
     setIpAdapterImage,
     setIpAdapter,
     setIpAdapterScale,
+    setHeight,
+    setWidth,
     setGenerateTaskId,
     updateUploadSection,
     removeImageFromSection,
@@ -94,6 +100,11 @@ const StyleTab = () => {
   const { addTask } = useGenerativeTaskStore();
   const { toast } = useToast();
   const { getToken } = useAuth();
+
+  // Log initial state to verify height and width
+  useEffect(() => {
+    console.log("Initial StyleTab State:", { height, width });
+  }, [height, width]);
 
   const { mutateAsync: uploadImageMutation } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
@@ -211,10 +222,14 @@ const StyleTab = () => {
       ip_adapter_image,
       ip_adapter,
       ip_adapter_scale,
+      height,
+      width,
       uploadSections,
       images,
     };
+    console.log("State to Save:", stateToSave); // Debug: Check the state before saving
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    console.log("Saved to localStorage:", localStorage.getItem(LOCAL_STORAGE_KEY)); // Debug: Verify saved value
     toast({
       title: "Saved",
       description: "StyleTab state saved successfully!",
@@ -267,6 +282,7 @@ const StyleTab = () => {
           </div>
         </div>
       ))}
+
 
       <div className="flex space-x-2">
         <Button onClick={handleSave} className="flex-1 bg-green-500 dark:text-white">

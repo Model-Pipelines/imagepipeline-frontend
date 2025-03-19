@@ -27,8 +27,8 @@ interface StyleState {
   ip_adapter_image: string[];
   ip_adapter: string[];
   ip_adapter_scale: number[];
-  height: number;      // Added height
-  width: number;       // Added width
+  height: number;
+  width: number;
   uploadSections: UploadSection[];
   generateTaskId: string | null;
   images: GeneratedImage[];
@@ -44,8 +44,8 @@ interface StyleState {
   setIpAdapterImage: (ip_adapter_image: string[]) => void;
   setIpAdapter: (ip_adapter: string[]) => void;
   setIpAdapterScale: (ip_adapter_scale: number[]) => void;
-  setHeight: (height: number) => void;    // Added setHeight
-  setWidth: (width: number) => void;      // Added setWidth
+  setHeight: (height: number) => void;
+  setWidth: (width: number) => void;
   setGenerateTaskId: (taskId: string | null) => void;
   updateUploadSection: (id: number, updates: Partial<UploadSection>) => void;
   removeImageFromSection: (id: number) => void;
@@ -76,8 +76,8 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
         ip_adapter_image: parsedState.ip_adapter_image || [],
         ip_adapter: parsedState.ip_adapter || ["ip-adapter-plus_sdxl_vit-h"],
         ip_adapter_scale: parsedState.ip_adapter_scale || [],
-        height: parsedState.height || 1024,      // Added height with default
-        width: parsedState.width || 1024,        // Added width with default
+        height: parsedState.height || 1024,
+        width: parsedState.width || 1024,
         uploadSections: Array.isArray(parsedState.uploadSections)
           ? parsedState.uploadSections.map((section: any) => ({
               id: section.id || 1,
@@ -107,8 +107,8 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
     ip_adapter_image: [],
     ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
     ip_adapter_scale: [],
-    height: 1024,      // Added height with default
-    width: 1024,       // Added width with default
+    height: 1024,
+    width: 1024,
     uploadSections: [{ id: 1, image: "", styleOption: "" }],
     generateTaskId: null,
     images: [],
@@ -128,8 +128,8 @@ type Methods = {
   setIpAdapterImage: (ip_adapter_image: string[]) => void;
   setIpAdapter: (ip_adapter: string[]) => void;
   setIpAdapterScale: (ip_adapter_scale: number[]) => void;
-  setHeight: (height: number) => void;    // Added setHeight
-  setWidth: (width: number) => void;      // Added setWidth
+  setHeight: (height: number) => void;
+  setWidth: (width: number) => void;
   setGenerateTaskId: (taskId: string | null) => void;
   updateUploadSection: (id: number, updates: Partial<UploadSection>) => void;
   removeImageFromSection: (id: number) => void;
@@ -156,8 +156,8 @@ export const useStyleStore = create<StyleState>((set) => {
     setIpAdapterImage: (ip_adapter_image) => set((state) => ({ ...state, ip_adapter_image })),
     setIpAdapter: (ip_adapter) => set((state) => ({ ...state, ip_adapter })),
     setIpAdapterScale: (ip_adapter_scale) => set((state) => ({ ...state, ip_adapter_scale })),
-    setHeight: (height) => set((state) => ({ ...state, height })),    // Added setHeight implementation
-    setWidth: (width) => set((state) => ({ ...state, width })),      // Added setWidth implementation
+    setHeight: (height) => set((state) => ({ ...state, height })),
+    setWidth: (width) => set((state) => ({ ...state, width })),
     setGenerateTaskId: (generateTaskId) => set((state) => ({ ...state, generateTaskId })),
 
     updateUploadSection: (id, updates) =>
@@ -226,8 +226,8 @@ export const useStyleStore = create<StyleState>((set) => {
         ip_adapter_image: [],
         ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
         ip_adapter_scale: [],
-        height: 1024,      // Added height with default
-        width: 1024,       // Added width with default
+        height: 1024,
+        width: 1024,
         uploadSections: [{ id: 1, image: "", styleOption: "" }],
         generateTaskId: null,
         images: [],
