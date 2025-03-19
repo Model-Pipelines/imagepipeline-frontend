@@ -6,21 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 import { Button } from "@/components/ui/button";
 import ImageUploader from "./ImageUploader";
-import { Input } from "@/components/ui/input";
-import {
-  generateImage as generateStyle,
-  faceControl,
-  uploadBackendFiles,
-  getStyleImageStatusNoReference,
-} from "@/AxiosApi/GenerativeApi";
+import { faceControl, uploadBackendFiles, getStyleImageStatusNoReference } from "@/AxiosApi/GenerativeApi";
 import { useGenerativeTaskStore } from "@/AxiosApi/GenerativeTaskStore";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { v4 as uuidv4 } from "uuid";
@@ -48,25 +36,13 @@ interface TaskResponse {
   error?: string;
 }
 
-const STYLE_OPTIONS = [
-  "realistic",
-  "anime",
-  "cartoon",
-  "indian",
-  "logo",
-  "book-cover",
-  "pixar",
-  "fashion",
-  "nsfw",
-] as const;
+const STYLE_OPTIONS = ["realistic", "anime", "cartoon", "indian", "logo", "book-cover", "pixar", "fashion", "nsfw"] as const;
 
 type StyleOption = typeof STYLE_OPTIONS[number];
 
 const COMPONENT_DESCRIPTIONS = {
   styleSelector: "Choose from predefined artistic styles or upload your own style image",
   styleUploader: "Upload an image to use as a style reference",
-  prompt: "Describe how you want the style to be applied",
-  applyButton: "Apply the selected style to generate a new image",
 };
 
 const InfoButton = ({ description }: { description: string }) => (
@@ -83,7 +59,6 @@ const LOCAL_STORAGE_KEY = "styleTabState";
 const StyleTab = () => {
   const {
     model_id,
-    prompt,
     num_inference_steps,
     samples,
     negative_prompt,
@@ -98,7 +73,6 @@ const StyleTab = () => {
     generateTaskId,
     images,
     setModelId,
-    setPrompt,
     setNumInferenceSteps,
     setSamples,
     setNegativePrompt,
@@ -128,58 +102,6 @@ const StyleTab = () => {
       toast({
         title: "Upload Failed",
         description: error.message || "Failed to upload image",
-        variant: "destructive",
-      }),
-  });
-
-  const { mutate, isPending } = useMutation({
-    mutationFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-
-      const uploadedImages = uploadSections
-        .filter((section) => section.image)
-        .map((section) => section.image);
-
-      if (uploadedImages.length === 0 && !prompt) {
-        throw new Error("Please upload an image or provide a prompt.");
-      }
-
-      const payload: FullPayload = {
-        model_id,
-        prompt,
-        num_inference_steps,
-        samples,
-        negative_prompt,
-        guidance_scale,
-        embeddings,
-        scheduler,
-        seed,
-        ip_adapter_image: uploadedImages.length > 0 ? uploadedImages : ip_adapter_image,
-        ip_adapter,
-        ip_adapter_scale,
-      };
-
-      const response: TaskResponse = await (uploadedImages.length > 0
-        ? faceControl(payload, token)
-        : generateStyle(payload, token));
-
-      if (response?.id) {
-        setGenerateTaskId(response.id);
-        addTask(response.id, "style");
-        toast({
-          title: "Processing started",
-          description: "Your image is being generated",
-        });
-      } else {
-        throw new Error("Missing task ID in response");
-      }
-      return response;
-    },
-    onError: (error: any) =>
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start generation process",
         variant: "destructive",
       }),
   });
@@ -279,7 +201,6 @@ const StyleTab = () => {
   const handleSave = () => {
     const stateToSave = {
       model_id,
-      prompt,
       num_inference_steps,
       samples,
       negative_prompt,
@@ -347,31 +268,7 @@ const StyleTab = () => {
         </div>
       ))}
 
-      <div className="space-y-2">
-        <div className="flex items-center mb-2">
-          <h3 className="text-sm font-medium dark:text-text">Style Description</h3>
-          <InfoButton description={COMPONENT_DESCRIPTIONS.prompt} />
-        </div>
-        <Input
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Style description"
-          className="dark:text-text"
-        />
-      </div>
-
       <div className="flex space-x-2">
-        <Button
-          onClick={() => mutate()}
-          disabled={
-            uploadSections.every((section) => !section.image && !section.styleOption) &&
-            !prompt &&
-            isPending
-          }
-          className="flex-1"
-        >
-          {isPending ? "Applying Style..." : "Apply Style"}
-        </Button>
         <Button onClick={handleSave} className="flex-1 bg-green-500 dark:text-white">
           Save
         </Button>

@@ -27,6 +27,8 @@ interface StyleState {
   ip_adapter_image: string[];
   ip_adapter: string[];
   ip_adapter_scale: number[];
+  height: number;      // Added height
+  width: number;       // Added width
   uploadSections: UploadSection[];
   generateTaskId: string | null;
   images: GeneratedImage[];
@@ -42,6 +44,8 @@ interface StyleState {
   setIpAdapterImage: (ip_adapter_image: string[]) => void;
   setIpAdapter: (ip_adapter: string[]) => void;
   setIpAdapterScale: (ip_adapter_scale: number[]) => void;
+  setHeight: (height: number) => void;    // Added setHeight
+  setWidth: (width: number) => void;      // Added setWidth
   setGenerateTaskId: (taskId: string | null) => void;
   updateUploadSection: (id: number, updates: Partial<UploadSection>) => void;
   removeImageFromSection: (id: number) => void;
@@ -72,6 +76,8 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
         ip_adapter_image: parsedState.ip_adapter_image || [],
         ip_adapter: parsedState.ip_adapter || ["ip-adapter-plus_sdxl_vit-h"],
         ip_adapter_scale: parsedState.ip_adapter_scale || [],
+        height: parsedState.height || 1024,      // Added height with default
+        width: parsedState.width || 1024,        // Added width with default
         uploadSections: Array.isArray(parsedState.uploadSections)
           ? parsedState.uploadSections.map((section: any) => ({
               id: section.id || 1,
@@ -87,7 +93,6 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
       localStorage.removeItem(LOCAL_STORAGE_KEY);
     }
   }
-  // Default state if no valid saved state exists
   return {
     model_id: "sdxl",
     prompt: "",
@@ -102,13 +107,14 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
     ip_adapter_image: [],
     ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
     ip_adapter_scale: [],
+    height: 1024,      // Added height with default
+    width: 1024,       // Added width with default
     uploadSections: [{ id: 1, image: "", styleOption: "" }],
     generateTaskId: null,
     images: [],
   };
 };
 
-// Define methods type to exclude from initial state spread
 type Methods = {
   setModelId: (model_id: string) => void;
   setPrompt: (prompt: string) => void;
@@ -122,6 +128,8 @@ type Methods = {
   setIpAdapterImage: (ip_adapter_image: string[]) => void;
   setIpAdapter: (ip_adapter: string[]) => void;
   setIpAdapterScale: (ip_adapter_scale: number[]) => void;
+  setHeight: (height: number) => void;    // Added setHeight
+  setWidth: (width: number) => void;      // Added setWidth
   setGenerateTaskId: (taskId: string | null) => void;
   updateUploadSection: (id: number, updates: Partial<UploadSection>) => void;
   removeImageFromSection: (id: number) => void;
@@ -133,92 +141,24 @@ type Methods = {
 export const useStyleStore = create<StyleState>((set) => {
   const initialState = getInitialState();
 
-  const saveToLocalStorage = (state: Omit<StyleState, keyof Methods>) => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-  };
-
   return {
     ...initialState,
 
-    setModelId: (model_id) =>
-      set((state) => {
-        const newState = { ...state, model_id };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setPrompt: (prompt) =>
-      set((state) => {
-        const newState = { ...state, prompt };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setNumInferenceSteps: (num_inference_steps) =>
-      set((state) => {
-        const newState = { ...state, num_inference_steps };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setSamples: (samples) =>
-      set((state) => {
-        const newState = { ...state, samples };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setNegativePrompt: (negative_prompt) =>
-      set((state) => {
-        const newState = { ...state, negative_prompt };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setGuidanceScale: (guidance_scale) =>
-      set((state) => {
-        const newState = { ...state, guidance_scale };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setEmbeddings: (embeddings) =>
-      set((state) => {
-        const newState = { ...state, embeddings };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setScheduler: (scheduler) =>
-      set((state) => {
-        const newState = { ...state, scheduler };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setSeed: (seed) =>
-      set((state) => {
-        const newState = { ...state, seed };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setIpAdapterImage: (ip_adapter_image) =>
-      set((state) => {
-        const newState = { ...state, ip_adapter_image };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setIpAdapter: (ip_adapter) =>
-      set((state) => {
-        const newState = { ...state, ip_adapter };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-    setIpAdapterScale: (ip_adapter_scale) =>
-      set((state) => {
-        const newState = { ...state, ip_adapter_scale };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
-
-    setGenerateTaskId: (generateTaskId) =>
-      set((state) => {
-        const newState = { ...state, generateTaskId };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
+    setModelId: (model_id) => set((state) => ({ ...state, model_id })),
+    setPrompt: (prompt) => set((state) => ({ ...state, prompt })),
+    setNumInferenceSteps: (num_inference_steps) => set((state) => ({ ...state, num_inference_steps })),
+    setSamples: (samples) => set((state) => ({ ...state, samples })),
+    setNegativePrompt: (negative_prompt) => set((state) => ({ ...state, negative_prompt })),
+    setGuidanceScale: (guidance_scale) => set((state) => ({ ...state, guidance_scale })),
+    setEmbeddings: (embeddings) => set((state) => ({ ...state, embeddings })),
+    setScheduler: (scheduler) => set((state) => ({ ...state, scheduler })),
+    setSeed: (seed) => set((state) => ({ ...state, seed })),
+    setIpAdapterImage: (ip_adapter_image) => set((state) => ({ ...state, ip_adapter_image })),
+    setIpAdapter: (ip_adapter) => set((state) => ({ ...state, ip_adapter })),
+    setIpAdapterScale: (ip_adapter_scale) => set((state) => ({ ...state, ip_adapter_scale })),
+    setHeight: (height) => set((state) => ({ ...state, height })),    // Added setHeight implementation
+    setWidth: (width) => set((state) => ({ ...state, width })),      // Added setWidth implementation
+    setGenerateTaskId: (generateTaskId) => set((state) => ({ ...state, generateTaskId })),
 
     updateUploadSection: (id, updates) =>
       set((state) => {
@@ -228,13 +168,11 @@ export const useStyleStore = create<StyleState>((set) => {
         const newIpAdapterImage = updatedSections
           .filter((section) => section.image)
           .map((section) => section.image);
-        const newState = {
+        return {
           ...state,
           uploadSections: updatedSections,
           ip_adapter_image: newIpAdapterImage.length > 0 ? newIpAdapterImage : state.ip_adapter_image,
         };
-        saveToLocalStorage(newState);
-        return newState;
       }),
 
     removeImageFromSection: (id) =>
@@ -245,13 +183,11 @@ export const useStyleStore = create<StyleState>((set) => {
         const newIpAdapterImage = updatedSections
           .filter((section) => section.image)
           .map((section) => section.image);
-        const newState = {
+        return {
           ...state,
           uploadSections: updatedSections,
           ip_adapter_image: newIpAdapterImage.length > 0 ? newIpAdapterImage : [],
         };
-        saveToLocalStorage(newState);
-        return newState;
       }),
 
     addImage: (image) =>
@@ -267,43 +203,34 @@ export const useStyleStore = create<StyleState>((set) => {
           position: image.position || newPosition,
           size: image.size || { width: 520, height: 520 },
         };
-        const newState = {
+        return {
           ...state,
           images: [...state.images, newImage],
         };
-        saveToLocalStorage(newState);
-        return newState;
       }),
 
-    clearImages: () =>
-      set((state) => {
-        const newState = { ...state, images: [] };
-        saveToLocalStorage(newState);
-        return newState;
-      }),
+    clearImages: () => set((state) => ({ ...state, images: [] })),
 
     reset: () =>
-      set(() => {
-        const defaultState = {
-          model_id: "sdxl",
-          prompt: "",
-          num_inference_steps: 30,
-          samples: 1,
-          negative_prompt:
-            "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
-          guidance_scale: 5.0,
-          embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-          scheduler: "DPMSolverMultistepSchedulerSDE",
-          seed: -1,
-          ip_adapter_image: [],
-          ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
-          ip_adapter_scale: [],
-          uploadSections: [{ id: 1, image: "", styleOption: "" }],
-          generateTaskId: null,
-          images: [],
-        };
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultState));
-        return defaultState;
-      }),
+      set(() => ({
+        model_id: "sdxl",
+        prompt: "",
+        num_inference_steps: 30,
+        samples: 1,
+        negative_prompt:
+          "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+        guidance_scale: 5.0,
+        embeddings: ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
+        scheduler: "DPMSolverMultistepSchedulerSDE",
+        seed: -1,
+        ip_adapter_image: [],
+        ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
+        ip_adapter_scale: [],
+        height: 1024,      // Added height with default
+        width: 1024,       // Added width with default
+        uploadSections: [{ id: 1, image: "", styleOption: "" }],
+        generateTaskId: null,
+        images: [],
+      })),
   };
 });
