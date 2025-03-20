@@ -1,3 +1,4 @@
+// src/AxiosApi/ZustandReferenceStore.ts
 import { create } from 'zustand';
 
 interface ReferenceState {
@@ -7,7 +8,7 @@ interface ReferenceState {
     samples: number;
     model_id: string;
     negative_prompt: string;
-    controlnet_weights: number[];
+    controlnet_weights: number; // Already correctly typed as number
     logo_prompt: string;
     setControlNet: (controlnet: string | null) => void;
     setReferenceImage: (image: string) => void;
@@ -15,12 +16,10 @@ interface ReferenceState {
     setSamples: (samples: number) => void;
     setModelId: (model_id: string) => void;
     setNegativePrompt: (negative_prompt: string) => void;
-    setControlnetWeights: (weights: number[]) => void;
+    setControlnetWeights: (weights: number) => void; // Changed from number[] to number
     setLogoPrompt: (logo_prompt: string) => void;
     reset: () => void;
 }
-
-
 
 const useReferenceStore = create<ReferenceState>((set) => ({
     controlnet: "none",
@@ -29,7 +28,7 @@ const useReferenceStore = create<ReferenceState>((set) => ({
     samples: 1,
     model_id: "sdxl",
     negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-    controlnet_weights: [1.0],
+    controlnet_weights: 1.0, // Default as float
     logo_prompt: "",
     setControlNet: (controlnet) => set({ controlnet }),
     setReferenceImage: (image) => set({ referenceImage: image }),
@@ -37,7 +36,7 @@ const useReferenceStore = create<ReferenceState>((set) => ({
     setSamples: (samples) => set({ samples }),
     setModelId: (model_id) => set({ model_id }),
     setNegativePrompt: (negative_prompt) => set({ negative_prompt }),
-    setControlnetWeights: (weights) => set({ controlnet_weights: weights }),
+    setControlnetWeights: (weights) => set({ controlnet_weights: weights }), // Now accepts a single number
     setLogoPrompt: (logo_prompt) => set({ logo_prompt }),
     reset: () => set({
         controlnet: "none",
@@ -46,7 +45,7 @@ const useReferenceStore = create<ReferenceState>((set) => ({
         samples: 1,
         model_id: "sdxl",
         negative_prompt: "lowres, bad anatomy, worst quality, low quality",
-        controlnet_weights: [1.0],
+        controlnet_weights: 1.0,
         logo_prompt: "",
     }),
 }));

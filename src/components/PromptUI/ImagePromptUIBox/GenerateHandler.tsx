@@ -87,7 +87,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
           samples: faceTabState.samples || faceSamples || 1,
           controlnet: [controlnet], // Reference controlnet
           init_image: [referenceImage], // Reference image
-          controlnet_weight: controlnet_weights || 1.0,
+          controlnet_weight: controlnet_weights || 1.0, // Changed to use controlnet_weights or default to 1.0
           negative_prompt: faceTabState.negative_prompt || faceNegativePrompt,
           guidance_scale: faceTabState.guidance_scale || guidance_scale || 5.0,
           embeddings: faceTabState.embeddings || embeddings,
@@ -189,13 +189,40 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
             payload = { controlnet: selectedRef.controlnet, prompt: text, image: referenceImage, num_inference_steps, samples };
             return await controlNet(payload, token);
           case "scribble":
-            payload = { model_id, controlnets: [selectedRef.controlnet!], prompt: text, negative_prompt, init_images: [referenceImage], num_inference_steps, samples, controlnet_weights };
+            payload = { 
+              model_id, 
+              controlnets: [selectedRef.controlnet!], 
+              prompt: text, 
+              negative_prompt, 
+              init_images: [referenceImage], 
+              num_inference_steps, 
+              samples, 
+              controlnet_weights: controlnet_weights || 1.0 // Changed from array to float
+            };
             return await renderSketch(payload, token);
           case "reference-only":
-            payload = { model_id, controlnets: [selectedRef.controlnet!], prompt: text, negative_prompt, init_images: [referenceImage], num_inference_steps, samples, controlnet_weights };
+            payload = { 
+              model_id, 
+              controlnets: [selectedRef.controlnet!], 
+              prompt: text, 
+              negative_prompt, 
+              init_images: [referenceImage], 
+              num_inference_steps, 
+              samples, 
+              controlnet_weights: controlnet_weights || 1.0 // Changed from array to float
+            };
             return await recolorImage(payload, token);
           case "mlsd":
-            payload = { model_id, controlnets: [selectedRef.controlnet!], prompt: text, negative_prompt, init_images: [referenceImage], num_inference_steps, samples, controlnet_weights };
+            payload = { 
+              model_id, 
+              controlnets: [selectedRef.controlnet!], 
+              prompt: text, 
+              negative_prompt, 
+              init_images: [referenceImage], 
+              num_inference_steps, 
+              samples, 
+              controlnet_weights: controlnet_weights || 1.0 // Changed from array to float
+            };
             return await interiorDesign(payload, token);
           case "logo":
             if (!logo_prompt) throw new Error("Logo prompt is required");
