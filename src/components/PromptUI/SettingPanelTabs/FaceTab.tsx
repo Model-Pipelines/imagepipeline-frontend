@@ -1,3 +1,4 @@
+// FaceTab.tsx
 "use client";
 
 import { create } from "zustand";
@@ -10,10 +11,9 @@ import { toast } from "@/hooks/use-toast";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 
-// FaceTab Store Definition (no prompt)
 interface FaceControlPayload {
   model_id: string;
-  prompt: string; // Sourced from ImagePromptUI at generation time
+  prompt: string;
   num_inference_steps: number;
   samples: number;
   negative_prompt: string;
@@ -97,7 +97,10 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
         )
         .filter(Boolean) as ("center" | "left" | "right")[];
 
-      const newPositions = currentPositions.includes(position)
+      // Ensure only one position is selected when there's one face
+      const newPositions = state.ip_adapter_image.length === 1
+        ? [position] // Force single position for one face
+        : currentPositions.includes(position)
         ? currentPositions.filter((p) => p !== position)
         : [...currentPositions, position];
 
@@ -150,7 +153,6 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
     }),
 }));
 
-// Component Types and Constants
 const POSITION_MAP = {
   center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
   left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
@@ -173,7 +175,6 @@ const InfoButton = ({ description }: { description: string }) => (
   </div>
 );
 
-// Component
 const FaceTab = () => {
   const {
     ip_adapter_image: faceImages,
@@ -189,7 +190,6 @@ const FaceTab = () => {
 
   const { getToken } = useAuth();
 
-  // Load state from localStorage on mount only
   useEffect(() => {
     const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (savedState) {
@@ -298,6 +298,7 @@ const FaceTab = () => {
             onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
             className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-textPrimary dark:text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
+            disabled={faceImages.length > 1 && selectedPositions.length >= faceImages.length && !selectedPositions.includes(position)}
           >
             {position}
           </Button>

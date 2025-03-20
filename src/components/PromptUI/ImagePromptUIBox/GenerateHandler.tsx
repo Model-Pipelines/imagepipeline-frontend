@@ -1,3 +1,4 @@
+// GenerateHandler.tsx
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
@@ -82,7 +83,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
         const payload = {
           model_id: styleTabState.model_id || "sdxl",
-          prompt: text, // Use ImagePromptUI's text
+          prompt: text,
           num_inference_steps: styleTabState.num_inference_steps || 30,
           samples: styleTabState.samples || 1,
           negative_prompt: styleTabState.negative_prompt || "",
