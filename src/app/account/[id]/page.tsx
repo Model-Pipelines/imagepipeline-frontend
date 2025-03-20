@@ -143,8 +143,12 @@ export default function ProfilePage() {
   const itemsPerPage = 8;
   const queryClient = useQueryClient();
   const [userPlanData, setUserPlanData] = useState<UserPlanData | null>(null);
-  const [dedicatedServerData, setDedicatedServerData] = useState<DedicatedServerData[] | null>(null);
-  const [userModelData, setUserModelData] = useState<UserModelData[] | null>(null);
+  const [dedicatedServerData, setDedicatedServerData] = useState<
+    DedicatedServerData[] | null
+  >(null);
+  const [userModelData, setUserModelData] = useState<UserModelData[] | null>(
+    null
+  );
 
   // Add state for detailed image data
   const [selectedImageDetails, setSelectedImageDetails] =
@@ -573,44 +577,55 @@ export default function ProfilePage() {
             </CardContent>
           </Card>
 
-            {/* Promotion Banner */}
-        <motion.section
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Card className="relative mt-8 overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
-            <div className="relative h-40 sm:h-48">
-              <img
-                src="https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop"
-                alt="Promotion"
-                className="object-cover w-full h-full"
-              />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
-                <div>
-                  <p className="text-xs sm:text-sm text-white">
-                    Limited Time Offer
-                  </p>
-                  <h3 className="text-lg sm:text-xl font-semibold text-white">
-                    Upgrade to Premium
-                  </h3>
-                </div>
-                <Link href="https://www.imagepipeline.io/pricing"
-                 target="_blank"
-                 >
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="text-white border-white bg-bg-white/10 hover:bg-white/20 dark:hover:bg-gray-700/20"
+          {/* Promotion Banner */}
+          <motion.section
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <Card className="relative mt-8 overflow-hidden rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm hover:shadow-md transition-shadow">
+              <div className="relative h-40 sm:h-48">
+                <img
+                  src="https://images.unsplash.com/photo-1739286955038-a4e5ce4f9462?q=80&w=3330&auto=format&fit=crop"
+                  alt="Promotion"
+                  className="object-cover w-full h-full"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
+                  <div>
+                    {/* Large and Bold Text */}
+                    <p className="text-xl sm:text-2xl font-bold text-white">
+                      {userPlanData?.plan === "free"
+                        ? "Upgrade to Premium"
+                        : "Upgrade to Enterprise"}
+                    </p>
+                    {/* Smaller Text Below */}
+                    <p className="text-sm sm:text-base text-white mt-2">
+                      {userPlanData?.plan === "free"
+                        ? "Unlock premium features and faster speeds"
+                        : "Free image consulting, 10x faster speeds, and custom image models"}
+                    </p>
+                  </div>
+                  <Link
+                    href={
+                      userPlanData?.plan === "free"
+                        ? "https://www.imagepipeline.io/pricing"
+                        : "https://www.imagepipeline.io/pricing"
+                    }
+                    target="_blank"
                   >
-                    Learn More
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </Link>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-white border-white bg-bg-white/10 hover:bg-white/20 dark:hover:bg-gray-700/20"
+                    >
+                      Learn More
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
-            </div>
-          </Card>
-        </motion.section>
+            </Card>
+          </motion.section>
         </section>
 
         {/* Account Details */}
@@ -649,15 +664,18 @@ export default function ProfilePage() {
           </Card>
         </section>
 
-         {/* server details  */}
-         <section>
+        {/* server details  */}
+        <section>
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Dedicated Servers
           </h2>
           <div className="space-y-4">
             {dedicatedServer?.length > 0 ? (
               dedicatedServer.map((server) => (
-                <Card key={server.subscription_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
+                <Card
+                  key={server.subscription_id}
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm"
+                >
                   <CardContent className="p-4 sm:p-6 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
@@ -668,13 +686,24 @@ export default function ProfilePage() {
                           Pod Id: {server.pod_id}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Pod Status: <span className={server.pod_status === "unknown" ? "text-gray-500" : "text-success"}>{server.pod_status}</span> 
+                          Pod Status:{" "}
+                          <span
+                            className={
+                              server.pod_status === "unknown"
+                                ? "text-gray-500"
+                                : "text-success"
+                            }
+                          >
+                            {server.pod_status}
+                          </span>
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Status: {server.subscription_status}
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Period: {new Date(server.period_start).toLocaleDateString()} - {new Date(server.period_end).toLocaleDateString()}
+                          Period:{" "}
+                          {new Date(server.period_start).toLocaleDateString()} -{" "}
+                          {new Date(server.period_end).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
@@ -682,54 +711,9 @@ export default function ProfilePage() {
                 </Card>
               ))
             ) : (
-              <p className="text-gray-500 dark:text-gray-400">You have zero dedicated GPU servers</p>
-            )}
-          </div>
-        </section>
-
-        {/* Your Models  */}
-        <section>
-          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-            Your Models
-          </h2>
-          <div className="space-y-4">
-            {userModels?.length > 0 ? (
-              userModels.map((model) => (
-                <Card key={model.model_id} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm">
-                  <CardContent className="p-4 sm:p-6 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Model Name: {model.model_name}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Base Model: {model.base_model || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Model Type: {model.model_type || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Tags: {model.tags || "None"}
-                        </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          Visibility: {model.visibility || "None"}
-                        </p>
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          {model.sample_images.length > 0 && model.sample_images[0] !== "" ? (
-                            model.sample_images.map((image, index) => (
-                              <img key={index} src={image} alt={`Sample ${index + 1}`} className="w-24 h-24 object-cover rounded-md" />
-                            ))
-                          ) : (
-                            <p className="text-gray-500 dark:text-gray-400">None</p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">You have added 0 models so far</p>
+              <p className="text-gray-500 dark:text-gray-400">
+                You have zero dedicated GPU servers
+              </p>
             )}
           </div>
         </section>
@@ -982,11 +966,66 @@ export default function ProfilePage() {
           )}
         </section>
 
-        
+        {/* Your Models  */}
+        <section>
+          <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Your Models
+          </h2>
+          <div className="space-y-4">
+            {userModels?.length > 0 ? (
+              userModels.map((model) => (
+                <Card
+                  key={model.model_id}
+                  className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shadow-sm"
+                >
+                  <CardContent className="p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Name: {model.model_name}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Base Model: {model.base_model || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Model Type: {model.model_type || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Tags: {model.tags || "None"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Visibility: {model.visibility || "None"}
+                        </p>
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          {model.sample_images.length > 0 &&
+                          model.sample_images[0] !== "" ? (
+                            model.sample_images.map((image, index) => (
+                              <img
+                                key={index}
+                                src={image}
+                                alt={`Sample ${index + 1}`}
+                                className="w-24 h-24 object-cover rounded-md"
+                              />
+                            ))
+                          ) : (
+                            <p className="text-gray-500 dark:text-gray-400">
+                              None
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">
+                You have added 0 models so far
+              </p>
+            )}
+          </div>
+        </section>
 
-       
-
-      
         {/* Delete Account */}
 
         {/* <section>
