@@ -592,24 +592,27 @@ export default function ProfilePage() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent flex items-center justify-between p-4 sm:p-6">
                   <div>
-                    {/* Large and Bold Text */}
                     <p className="text-xl sm:text-2xl font-bold text-white">
-                      {userPlanData?.plan === "free"
+                      {!userPlanData
+                        ? "Loading Plan..."
+                        : userPlanData.plan.toLowerCase() === "free"
                         ? "Upgrade to Premium"
                         : "Upgrade to Enterprise"}
                     </p>
-                    {/* Smaller Text Below */}
                     <p className="text-sm sm:text-base text-white mt-2">
-                      {userPlanData?.plan === "free"
+                      {!userPlanData
+                        ? "Checking your plan benefits..."
+                        : userPlanData.plan.toLowerCase() === "free"
                         ? "Unlock premium features and faster speeds"
                         : "Free image consulting, 10x faster speeds, and custom image models"}
                     </p>
                   </div>
                   <Link
                     href={
-                      userPlanData?.plan === "free"
+                      !userPlanData ||
+                      userPlanData.plan.toLowerCase() === "free"
                         ? "https://www.imagepipeline.io/pricing"
-                        : "https://www.imagepipeline.io/pricing"
+                        : "https://www.imagepipeline.io/pricing" // You might want different URLs for enterprise
                     }
                     target="_blank"
                   >
