@@ -10,6 +10,7 @@ import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { toast } from "@/hooks/use-toast";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 
 interface FaceControlPayload {
   model_id: string;
@@ -65,10 +66,33 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
     }),
 
   addFaceImage: (image) =>
-    set((state) => ({
-      ip_adapter_image: [...state.ip_adapter_image, image].slice(0, 3),
-      ip_adapter_scale: [...state.ip_adapter_image, image].slice(0, 3).map(() => 0.6),
-    })),
+    set((state) => {
+      const { controlnet } = useReferenceStore.getState();
+      const isReferenceActive = controlnet && controlnet !== "none";
+
+      if (isReferenceActive && state.ip_adapter_image.length >= 1) {
+        toast({
+          title: "Error",
+          description: "Only one face image is allowed when Reference is active.",
+          variant: "destructive",
+        });
+        return state; // Do not add the image
+      }
+
+      if (state.ip_adapter_image.length >= 3) {
+        toast({
+          title: "Error",
+          description: "Maximum of three face images allowed.",
+          variant: "destructive",
+        });
+        return state; // Do not add the image
+      }
+
+      return {
+        ip_adapter_image: [...state.ip_adapter_image, image],
+        ip_adapter_scale: [...state.ip_adapter_scale, 0.6],
+      };
+    }),
 
   removeFaceImage: (index) =>
     set((state) => ({
@@ -87,6 +111,12 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
 
   togglePosition: (position) =>
     set((state) => {
+      const { controlnet } = useReferenceStore.getState();
+      const isReferenceActive = controlnet && controlnet !== "none";
+      if (isReferenceActive) {
+        return state; // Disable position toggling when Reference is active
+      }
+
       const currentPositions = state.ip_adapter_mask_images
         .map((url) =>
           Object.entries({
@@ -97,12 +127,11 @@ export const useFaceTabStore = create<FaceTabState>((set, get) => ({
         )
         .filter(Boolean) as ("center" | "left" | "right")[];
 
-      // Ensure only one position is selected when there's one face
       const newPositions = state.ip_adapter_image.length === 1
-        ? [position] // Force single position for one face
+        ? [position]
         : currentPositions.includes(position)
         ? currentPositions.filter((p) => p !== position)
-        : [...currentPositions, position];
+        : [...currentPositions, position].slice(0, state.ip_adapter_image.length);
 
       return {
         ip_adapter_mask_images: newPositions.map((pos) => ({
@@ -162,8 +191,8 @@ const POSITION_MAP = {
 type Position = keyof typeof POSITION_MAP;
 
 const COMPONENT_DESCRIPTIONS = {
-  imageUploader: "Upload up to 3 face images to use as reference",
-  positionButtons: "Select where each face should appear in the generated image",
+  imageUploader: "Upload up to 3 face images to use as reference (only 1 when Reference is active)",
+  positionButtons: "Select where each face should appear in the generated image (disabled when Reference is active)",
 };
 
 const InfoButton = ({ description }: { description: string }) => (
@@ -187,8 +216,9 @@ const FaceTab = () => {
     clear,
     setSelectedPositions,
   } = useFaceTabStore();
-
+  const { controlnet } = useReferenceStore();
   const { getToken } = useAuth();
+  const isReferenceActive = controlnet && controlnet !== "none";
 
   useEffect(() => {
     const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -216,12 +246,21 @@ const FaceTab = () => {
     },
   });
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (file: File, uploaderIndex: number) => {
     const token = await getToken();
     if (!token) {
       toast({
         title: "Error",
         description: "Authentication token not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isReferenceActive && uploaderIndex > 0) {
+      toast({
+        title: "Error",
+        description: "Only the first uploader is allowed when Reference is active.",
         variant: "destructive",
       });
       return;
@@ -272,19 +311,15 @@ const FaceTab = () => {
         <InfoButton description={COMPONENT_DESCRIPTIONS.imageUploader} />
       </div>
       <div className="flex flex-row gap-4">
-        {[0, 1, 2].map((index) =>
-          faceImages[index] !== undefined ? (
-            <div key={index} className="relative">
-              <ImageUploader
-                image={faceImages[index]}
-                onUpload={handleUpload}
-                onRemove={() => removeFaceImage(index)}
-              />
-            </div>
-          ) : faceImages.length < 3 ? (
-            <ImageUploader key={index} image="" onUpload={handleUpload} onRemove={() => {}} />
-          ) : null
-        )}
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="relative">
+            <ImageUploader
+              image={faceImages[index] || ""}
+              onUpload={(file) => handleUpload(file, index)}
+              onRemove={faceImages[index] ? () => removeFaceImage(index) : undefined}
+            />
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center mb-2">
@@ -298,7 +333,7 @@ const FaceTab = () => {
             onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
             className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-textPrimary dark:text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
-            disabled={faceImages.length > 1 && selectedPositions.length >= faceImages.length && !selectedPositions.includes(position)}
+            disabled={isReferenceActive || (faceImages.length > 1 && selectedPositions.length >= faceImages.length && !selectedPositions.includes(position))}
           >
             {position}
           </Button>

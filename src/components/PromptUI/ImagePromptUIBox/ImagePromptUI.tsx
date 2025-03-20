@@ -24,6 +24,7 @@ import {
   getGenerateLogoStatus,
   getFaceControlStatusFaceDailog,
   getStyleImageStatusNoReference,
+  getFaceControlStatusFaceReference, // Added for Reference + Face status
 } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
@@ -151,7 +152,10 @@ const ImagePromptUI = () => {
     const hasReferenceTab = savedReferenceTabState && JSON.parse(savedReferenceTabState).controlnet && JSON.parse(savedReferenceTabState).controlnet !== "none";
 
     const activeTabsCount = (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
-    if (activeTabsCount > 1) return "multiple";
+    if (activeTabsCount > 1) {
+      if (hasReferenceTab && hasFaceTab) return "reference+face"; // New case for Reference + Face
+      return "multiple";
+    }
     if (hasStyleTab) return "style";
     if (hasFaceTab) return "face";
     if (hasReferenceTab) return "reference";
@@ -166,6 +170,9 @@ const ImagePromptUI = () => {
 
       const activeTab = getActiveTab();
 
+      if (activeTab === "reference+face") {
+        return getFaceControlStatusFaceReference(generateTaskId!, token); // Use GET /sdxl/controlnet/v1/status/${id}
+      }
       if (activeTab === "style") {
         return getStyleImageStatusNoReference(generateTaskId!, token);
       }

@@ -8,6 +8,7 @@ import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
+import { useStyleStore } from "@/AxiosApi/ZustandStyleStore"; // Import StyleStore
 import {
   controlNet,
   renderSketch,
@@ -16,6 +17,7 @@ import {
   generateLogo,
   generateImage,
   faceControl,
+  styleControlFaceReference, // Use this for Reference + Face
   generateImage as generateStyle,
 } from "@/AxiosApi/GenerativeApi";
 
@@ -57,6 +59,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
   } = useFaceTabStore();
   const { text, magic_prompt, hex_color } = useSettingPanelStore();
   const { height, width } = useAspectRatioStore();
+  const { ip_adapter_image: styleImages } = useStyleStore(); // Get StyleStore data
 
   const generateMutation = useMutation({
     mutationFn: async () => {
@@ -74,6 +77,41 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
       const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
       const hasReferenceTab = selectedRef && selectedRef.value !== "none";
+
+      if (hasReferenceTab && hasFaceTab) {
+        const faceTabState = savedFaceTabState ? JSON.parse(savedFaceTabState) : {};
+        const payload = {
+          model_id: faceTabState.model_id || faceModelId || "sdxl",
+          prompt: text,
+          num_inference_steps: faceTabState.num_inference_steps || faceNumInferenceSteps || 30,
+          samples: faceTabState.samples || faceSamples || 1,
+          controlnet: [controlnet], // Reference controlnet
+          init_image: [referenceImage], // Reference image
+          controlnet_weight: controlnet_weights || 1.0,
+          negative_prompt: faceTabState.negative_prompt || faceNegativePrompt,
+          guidance_scale: faceTabState.guidance_scale || guidance_scale || 5.0,
+          embeddings: faceTabState.embeddings || embeddings,
+          scheduler: faceTabState.scheduler || scheduler || "DPMSolverMultistepSchedulerSDE",
+          seed: faceTabState.seed || seed || -1,
+          ip_adapter_image: faceTabState.ip_adapter_image || ip_adapter_image,
+          ip_adapter: faceTabState.ip_adapter || ip_adapter || ["ip-adapter-plus-face_sdxl_vit-h"],
+          ip_adapter_scale: faceTabState.ip_adapter_scale || ip_adapter_scale,
+        };
+
+        if (!payload.ip_adapter_image.length) {
+          throw new Error("Please upload exactly one face image in FaceTab when using Reference.");
+        }
+        if (payload.ip_adapter_image.length > 1) {
+          throw new Error("Only one face image is allowed when Reference is active.");
+        }
+        if (!payload.init_image[0]) {
+          throw new Error("Please upload a reference image in ReferenceTab.");
+        }
+        if (!text.trim()) throw new Error("Please enter a description in the Prompt UI.");
+
+        console.log("Reference + Face Payload:", payload);
+        return await styleControlFaceReference(payload, token); // Use styleControlFaceReference
+      }
 
       if (hasStyleTab) {
         const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
