@@ -781,7 +781,7 @@ export default function ProfilePage() {
                           <button
                             onClick={() => handleImageSelect(globalIndex)}
                           >
-                            <div className="w-52 h-56 mx-auto relative">
+                            <div className="w-52 h-56 ml-11 relative">
                               <MorphingDialogImage
                                 src={img.download_url}
                                 alt={`Generated image ${globalIndex + 1}`}
