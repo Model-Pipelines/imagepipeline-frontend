@@ -25,6 +25,8 @@ import {
   getFaceControlStatusFaceDailog,
   getStyleImageStatusNoReference,
   getFaceControlStatusFaceReference,
+  getStyleImageStatusOneFace,
+  getStyleImageStatusReference, // New import for Style + Reference status
 } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
@@ -36,6 +38,7 @@ import { useUpgradePopupStore } from "@/store/upgradePopupStore";
 import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
+import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -93,6 +96,7 @@ const ImagePromptUI = () => {
   const { text, image_url, magic_prompt, isPublic, hex_color, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
   const { controlnet } = useReferenceStore();
   const { ip_adapter_image, setFaceImages, setSelectedPositions } = useFaceTabStore();
+  const { ip_adapter_image: styleImages } = useStyleStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
@@ -144,15 +148,18 @@ const ImagePromptUI = () => {
     const savedStyleTabState = localStorage.getItem("styleTabState");
     const savedFaceTabState = localStorage.getItem("FaceTabStore");
     const savedReferenceTabState = localStorage.getItem("referenceStore");
+    const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
     const hasStyleTab = savedStyleTabState && (
-      JSON.parse(savedStyleTabState).ip_adapter_image?.length > 0 ||
-      JSON.parse(savedStyleTabState).uploadSections?.some((section: any) => section.image || section.styleOption)
+      styleTabState.ip_adapter_image?.length > 0 ||
+      styleTabState.uploadSections?.some((section: any) => section.image || section.styleOption)
     );
     const hasFaceTab = savedFaceTabState && JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
     const hasReferenceTab = savedReferenceTabState && JSON.parse(savedReferenceTabState).controlnet && JSON.parse(savedReferenceTabState).controlnet !== "none";
 
     const activeTabsCount = (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
     if (activeTabsCount > 1) {
+      if (hasStyleTab && hasReferenceTab && !hasFaceTab) return "style+reference";
+      if (hasStyleTab && hasFaceTab && !hasReferenceTab) return "style+face";
       if (hasReferenceTab && hasFaceTab) return "reference+face";
       return "multiple";
     }
@@ -163,13 +170,25 @@ const ImagePromptUI = () => {
   };
 
   const { data: generateTaskStatus } = useQuery({
-    queryKey: ["generateImageTask", generateTaskId, controlnet, ip_adapter_image],
+    queryKey: ["generateImageTask", generateTaskId, controlnet, ip_adapter_image, styleImages],
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
 
       const activeTab = getActiveTab();
 
+      if (activeTab === "style+reference") {
+        return getStyleImageStatusReference(generateTaskId!, token);
+      }
+      if (activeTab === "style+face") {
+        const savedFaceTabState = localStorage.getItem("FaceTabStore");
+        const faceTabState = savedFaceTabState ? JSON.parse(savedFaceTabState) : {};
+        const faceImages = faceTabState.ip_adapter_image || [];
+        if (faceImages.length === 1) {
+          return getStyleImageStatusOneFace(generateTaskId!, token);
+        }
+        return getFaceControlStatusFaceDailog(generateTaskId!, token); // Fallback for multiple faces
+      }
       if (activeTab === "reference+face") {
         return getFaceControlStatusFaceReference(generateTaskId!, token);
       }
@@ -182,9 +201,9 @@ const ImagePromptUI = () => {
         const hasStyleOnly = styleTabState.uploadSections?.some((section: any) => section.styleOption) && uploadedImages.length === 0;
 
         if (hasStyleOnly) {
-          return getGenerateImage(generateTaskId!, token); // Use /generate/v3/status/${id} for style-only
+          return getGenerateImage(generateTaskId!, token);
         }
-        return getStyleImageStatusNoReference(generateTaskId!, token); // Use /sdxl/text2image/v1/status/${id} for style with uploads
+        return getStyleImageStatusNoReference(generateTaskId!, token);
       }
       if (activeTab === "face") {
         return getFaceControlStatusFaceDailog(generateTaskId!, token);
@@ -503,7 +522,7 @@ const ImagePromptUI = () => {
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isFreePlan() ? <p>Upgrade to make images private</p> : <p>{isPublic ? "Image and prompt are public" : "Image com prompt are private"}</p>}
+                    {isFreePlan() ? <p>Upgrade to make images private</p> : <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

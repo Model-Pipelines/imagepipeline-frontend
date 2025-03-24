@@ -14,9 +14,9 @@ import { ChangeEvent, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCanvasStore } from "@/lib/store";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
-import { useMutation } from "@tanstack/react-query"; // Import useMutation directly
-import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi"; // Import uploadBackendFiles directly
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useMutation } from "@tanstack/react-query";
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
+import { useAuth } from "@clerk/nextjs";
 
 import {
   DropdownMenu,
@@ -28,16 +28,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 interface ToolbarProps {
-  onUpload: () => void; // Kept for consistency, though not used in this version
+  onUpload: () => void;
 }
 
 export default function Toolbar({ onUpload }: ToolbarProps) {
   const addImage = useImageStore((state) => state.addImage);
   const images = useImageStore((state) => state.images);
   const { toast } = useToast();
-  const { getToken } = useAuth(); // Get token function from Clerk
+  const { getToken } = useAuth();
 
-  // Define the mutation directly instead of using useUploadBackendFiles
   const { mutateAsync: uploadImage } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
       uploadBackendFiles(file, token),
@@ -62,7 +61,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
         return;
       }
 
-      // Validate file type and size
       if (!file.type.startsWith("image/")) {
         toast({
           title: "Error",
@@ -72,7 +70,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        // 5MB limit
         toast({
           title: "Error",
           description: "File size exceeds 5MB",
@@ -92,7 +89,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
       }
 
       try {
-        // Upload the file using the mutation
         const uploadedImageUrl: string = await uploadImage({
           data: file,
           token,
@@ -101,7 +97,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           throw new Error("Invalid response: No image URL found");
         }
 
-        // Create an HTMLImageElement and wait for it to load
         const element = new Image();
         element.src = uploadedImageUrl;
         await new Promise<void>((resolve, reject) => {
@@ -110,7 +105,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
             reject(new Error("Failed to load image element"));
         });
 
-        // Calculate size maintaining aspect ratio
         const aspectRatio = element.width / element.height;
         let width = 200;
         let height = width / aspectRatio;
@@ -119,7 +113,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           width = height * aspectRatio;
         }
 
-        // Calculate dynamic position based on number of images
         const canvasWidth = window.innerWidth;
         const offsetX = 20;
         const offsetY = 20;
@@ -132,12 +125,11 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           y: row * (height + offsetY),
         };
 
-        // Add the new image to the store with its element reference
         addImage({
           id: uuidv4(),
           url: uploadedImageUrl,
-          element, // Save the loaded image element
-          position, // Use the calculated position
+          element,
+          position,
           size: { width, height },
         });
 
@@ -166,7 +158,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
 
   return (
     <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
-      {/* Upload Button */}
       <label className="cursor-pointer">
         <Button
           className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
@@ -186,7 +177,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           </span>
         </Button>
       </label>
-      {/* Reset Button */}
       <Button
         variant="outline"
         size="icon"
@@ -208,15 +198,18 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56">
-          {/* <DropdownMenuLabel></DropdownMenuLabel> */}
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrw55Vg0EFxzKAIK", "_blank")}
+            >
               Feedback
               <DropdownMenuShortcut>
                 <MessageSquareShare />
               </DropdownMenuShortcut>
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrEGQzNmeaP78Gg1", "_blank")}
+            >
               Report a Bug
               <DropdownMenuShortcut>
                 <Bug />

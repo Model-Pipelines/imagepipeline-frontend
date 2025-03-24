@@ -214,6 +214,17 @@ export const styleControlFaceReference = async (data: GenerateImageWithStyleAndR
 };
 
 /**
+ * Style Control with Reference (no Face)
+ */
+export const styleControlReference = async (data: GenerateImageWithStyleAndReferencePayload, token: string): Promise<any> => {
+  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return response.data;
+};
+
+
+/**
  * Change Background
  */
 export const changeBackground = async (data: ChangeBackgroundPayload, token: string): Promise<any> => {
