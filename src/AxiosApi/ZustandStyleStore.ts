@@ -75,7 +75,7 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
         seed: parsedState.seed || -1,
         ip_adapter_image: parsedState.ip_adapter_image || [],
         ip_adapter: parsedState.ip_adapter || ["ip-adapter-plus_sdxl_vit-h"],
-        ip_adapter_scale: parsedState.ip_adapter_scale || [],
+        ip_adapter_scale: parsedState.ip_adapter_scale || [0.6], // Corrected to [0.6]
         height: parsedState.height || 1024,
         width: parsedState.width || 1024,
         uploadSections: Array.isArray(parsedState.uploadSections)
@@ -106,7 +106,7 @@ const getInitialState = (): Omit<StyleState, keyof Methods> => {
     seed: -1,
     ip_adapter_image: [],
     ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
-    ip_adapter_scale: [],
+    ip_adapter_scale: [0.6], // Corrected to [0.6]
     height: 1024,
     width: 1024,
     uploadSections: [{ id: 1, image: "", styleOption: "" }],
@@ -225,7 +225,7 @@ export const useStyleStore = create<StyleState>((set) => {
         seed: -1,
         ip_adapter_image: [],
         ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
-        ip_adapter_scale: [],
+        ip_adapter_scale: [0.6], // Corrected to [0.6]
         height: 1024,
         width: 1024,
         uploadSections: [{ id: 1, image: "", styleOption: "" }],

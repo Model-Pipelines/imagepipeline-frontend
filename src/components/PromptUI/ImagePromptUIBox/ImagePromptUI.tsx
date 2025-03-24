@@ -24,7 +24,7 @@ import {
   getGenerateLogoStatus,
   getFaceControlStatusFaceDailog,
   getStyleImageStatusNoReference,
-  getFaceControlStatusFaceReference, // Added for Reference + Face status
+  getFaceControlStatusFaceReference,
 } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
@@ -153,7 +153,7 @@ const ImagePromptUI = () => {
 
     const activeTabsCount = (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
     if (activeTabsCount > 1) {
-      if (hasReferenceTab && hasFaceTab) return "reference+face"; // New case for Reference + Face
+      if (hasReferenceTab && hasFaceTab) return "reference+face";
       return "multiple";
     }
     if (hasStyleTab) return "style";
@@ -171,10 +171,20 @@ const ImagePromptUI = () => {
       const activeTab = getActiveTab();
 
       if (activeTab === "reference+face") {
-        return getFaceControlStatusFaceReference(generateTaskId!, token); // Use GET /sdxl/controlnet/v1/status/${id}
+        return getFaceControlStatusFaceReference(generateTaskId!, token);
       }
       if (activeTab === "style") {
-        return getStyleImageStatusNoReference(generateTaskId!, token);
+        const savedStyleTabState = localStorage.getItem("styleTabState");
+        const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
+        const uploadedImages = styleTabState.uploadSections
+          ?.filter((section: any) => section.image)
+          .map((section: any) => section.image) || [];
+        const hasStyleOnly = styleTabState.uploadSections?.some((section: any) => section.styleOption) && uploadedImages.length === 0;
+
+        if (hasStyleOnly) {
+          return getGenerateImage(generateTaskId!, token); // Use /generate/v3/status/${id} for style-only
+        }
+        return getStyleImageStatusNoReference(generateTaskId!, token); // Use /sdxl/text2image/v1/status/${id} for style with uploads
       }
       if (activeTab === "face") {
         return getFaceControlStatusFaceDailog(generateTaskId!, token);
