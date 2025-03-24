@@ -50,7 +50,7 @@ const Sidebar: FC = () => {
         ))}
       </div>
 
-      <div className="flex flex-col items-center space-y-10">
+      <div className="flex flex-col items-center space-y-10 ">
         <div className="hover:bg-secondary hover:text-text dark:hover:bg-secondary p-2 rounded-md text-secondary dark:text-text cursor-pointer">
           <AccountDropdown />
         </div>

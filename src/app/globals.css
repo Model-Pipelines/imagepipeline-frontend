@@ -131,3 +131,16 @@ canvas {
     outline-color: var(--ring);
   }
 }
+
+
+.tawk-min-container .tawk-button {
+  border-radius: 6px 6px 0 0 !important; /* Match your example */
+  width: 50px !important;              /* Fixed width */
+  height: 40px !important;              /* Fixed height */
+  padding: 0 15px !important;           /* Padding */
+  bottom: 0 !important;                 /* Align to bottom of container */
+  left: 0 !important;                   /* Align to left of container */
+  position: absolute !important;        /* Ensure absolute positioning */
+  z-index: 1000 !important;             /* High z-index */
+  border: 0 !important;                 /* No border *         /* Custom text color */
+}

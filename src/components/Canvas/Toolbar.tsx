@@ -1,22 +1,18 @@
 "use client";
 
 import { v4 as uuidv4 } from "uuid";
-import {
-  Upload,
-  RotateCcw,
-  CircleHelp,
-  MessageSquareShare,
-  Bug,
-} from "lucide-react";
+import { Upload, RotateCcw, CircleHelp, MessageSquareShare, Bug } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { ChangeEvent, useCallback } from "react";
+import { ChangeEvent, useCallback, useRef, useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useCanvasStore } from "@/lib/store";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import { useMutation } from "@tanstack/react-query";
 import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
+import dynamic from 'next/dynamic';
+
 
 import {
   DropdownMenu,
@@ -27,15 +23,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Dynamically import TawkMessengerReact to avoid SSR issues
+const TawkMessengerReact = dynamic(
+  () => import('@tawk.to/tawk-messenger-react'),
+  { ssr: false }
+);
+
 interface ToolbarProps {
   onUpload: () => void;
 }
 
 export default function Toolbar({ onUpload }: ToolbarProps) {
+  const tawkMessengerRef = useRef<any>(null);
+  const [mounted, setMounted] = useState(false);
   const addImage = useImageStore((state) => state.addImage);
   const images = useImageStore((state) => state.images);
   const { toast } = useToast();
   const { getToken } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleMaximizeChat = () => {
+    tawkMessengerRef.current?.maximize();
+  };
 
   const { mutateAsync: uploadImage } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) =>
@@ -157,67 +169,89 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
   };
 
   return (
-    <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
-      <label className="cursor-pointer">
-        <Button
-          className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
-          size="icon"
-          title="Upload Image"
-          asChild
-        >
-          <span>
-            <Upload className="h-4 w-4 text-white" />
-            <input
-              type="file"
-              className="hidden"
-              accept="image/*"
-              onChange={handleFileUpload}
-              multiple
-            />
-          </span>
-        </Button>
-      </label>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleReset}
-        title="Reset Canvas"
-        className="bg-red-500 dark:bg-red-900/20 hover:bg-red-600 dark:hover:bg-red-900/30 border-none"
-      >
-        <RotateCcw className="h-4 w-4 text-white" />
-      </Button>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+    <>
+      {/* Tawk.to widget moved to left side */}
+      {mounted && (
+        <div className="absolute bottom-4 left-16 translate-x-1/2 z-10">
+          <TawkMessengerReact
+            propertyId="6569deadbfb79148e5990097"
+            widgetId="1hgiorlqq"
+            ref={tawkMessengerRef}
+            onLoad={() => {}}
+            onStatusChange={() => {}}
+            onBeforeLoad={() => {}}
+          />
+        </div>
+      )}
+      {/* Toolbar - keeping it on the right side as original */}
+      <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
+        <label className="cursor-pointer">
           <Button
             className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
             size="icon"
-            title="Help"
+            title="Upload Image"
+            asChild
           >
-            <CircleHelp />
+            <span>
+              <Upload className="h-4 w-4 text-white" />
+              <input
+                type="file"
+                className="hidden"
+                accept="image/*"
+                onChange={handleFileUpload}
+                multiple
+              />
+            </span>
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56">
-          <DropdownMenuGroup>
-            <DropdownMenuItem
-              onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrw55Vg0EFxzKAIK", "_blank")}
+        </label>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleReset}
+          title="Reset Canvas"
+          className="bg-red-500 dark:bg-red-900/20 hover:bg-red-600 dark:hover:bg-red-900/30 border-none"
+        >
+          <RotateCcw className="h-4 w-4 text-white" />
+        </Button>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
+              size="icon"
+              title="Help"
             >
-              Feedback
-              <DropdownMenuShortcut>
-                <MessageSquareShare />
-              </DropdownMenuShortcut>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrEGQzNmeaP78Gg1", "_blank")}
-            >
-              Report a Bug
-              <DropdownMenuShortcut>
-                <Bug />
-              </DropdownMenuShortcut>
-            </DropdownMenuItem>
-          </DropdownMenuGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+              <CircleHelp />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrw55Vg0EFxzKAIK", "_blank")}
+              >
+                Feedback
+                <DropdownMenuShortcut>
+                  <MessageSquareShare />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrEGQzNmeaP78Gg1", "_blank")}
+              >
+                Report a Bug
+                <DropdownMenuShortcut>
+                  <Bug />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleMaximizeChat}>
+                Open Live Chat
+                <DropdownMenuShortcut>
+                  <MessageSquareShare />
+                </DropdownMenuShortcut>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </>
   );
 }

@@ -62,6 +62,9 @@ importers:
       '@tanstack/react-query-devtools':
         specifier: ^5.66.0
         version: 5.66.0(@tanstack/react-query@5.66.0(react@18.3.1))(react@18.3.1)
+      '@tawk.to/tawk-messenger-react':
+        specifier: ^2.0.2
+        version: 2.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       axios:
         specifier: ^1.7.9
         version: 1.7.9
@@ -1181,6 +1184,12 @@ packages:
     resolution: {integrity: sha512-z3sYixFQJe8hndFnXgWu7C79ctL+pI0KAelYyW+khaNJ1m22lWrhJU2QrsTcRKMuVPtoZvfBYrTStIdKo+x0Xw==}
     peerDependencies:
       react: ^18 || ^19
+
+  '@tawk.to/tawk-messenger-react@2.0.2':
+    resolution: {integrity: sha512-Nl3JMMIrQiyveSSuP8qYWEu1u+coqz4WCA7TfSjOMDcpyWEiORvOdnMWTsSlhz8rae57HWsCAGLzE507fKtzXA==}
+    peerDependencies:
+      react: ^18.1.0
+      react-dom: ^18.1.0
 
   '@tootallnate/once@2.0.0':
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
@@ -4833,6 +4842,11 @@ snapshots:
     dependencies:
       '@tanstack/query-core': 5.66.0
       react: 18.3.1
+
+  '@tawk.to/tawk-messenger-react@2.0.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+    dependencies:
+      react: 18.3.1
+      react-dom: 18.3.1(react@18.3.1)
 
   '@tootallnate/once@2.0.0': {}
 
