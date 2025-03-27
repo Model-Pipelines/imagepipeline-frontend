@@ -1,15 +1,11 @@
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import BackGroundChange from "./BackGroundChage";
-import Upscale from "./UpScaleImage";
-import { HumanEditorImage } from "./HumanEditorImage";
-import { Info } from "lucide-react";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+"use client"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import BackGroundChange from "./BackGroundChage"
+import Upscale from "./UpScaleImage"
+import { HumanEditorImage } from "./HumanEditorImage"
+import { Info } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { motion } from "framer-motion"
 
 // Update the InfoTooltip component
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -18,55 +14,72 @@ const InfoTooltip = ({ content }: { content: string }) => (
       <TooltipTrigger className="cursor-help inline-flex items-center">
         <Info className="h-4 w-4 ml-1 text-gray-500" />
       </TooltipTrigger>
-      <TooltipContent className="max-w-xs p-3">
+      <TooltipContent className="max-w-xs p-3 bg-white/80 backdrop-blur-sm dark:bg-slate-900/80">
         <p className="text-sm">{content}</p>
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
-);
+)
 
 export function EditImageCard() {
   return (
-    <Tabs defaultValue="background-change" className="w-full">
-      {/* Description Section */}
-      <div className="flex items-center gap-2 mb-6">
-        <h2 className="text-xl font-semibold">Image Editor</h2>
-      </div>
-
-      {/* Tabs List - Removed info icons */}
-      <TabsList className="grid w-full grid-cols-3 bg-gray-100 dark:bg-bordergraydark p-1.5 rounded-lg mb-6">
-        <TabsTrigger
-          value="background-change"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="bg-white/5 backdrop-blur-[2.5px] border border-white/20 dark:border-white/10 rounded-xl shadow-lg text-black dark:text-white p-4"
+    >
+      <Tabs defaultValue="background-change" className="w-full">
+        {/* Description Section */}
+        <motion.div
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.1 }}
+          className="flex items-center gap-2 p-4"
         >
-          Background Change
-        </TabsTrigger>
-        <TabsTrigger
-          value="human"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
-        >
-          Human Editor
-        </TabsTrigger>
-        <TabsTrigger
-          value="upscale"
-          className="flex items-center justify-center gap-2 data-[state=active]:bg-text data-[state=active]:shadow-sm data-[state=active]:text-accent"
-        >
-          Upscale
-        </TabsTrigger>
-      </TabsList>
+          <h2 className="text-xl font-bold">Image Editor</h2>
+        </motion.div>
 
-      {/* Tabs Content with consistent spacing */}
-      <TabsContent value="background-change">
-        <BackGroundChange />
-      </TabsContent>
+        {/* Tabs List - With glassmorphic styling */}
+        <div className="flex justify-center w-full mb-4">
+          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-[65%] mx-auto">
+            <TabsTrigger
+              value="background-change"
+              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+            >
+              Background Change
+            </TabsTrigger>
+            <TabsTrigger
+              value="human"
+              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+            >
+              Human Editor
+            </TabsTrigger>
+            <TabsTrigger
+              value="upscale"
+              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+            >
+              Upscale
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-      <TabsContent value="human">
-        <HumanEditorImage />
-      </TabsContent>
+        {/* Tabs Content with consistent spacing and glassmorphic styling */}
+        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+          <TabsContent value="background-change" className="mb-4">
+            <BackGroundChange />
+          </TabsContent>
 
-      <TabsContent value="upscale">
-        <Upscale />
-      </TabsContent>
-    </Tabs>
-  );
+          <TabsContent value="human" className="mb-4">
+            <HumanEditorImage />
+          </TabsContent>
+
+          <TabsContent value="upscale" className="mb-4">
+            <Upscale />
+          </TabsContent>
+        </motion.div>
+      </Tabs>
+    </motion.div>
+  )
 }
+

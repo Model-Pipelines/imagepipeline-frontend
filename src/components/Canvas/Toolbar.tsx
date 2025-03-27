@@ -1,7 +1,13 @@
 "use client";
 
 import { v4 as uuidv4 } from "uuid";
-import { Upload, RotateCcw, CircleHelp, MessageSquareShare, Bug } from "lucide-react";
+import {
+  Upload,
+  RotateCcw,
+  CircleHelp,
+  MessageSquareShare,
+  Bug,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { ChangeEvent, useCallback, useRef, useEffect, useState } from "react";
@@ -11,8 +17,7 @@ import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import { useMutation } from "@tanstack/react-query";
 import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
-import dynamic from 'next/dynamic';
-
+import dynamic from "next/dynamic";
 
 import {
   DropdownMenu,
@@ -25,7 +30,7 @@ import {
 
 // Dynamically import TawkMessengerReact to avoid SSR issues
 const TawkMessengerReact = dynamic(
-  () => import('@tawk.to/tawk-messenger-react'),
+  () => import("@tawk.to/tawk-messenger-react"),
   { ssr: false }
 );
 
@@ -187,13 +192,17 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
       <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
         <label className="cursor-pointer">
           <Button
-            className="bg-gray-300 dark:bg-[#2A2A2D] hover:bg-gray-400 dark:hover:bg-[#2A2A2D]/80"
+            className="bg-gray-300 dark:bg-[#2A2A2D] 
+               hover:bg-gray-400 dark:hover:bg-[#3A3A3D]
+               transition-colors duration-200
+               text-gray-700 dark:text-gray-200
+               hover:text-gray-900 dark:hover:text-white"
             size="icon"
             title="Upload Image"
             asChild
           >
             <span>
-              <Upload className="h-4 w-4 text-white" />
+              <Upload className="h-4 w-4" />
               <input
                 type="file"
                 className="hidden"
@@ -209,7 +218,7 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           size="icon"
           onClick={handleReset}
           title="Reset Canvas"
-          className="bg-red-500 dark:bg-red-900/20 hover:bg-red-600 dark:hover:bg-red-900/30 border-none"
+          className="bg-red-500 dark:bg-red-800 hover:bg-red-600 dark:hover:bg-red-500 border-none"
         >
           <RotateCcw className="h-4 w-4 text-white" />
         </Button>
@@ -227,7 +236,12 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           <DropdownMenuContent className="w-56">
             <DropdownMenuGroup>
               <DropdownMenuItem
-                onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrw55Vg0EFxzKAIK", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://airtable.com/appa7P1q84i2fLhLu/shrw55Vg0EFxzKAIK",
+                    "_blank"
+                  )
+                }
               >
                 Feedback
                 <DropdownMenuShortcut>
@@ -235,7 +249,12 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
                 </DropdownMenuShortcut>
               </DropdownMenuItem>
               <DropdownMenuItem
-                onClick={() => window.open("https://airtable.com/appa7P1q84i2fLhLu/shrEGQzNmeaP78Gg1", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://airtable.com/appa7P1q84i2fLhLu/shrEGQzNmeaP78Gg1",
+                    "_blank"
+                  )
+                }
               >
                 Report a Bug
                 <DropdownMenuShortcut>

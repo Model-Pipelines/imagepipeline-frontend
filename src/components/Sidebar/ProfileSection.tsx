@@ -55,43 +55,44 @@ export function ProfileSection({ planName, creditsLeft }: ProfileSectionProps) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-bordergraydark dark:text-bordergray">
+              <div className="flex h-full w-full items-center justify-center text-bordergraydark dark:text-bordergray font-semibold">
                 {user.firstName?.charAt(0)}
                 {user.lastName?.charAt(0)}
               </div>
             )}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-bordergray">
+            <p className="text-sm font-semibold text-gray-800 dark:text-bordergray">
               {user.firstName} {user.lastName}
             </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">{email}</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+              {email}
+            </p>
           </div>
         </div>
-        
       </div>
       <div className="h-px bg-bordergray dark:bg-[#2A2A2D]" />
 
       {/* Plan Info - Hidden on mobile and tablet */}
       <div className="p-4 md:block hidden cursor-default">
         <div className="flex justify-between text-sm">
-          <span className="font-medium text-gray-800 dark:text-bordergray">
+          <span className="font-semibold text-gray-800 dark:text-bordergray">
             {planName}
           </span>
-          <span className="text-gray-500 dark:text-bordergray">
+          <span className="font-semibold text-gray-500 dark:text-bordergray">
             {creditsLeft} credits left
           </span>
         </div>
-        <button className="mt-3 w-full rounded-md border border-accent dark:border-notice bg-lightblue dark:bg-blue-900/20 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer">
-          <Zap className="h-4 w-4" />
+        <button className="mt-3 w-full rounded-md border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 py-2 text-gray-800 dark:text-gray-200 hover:bg-creative dark:hover:bg-chart-4 hover:text-white dark:hover:text-white transition-colors duration-200 flex items-center justify-center gap-2 cursor-pointer">
+          <Zap className="h-4 w-4 text-gray-800 dark:text-gray-200 hover:text-white dark:hover:text-white transition-colors duration-200" />
           <Link
-          href="https://www.imagepipeline.io/pricing"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-gray-800 dark:text-bordergray hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 cursor-pointer"
-        >
-          Upgrade plan
-        </Link>
+            href="https://www.imagepipeline.io/pricing"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-200 hover:text-white dark:hover:text-white transition-colors duration-200 cursor-pointer"
+          >
+            Upgrade plan
+          </Link>
         </button>
       </div>
       <div className="h-px bg-bordergray dark:bg-[#2A2A2D]" />
@@ -102,24 +103,24 @@ export function ProfileSection({ planName, creditsLeft }: ProfileSectionProps) {
           href="https://docs.imagepipeline.io/"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-gray-800 dark:text-bordergray hover:text-yellow-600 dark:hover:text-yellow-400 transition-colors duration-200 cursor-pointer"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200 cursor-pointer"
         >
-          <HelpCircle className="h-4 w-4" />
+          <HelpCircle className="h-4 w-4 text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" />
           Help & Documentation
         </Link>
 
         <Link
           href={`/account/${uniqueName}`}
-          className="flex items-center gap-2 text-sm text-accent dark:text-notice hover:text-blue-800 transition-colors duration-200 cursor-pointer"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200 cursor-pointer"
         >
-          <User className="h-4 w-4" />
+          <User className="h-4 w-4 text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" />
           Profile
         </Link>
         <button
           onClick={() => signOut()}
-          className="flex items-center gap-2 text-sm text-destructive dark:text-chart-1 hover:text-red-800 transition-colors duration-200 cursor-pointer"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200 cursor-pointer"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" />
           Sign out
         </button>
       </div>

@@ -285,10 +285,10 @@ const StyleTab = () => {
 
 
       <div className="flex space-x-2">
-        <Button onClick={handleSave} className="flex-1 bg-green-500 dark:text-white">
+        <Button onClick={handleSave} className="flex-1 bg-success dark:bg-success hover:bg-chart-2 dark:hover:bg-chart-2 text-text dark:text-text">
           Save
         </Button>
-        <Button onClick={handleClear} variant="destructive" className="flex-1 bg-red-500 dark:text-white">
+        <Button onClick={handleClear} variant="destructive" className="flex-1 bg-error dark:bg-error hover:bg-destructive dark:hover:bg-destructive text-text dark:text-text">
           Clear
         </Button>
       </div>

@@ -3,11 +3,22 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { X, Settings, Palette, Globe, Lock, Wand2, ScanEye } from "lucide-react";
+import {
+  X,
+  Settings,
+  Palette,
+  Globe,
+  Lock,
+  Wand2,
+  ScanEye,
+} from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { useUploadBackendFiles, useDescribeImage } from "@/AxiosApi/TanstackQuery";
+import {
+  useUploadBackendFiles,
+  useDescribeImage,
+} from "@/AxiosApi/TanstackQuery";
 import ImageUploadLoader from "../ImageUploadLoader";
 import SettingsPanel from "../SettingsPanel";
 import CustomColorPalette from "../ColorPalleteUI/CustomColorPallete";
@@ -26,12 +37,17 @@ import {
   getStyleImageStatusNoReference,
   getFaceControlStatusFaceReference,
   getStyleImageStatusOneFace,
-  getStyleImageStatusReference, // New import for Style + Reference status
+  getStyleImageStatusReference,
 } from "@/AxiosApi/GenerativeApi";
 import { useQuery } from "@tanstack/react-query";
 import { v4 as uuidv4 } from "uuid";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useUpgradePopupStore } from "@/store/upgradePopupStore";
@@ -42,9 +58,9 @@ import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
-  "Reference": "referenceStore",
-  "Face": "FaceTabStore",
-  "Style": "styleTabState",
+  Reference: "referenceStore",
+  Face: "FaceTabStore",
+  Style: "styleTabState",
 };
 
 const getSavedTabsCount = () => {
@@ -54,7 +70,12 @@ const getSavedTabsCount = () => {
     if (storedData) {
       try {
         const parsed = JSON.parse(storedData);
-        if ((Array.isArray(parsed) && parsed.length > 0) || (typeof parsed === "object" && parsed !== null && Object.keys(parsed).length > 0)) {
+        if (
+          (Array.isArray(parsed) && parsed.length > 0) ||
+          (typeof parsed === "object" &&
+            parsed !== null &&
+            Object.keys(parsed).length > 0)
+        ) {
           count++;
         }
       } catch (e) {
@@ -69,10 +90,30 @@ const REFERENCE_TYPES = [
   { value: "none", label: "None", api: "controlNet", controlnet: "none" },
   { value: "canny", label: "Outline", api: "controlNet", controlnet: "canny" },
   { value: "depth", label: "Depth", api: "controlNet", controlnet: "depth" },
-  { value: "openpose", label: "Pose", api: "controlNet", controlnet: "openpose" },
-  { value: "scribble", label: "Render Sketch", api: "renderSketch", controlnet: "scribble" },
-  { value: "reference-only", label: "Recolor", api: "recolorImage", controlnet: "reference-only" },
-  { value: "mlsd", label: "Interior Design", api: "interiorDesign", controlnet: "mlsd" },
+  {
+    value: "openpose",
+    label: "Pose",
+    api: "controlNet",
+    controlnet: "openpose",
+  },
+  {
+    value: "scribble",
+    label: "Render Sketch",
+    api: "renderSketch",
+    controlnet: "scribble",
+  },
+  {
+    value: "reference-only",
+    label: "Recolor",
+    api: "recolorImage",
+    controlnet: "reference-only",
+  },
+  {
+    value: "mlsd",
+    label: "Interior Design",
+    api: "interiorDesign",
+    controlnet: "mlsd",
+  },
   { value: "logo", label: "Logo", api: "generateLogo", controlnet: null },
 ] as const;
 
@@ -93,9 +134,20 @@ const ImagePromptUI = () => {
     private_model_loads_remaining: number;
   } | null>(null);
 
-  const { text, image_url, magic_prompt, isPublic, hex_color, setInputText: setInputTextStore, setImageUrl, toggleMagicPrompt, togglePublic } = useSettingPanelStore();
+  const {
+    text,
+    image_url,
+    magic_prompt,
+    isPublic,
+    hex_color,
+    setInputText: setInputTextStore,
+    setImageUrl,
+    toggleMagicPrompt,
+    togglePublic,
+  } = useSettingPanelStore();
   const { controlnet } = useReferenceStore();
-  const { ip_adapter_image, setFaceImages, setSelectedPositions } = useFaceTabStore();
+  const { ip_adapter_image, setFaceImages, setSelectedPositions } =
+    useFaceTabStore();
   const { ip_adapter_image: styleImages } = useStyleStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
@@ -106,7 +158,9 @@ const ImagePromptUI = () => {
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const { handleGenerate, isGenerating } = GenerateHandler({ onTaskStarted: (taskId) => setGenerateTaskId(taskId) });
+  const { handleGenerate, isGenerating } = GenerateHandler({
+    onTaskStarted: (taskId) => setGenerateTaskId(taskId),
+  });
 
   useEffect(() => {
     const savedFaceTabState = localStorage.getItem("FaceTabStore");
@@ -114,20 +168,31 @@ const ImagePromptUI = () => {
       const parsedState = JSON.parse(savedFaceTabState);
       if (parsedState.ip_adapter_image?.length > 0) {
         setFaceImages(parsedState.ip_adapter_image);
-        const positions = parsedState.ip_adapter_mask_images.map((url: string) =>
-          Object.entries({
-            center: "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
-            left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
-            right: "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
-          }).find(([_, value]) => value === url)?.[0] as "center" | "left" | "right" | undefined
-        ).filter(Boolean) as ("center" | "left" | "right")[];
+        const positions = parsedState.ip_adapter_mask_images
+          .map(
+            (url: string) =>
+              Object.entries({
+                center:
+                  "https://f005.backblazeb2.com/file/imageai-model-images/centre_mask.png",
+                left: "https://f005.backblazeb2.com/file/imageai-model-images/left_mask.png",
+                right:
+                  "https://f005.backblazeb2.com/file/imageai-model-images/right_mask.png",
+              }).find(([_, value]) => value === url)?.[0] as
+                | "center"
+                | "left"
+                | "right"
+                | undefined
+          )
+          .filter(Boolean) as ("center" | "left" | "right")[];
         setSelectedPositions(positions);
       }
     }
   }, [setFaceImages, setSelectedPositions]);
 
-  const toggleColorPalette = () => setIsColorPaletteVisible(!isColorPaletteVisible);
-  const toggleSettingsPanel = () => setIsSettingsPanelVisible(!isSettingsPanelVisible);
+  const toggleColorPalette = () =>
+    setIsColorPaletteVisible(!isColorPaletteVisible);
+  const toggleSettingsPanel = () =>
+    setIsSettingsPanelVisible(!isSettingsPanelVisible);
 
   const { data: describeTaskStatus } = useQuery({
     queryKey: ["describeImageTask", describeTaskId],
@@ -137,7 +202,8 @@ const ImagePromptUI = () => {
       return getDescribeImageStatus(describeTaskId!, token);
     },
     enabled: !!describeTaskId,
-    refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
 
   const isFreePlan = () => {
@@ -148,17 +214,28 @@ const ImagePromptUI = () => {
     const savedStyleTabState = localStorage.getItem("styleTabState");
     const savedFaceTabState = localStorage.getItem("FaceTabStore");
     const savedReferenceTabState = localStorage.getItem("referenceStore");
-    const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
-    const hasStyleTab = savedStyleTabState && (
-      styleTabState.ip_adapter_image?.length > 0 ||
-      styleTabState.uploadSections?.some((section: any) => section.image || section.styleOption)
-    );
-    const hasFaceTab = savedFaceTabState && JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
-    const hasReferenceTab = savedReferenceTabState && JSON.parse(savedReferenceTabState).controlnet && JSON.parse(savedReferenceTabState).controlnet !== "none";
+    const styleTabState = savedStyleTabState
+      ? JSON.parse(savedStyleTabState)
+      : {};
+    const hasStyleTab =
+      savedStyleTabState &&
+      (styleTabState.ip_adapter_image?.length > 0 ||
+        styleTabState.uploadSections?.some(
+          (section: any) => section.image || section.styleOption
+        ));
+    const hasFaceTab =
+      savedFaceTabState &&
+      JSON.parse(savedFaceTabState).ip_adapter_image?.length > 0;
+    const hasReferenceTab =
+      savedReferenceTabState &&
+      JSON.parse(savedReferenceTabState).controlnet &&
+      JSON.parse(savedReferenceTabState).controlnet !== "none";
 
-    const activeTabsCount = (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
+    const activeTabsCount =
+      (hasStyleTab ? 1 : 0) + (hasFaceTab ? 1 : 0) + (hasReferenceTab ? 1 : 0);
     if (activeTabsCount > 1) {
-      if (hasStyleTab && hasReferenceTab && !hasFaceTab) return "style+reference";
+      if (hasStyleTab && hasReferenceTab && !hasFaceTab)
+        return "style+reference";
       if (hasStyleTab && hasFaceTab && !hasReferenceTab) return "style+face";
       if (hasReferenceTab && hasFaceTab) return "reference+face";
       return "multiple";
@@ -170,7 +247,13 @@ const ImagePromptUI = () => {
   };
 
   const { data: generateTaskStatus } = useQuery({
-    queryKey: ["generateImageTask", generateTaskId, controlnet, ip_adapter_image, styleImages],
+    queryKey: [
+      "generateImageTask",
+      generateTaskId,
+      controlnet,
+      ip_adapter_image,
+      styleImages,
+    ],
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Authentication token not available");
@@ -182,7 +265,9 @@ const ImagePromptUI = () => {
       }
       if (activeTab === "style+face") {
         const savedFaceTabState = localStorage.getItem("FaceTabStore");
-        const faceTabState = savedFaceTabState ? JSON.parse(savedFaceTabState) : {};
+        const faceTabState = savedFaceTabState
+          ? JSON.parse(savedFaceTabState)
+          : {};
         const faceImages = faceTabState.ip_adapter_image || [];
         if (faceImages.length === 1) {
           return getStyleImageStatusOneFace(generateTaskId!, token);
@@ -194,11 +279,17 @@ const ImagePromptUI = () => {
       }
       if (activeTab === "style") {
         const savedStyleTabState = localStorage.getItem("styleTabState");
-        const styleTabState = savedStyleTabState ? JSON.parse(savedStyleTabState) : {};
-        const uploadedImages = styleTabState.uploadSections
-          ?.filter((section: any) => section.image)
-          .map((section: any) => section.image) || [];
-        const hasStyleOnly = styleTabState.uploadSections?.some((section: any) => section.styleOption) && uploadedImages.length === 0;
+        const styleTabState = savedStyleTabState
+          ? JSON.parse(savedStyleTabState)
+          : {};
+        const uploadedImages =
+          styleTabState.uploadSections
+            ?.filter((section: any) => section.image)
+            .map((section: any) => section.image) || [];
+        const hasStyleOnly =
+          styleTabState.uploadSections?.some(
+            (section: any) => section.styleOption
+          ) && uploadedImages.length === 0;
 
         if (hasStyleOnly) {
           return getGenerateImage(generateTaskId!, token);
@@ -209,22 +300,33 @@ const ImagePromptUI = () => {
         return getFaceControlStatusFaceDailog(generateTaskId!, token);
       }
       if (activeTab === "reference") {
-        const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
+        const selectedRef = REFERENCE_TYPES.find(
+          (t) =>
+            t.controlnet === controlnet ||
+            (t.value === "logo" && controlnet === null)
+        );
         if (selectedRef && selectedRef.value !== "none") {
           switch (selectedRef.api) {
-            case "controlNet": return getControlNetTaskStatus(generateTaskId!, token);
-            case "renderSketch": return getRenderSketchStatus(generateTaskId!, token);
-            case "recolorImage": return getRecolorImageStatus(generateTaskId!, token);
-            case "interiorDesign": return getInteriorDesignStatus(generateTaskId!, token);
-            case "generateLogo": return getGenerateLogoStatus(generateTaskId!, token);
-            default: return getGenerateImage(generateTaskId!, token);
+            case "controlNet":
+              return getControlNetTaskStatus(generateTaskId!, token);
+            case "renderSketch":
+              return getRenderSketchStatus(generateTaskId!, token);
+            case "recolorImage":
+              return getRecolorImageStatus(generateTaskId!, token);
+            case "interiorDesign":
+              return getInteriorDesignStatus(generateTaskId!, token);
+            case "generateLogo":
+              return getGenerateLogoStatus(generateTaskId!, token);
+            default:
+              return getGenerateImage(generateTaskId!, token);
           }
         }
       }
       return getGenerateImage(generateTaskId!, token);
     },
     enabled: !!generateTaskId,
-    refetchInterval: (data) => (data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000),
+    refetchInterval: (data) =>
+      data?.status === "SUCCESS" || data?.status === "FAILURE" ? false : 5000,
   });
 
   const { openUpgradePopup } = useUpgradePopupStore();
@@ -257,7 +359,11 @@ const ImagePromptUI = () => {
       animateTextToTextarea(describeTaskStatus.prompt);
       setDescribeTaskId(null);
     } else if (describeTaskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: describeTaskStatus.error || "Failed to describe image", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: describeTaskStatus.error || "Failed to describe image",
+        variant: "destructive",
+      });
       setDescribeTaskId(null);
     }
   }, [describeTaskStatus, toast, setInputTextStore]);
@@ -265,9 +371,14 @@ const ImagePromptUI = () => {
   useEffect(() => {
     if (!generateTaskStatus) return;
     if (generateTaskStatus.status === "SUCCESS") {
-      const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      const imageUrl =
+        generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       if (!imageUrl) {
-        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Image URL not found",
+          variant: "destructive",
+        });
         setGenerateTaskId(null);
         return;
       }
@@ -275,26 +386,45 @@ const ImagePromptUI = () => {
       img.src = imageUrl;
       img.onload = () => {
         const lastImage = images[images.length - 1];
-        const newPosition = lastImage ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 } : { x: 50, y: 60 };
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
+        // Use dimensions from useAspectRatioStore
+        const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
+        const scaledHeight = height * scaleFactor;
+        const scaledWidth = width * scaleFactor;
+
         addImage({
           id: uuidv4(),
           url: imageUrl,
           position: newPosition,
-          size: { width: 200, height: 200 },
+          size: { width: scaledWidth, height: scaledHeight }, // Dynamic size based on aspect ratio
           element: img,
         });
-        toast({ title: "Success", description: "Image generated successfully!" });
+        toast({
+          title: "Success",
+          description: "Image generated successfully!",
+        });
         setGenerateTaskId(null);
       };
       img.onerror = () => {
-        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to load generated image",
+          variant: "destructive",
+        });
         setGenerateTaskId(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: generateTaskStatus.error || "Image generation failed", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: generateTaskStatus.error || "Image generation failed",
+        variant: "destructive",
+      });
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast]);
+  }, [generateTaskStatus, addImage, images, toast, height, width]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -313,10 +443,18 @@ const ImagePromptUI = () => {
       if (!imageUrl) throw new Error("Failed to upload image");
       setImageUrl(imageUrl);
       setShowDescribeButton(true);
-      toast({ title: "Upload Successful", description: "Image added to canvas" });
+      toast({
+        title: "Upload Successful",
+        description: "Image added to canvas",
+      });
     } catch (error) {
       console.error("Upload error:", error);
-      toast({ title: "Upload Failed", description: error instanceof Error ? error.message : "Failed to upload image", variant: "destructive" });
+      toast({
+        title: "Upload Failed",
+        description:
+          error instanceof Error ? error.message : "Failed to upload image",
+        variant: "destructive",
+      });
     } finally {
       setIsUploading(false);
     }
@@ -324,12 +462,20 @@ const ImagePromptUI = () => {
 
   const handleDescribeImage = async () => {
     if (!image_url) {
-      toast({ title: "Error", description: "Please upload an image first", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Please upload an image first",
+        variant: "destructive",
+      });
       return;
     }
     const token = await getToken();
     if (!token) {
-      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
+      toast({
+        title: "Error",
+        description: "Authentication token not available",
+        variant: "destructive",
+      });
       return;
     }
     setInputTextStore("");
@@ -338,14 +484,28 @@ const ImagePromptUI = () => {
       {
         onSuccess: (response) => {
           if (!response.id) {
-            toast({ title: "Error", description: "Missing task ID in response", variant: "destructive" });
+            toast({
+              title: "Error",
+              description: "Missing task ID in response",
+              variant: "destructive",
+            });
             return;
           }
           setDescribeTaskId(response.id);
-          toast({ title: "Processing", description: "Analyzing your image..." });
+          toast({
+            title: "Processing",
+            description: "Analyzing your image...",
+          });
         },
         onError: (error) => {
-          toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to describe image", variant: "destructive" });
+          toast({
+            title: "Error",
+            description:
+              error instanceof Error
+                ? error.message
+                : "Failed to describe image",
+            variant: "destructive",
+          });
         },
       }
     );
@@ -357,10 +517,22 @@ const ImagePromptUI = () => {
   const getButtonText = () => {
     const palettes = [
       { name: "None", colors: [] },
-      { name: "Ember", colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"] },
-      { name: "Fresh", colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"] },
-      { name: "Jungle", colors: ["#006400", "#228B22", "#32CD32", "#90EE90", "#FFFFFF"] },
-      { name: "Magic", colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"] },
+      {
+        name: "Ember",
+        colors: ["#FF4D4D", "#666666", "#FFB4A1", "#FF8585", "#FF1A75"],
+      },
+      {
+        name: "Fresh",
+        colors: ["#FFE5B4", "#FF9966", "#4D94FF", "#98FF98", "#4D4DFF"],
+      },
+      {
+        name: "Jungle",
+        colors: ["#006400", "#228B22", "#32CD32", "#90EE90", "#FFFFFF"],
+      },
+      {
+        name: "Magic",
+        colors: ["#FFB6C1", "#CBC3E3", "#4682B4", "#483D8B", "#FF69B4"],
+      },
     ];
     const currentColors = hex_color.join(",");
     if (hex_color.length === 0) return "None";
@@ -387,7 +559,11 @@ const ImagePromptUI = () => {
         }
       } catch (error) {
         console.error("Error fetching user plan:", error);
-        toast({ title: "Error", description: "Failed to fetch user plan", variant: "destructive" });
+        toast({
+          title: "Error",
+          description: "Failed to fetch user plan",
+          variant: "destructive",
+        });
       }
     };
     fetchPlanData();
@@ -400,23 +576,38 @@ const ImagePromptUI = () => {
           {(isUploading || image_url) && (
             <div className="relative mt-4 z-[100]">
               <div className="flex flex-wrap gap-2 items-center">
-                <ImageUploadLoader imagePreview={image_url} isUploading={isUploading} />
+                <ImageUploadLoader
+                  imagePreview={image_url}
+                  isUploading={isUploading}
+                />
                 {!isUploading && (
                   <>
-                    <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
                       <Button
                         onClick={handleDescribeImage}
-                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-success hover:bg-chart-2 dark:bg-success dark:hover:bg-chart-2 text-text"
+                        className="h-10 px-4 flex items-center justify-center rounded-lg bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text font-medium"
                         disabled={!image_url || !!describeTaskId}
                       >
                         {describeTaskId ? (
                           <motion.div
                             className="w-5 h-5 border-2 border-text border-t-transparent rounded-full"
                             animate={{ rotate: 360 }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                            transition={{
+                              repeat: Infinity,
+                              duration: 1,
+                              ease: "linear",
+                            }}
                           />
                         ) : (
-                          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}>
+                          <motion.span
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.1 }}
+                          >
                             Describe Image
                           </motion.span>
                         )}
@@ -439,17 +630,32 @@ const ImagePromptUI = () => {
 
           <div className="flex items-center gap-2">
             <div className="relative flex-grow">
-              <input type="file" hidden ref={fileInputRef} onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])} />
-              <button onClick={handlePaperclipClick} className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer" aria-label="Upload image">
+              <input
+                type="file"
+                hidden
+                ref={fileInputRef}
+                onChange={(e) =>
+                  e.target.files?.[0] && handleFileUpload(e.target.files[0])
+                }
+              />
+              <button
+                onClick={handlePaperclipClick}
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 p-1 cursor-pointer"
+                aria-label="Upload image"
+              >
                 <ScanEye className="h-5 w-5 text-textPrimary dark:text-text" />
               </button>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 <Textarea
                   ref={textAreaRef}
                   value={text}
                   onChange={(e) => setInputTextStore(e.target.value)}
                   placeholder="Describe what you want to generate..."
-                  className="w-full pl-10 mt-9 pr-2 bg-info dark:bg-bordergraydark resize-none rounded-lg"
+                  className="w-full font-medium pl-10 mt-9 pr-2 bg-info dark:bg-bordergraydark resize-none rounded-lg"
                   rows={3}
                   style={{ height: "100%" }}
                 />
@@ -458,16 +664,24 @@ const ImagePromptUI = () => {
             <motion.button
               onClick={handleGenerate}
               disabled={isGenerating || !!generateTaskId}
-              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg ${isGenerating || !!generateTaskId ? "bg-accent cursor-not-allowed" : "bg-accent hover:bg-notice"}`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg font-medium transition-all ${
+                isGenerating || !!generateTaskId
+                  ? "bg-creative dark:bg-chart-4 cursor-not-allowed"
+                  : "bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4"
+              }`}
+              whileHover={{ scale: isGenerating ? 1 : 1.05 }}
+              whileTap={{ scale: isGenerating ? 1 : 0.95 }}
             >
               {isGenerating || !!generateTaskId ? (
                 <motion.div
-                  className="w-5 h-5 border-4 border-white border-t-transparent rounded-full shadow-md"
+                  className="w-6 h-6 border-4 border-white/30 border-t-white border-b-white/40 rounded-full drop-shadow-lg"
                   animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  style={{ boxShadow: "0 0 10px rgba(255, 255, 255, 0.5)" }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 0.8,
+                    ease: "linear",
+                  }}
+                  style={{ boxShadow: "0 0 10px rgba(255, 255, 255, 0.6)" }}
                 />
               ) : (
                 <>
@@ -488,19 +702,34 @@ const ImagePromptUI = () => {
                       size="icon"
                       className={cn(
                         "h-10 w-10 rounded-md border transition-colors",
-                        magic_prompt ? "bg-success text-text dark:text-text" : "bg-error text-text-primary dark:bg-bordergraydark dark:text-text",
+                        magic_prompt
+                          ? "bg-success text-text dark:text-text"
+                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-text",
                         "hover:bg-muted dark:hover:bg-muted"
                       )}
                       onClick={handleMagicPromptClick}
-                      aria-label={`Toggle magic prompt ${magic_prompt ? "off" : "on"}`}
+                      aria-label={`Toggle magic prompt ${
+                        magic_prompt ? "off" : "on"
+                      }`}
                     >
-                      <motion.div animate={magic_prompt ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.5, ease: "easeInOut" }}>
+                      <motion.div
+                        animate={
+                          magic_prompt
+                            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
+                            : { scale: 1, rotate: 0 }
+                        }
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
                         <Wand2 className="h-5 w-5" />
                       </motion.div>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{magic_prompt ? "Magic prompt is on" : "Magic prompt is off"}</p>
+                    <p>
+                      {magic_prompt
+                        ? "Magic prompt is on"
+                        : "Magic prompt is off"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
@@ -510,19 +739,40 @@ const ImagePromptUI = () => {
                       size="icon"
                       className={cn(
                         "h-10 w-10 rounded-md border transition-colors",
-                        isPublic ? "bg-success text-text dark:text-notice" : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
+                        isPublic
+                          ? "bg-success text-text dark:text-notice"
+                          : "bg-error text-text-primary dark:bg-bordergraydark dark:text-bordergray",
                         "hover:bg-muted dark:hover:bg-muted"
                       )}
                       onClick={handleTogglePublic}
                       aria-label={`Toggle public ${isPublic ? "off" : "on"}`}
                     >
-                      <motion.div animate={isPublic ? { scale: [1, 1.2, 1], rotate: [0, 360] } : { scale: 1, rotate: 0 }} transition={{ duration: 0.5, ease: "easeInOut" }}>
-                        {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                      <motion.div
+                        animate={
+                          isPublic
+                            ? { scale: [1, 1.2, 1], rotate: [0, 360] }
+                            : { scale: 1, rotate: 0 }
+                        }
+                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                      >
+                        {isPublic ? (
+                          <Globe className="h-5 w-5" />
+                        ) : (
+                          <Lock className="h-5 w-5" />
+                        )}
                       </motion.div>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {isFreePlan() ? <p>Upgrade to make images private</p> : <p>{isPublic ? "Image and prompt are public" : "Image and prompt are private"}</p>}
+                    {isFreePlan() ? (
+                      <p>Upgrade to make images private</p>
+                    ) : (
+                      <p>
+                        {isPublic
+                          ? "Image and prompt are public"
+                          : "Image and prompt are private"}
+                      </p>
+                    )}
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -530,21 +780,41 @@ const ImagePromptUI = () => {
             <div className="flex items-center gap-2">
               <Button
                 onClick={toggleColorPalette}
-                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${isColorPaletteVisible ? "bg-accent hover:bg-notice text-text" : "bg-bordergray hover:bg-gray-300 text-gray-700"}`}
+                className={`w-full max-w-[200px] h-12 rounded-lg flex items-center justify-start px-3 text-left ${
+                  isColorPaletteVisible
+                    ? "bg-accent hover:bg-notice text-text"
+                    : "bg-bordergray hover:bg-gray-300 text-gray-700"
+                }`}
                 aria-label="Toggle color palette"
               >
-                <Palette className={`h-5 w-5 ${isColorPaletteVisible ? "text-text" : "text-bordergraydark"}`} />
+                <Palette
+                  className={`h-5 w-5 ${
+                    isColorPaletteVisible ? "text-text" : "text-bordergraydark"
+                  }`}
+                />
                 <span className="ml-2 truncate">{buttonText}</span>
               </Button>
               <Button
                 onClick={toggleSettingsPanel}
-                className={`relative w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${isSettingsPanelVisible ? "bg-accent hover:bg-notice" : "bg-bordergray hover:bg-gray-300"}`}
+                className={`relative w-12 h-12 rounded-full flex items-center justify-center lg:w-auto lg:px-4 lg:rounded-lg ${
+                  isSettingsPanelVisible
+                    ? "bg-accent hover:bg-notice"
+                    : "bg-bordergray hover:bg-gray-300"
+                }`}
                 aria-label="Toggle settings"
               >
-                <Settings className={`h-5 w-5 ${isSettingsPanelVisible ? "text-text" : "text-textPrimary"}`} />
-                <span className="hidden lg:ml-2 lg:inline text-bordergraydark">Settings</span>
+                <Settings
+                  className={`h-5 w-5 ${
+                    isSettingsPanelVisible ? "text-text" : "text-textPrimary"
+                  }`}
+                />
+                <span className="hidden lg:ml-2 lg:inline text-bordergraydark">
+                  Settings
+                </span>
                 {savedTabsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full">{savedTabsCount}</span>
+                  <span className="absolute -top-2 -right-2 inline-flex items-center justify-center w-5 h-5 text-xs text-white bg-red-500 rounded-full">
+                    {savedTabsCount}
+                  </span>
                 )}
               </Button>
             </div>
@@ -553,7 +823,12 @@ const ImagePromptUI = () => {
 
         {isSettingsPanelVisible && (
           <div className="absolute z-50 left-96 top-52 transform translate-x-56 -translate-y-60 flex justify-center items-center">
-            <SettingsPanel onTypeChange={(type: any) => {}} paperclipImage={image_url} inputText={text} onClose={() => setIsSettingsPanelVisible(false)} />
+            <SettingsPanel
+              onTypeChange={(type: any) => {}}
+              paperclipImage={image_url}
+              inputText={text}
+              onClose={() => setIsSettingsPanelVisible(false)}
+            />
           </div>
         )}
 

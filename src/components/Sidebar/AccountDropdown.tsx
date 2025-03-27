@@ -31,7 +31,10 @@ export default function AccountDropdown() {
   // Close the dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -47,9 +50,9 @@ export default function AccountDropdown() {
       {/* Dropdown Trigger */}
       <button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="h-8 w-8 flex items-center justify-center bg-transparent dark:text-text cursor-pointer"
+        className="h-8 w-8 flex items-center justify-center bg-transparent text-gray-700 dark:text-gray-300 hover:text-creative dark:hover:text-chart-4 transition-colors"
       >
-        <Menu />
+        <Menu className="h-5 w-5 text-gray-700 dark:text-gray-300 hover:text-text dark:hover:text-text transition-colors" />
       </button>
       {/* Dropdown Menu */}
       <AnimatePresence>

@@ -288,13 +288,13 @@ const AspectRatioTab = () => {
       <div className="flex flex-row gap-2">
         <Button
           onClick={handleSave}
-          className="w-1/2 bg-accent hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] text-text"
+          className="w-1/2 bg-success dark:bg-success hover:bg-chart-2 dark:hover:bg-chart-2 text-text dark:text-text"
         >
           Save Dimensions
         </Button>
         <Button
           onClick={handleClear}
-          className="w-1/2 bg-red-500 hover:bg-red-600 text-white"
+          className="w-1/2 bg-error dark:bg-error hover:bg-destructive dark:hover:bg-destructive text-text dark:text-text"
         >
           Clear
         </Button>

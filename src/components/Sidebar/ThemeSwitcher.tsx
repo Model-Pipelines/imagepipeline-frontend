@@ -9,9 +9,9 @@ export function ThemeSwitcher() {
 
   // Define the themes as an array of objects
   const THEMES = [
-    { id: "light", label: "Light", icon: <Sun className="inline h-4 w-4 mr-1" /> },
-    { id: "dark", label: "Dark", icon: <Moon className="inline h-4 w-4 mr-1" /> },
-    { id: "system", label: "Auto", icon: <Monitor className="inline h-4 w-4 mr-1" /> },
+    { id: "light", label: "Light", icon: <Sun className="inline h-4 w-4 mr-1 text-gray-800 dark:text-gray-200 hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" /> },
+    { id: "dark", label: "Dark", icon: <Moon className="inline h-4 w-4 mr-1 text-gray-800 dark:text-gray-200 hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" /> },
+    { id: "system", label: "Auto", icon: <Monitor className="inline h-4 w-4 mr-1 text-gray-800 dark:text-gray-200 hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" /> },
   ];
 
   return (
@@ -34,10 +34,10 @@ export function ThemeSwitcher() {
                 key={id}
                 data-id={id}
                 onClick={() => setTheme(id)}
-                className={`flex-1 text-center text-sm font-medium px-3 py-2 rounded transition-all duration-300 cursor-pointer ${
+                className={`flex-1 text-center text-sm font-semibold px-3 py-2 rounded transition-all duration-300 cursor-pointer ${
                   theme === id
                     ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    : "text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    : "text-gray-800 dark:text-gray-200 hover:bg-creative dark:hover:bg-chart-4 hover:text-white dark:hover:text-white"
                 }`}
               >
                 {icon} {label}

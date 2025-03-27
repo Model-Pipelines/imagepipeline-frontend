@@ -343,14 +343,13 @@ const FaceTab = () => {
       <div className="flex gap-2">
         <Button
           onClick={handleSave}
-          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] bg-green-500 dark:text-white"
+          className="flex-1 bg-success dark:bg-success hover:bg-chart-2 dark:hover:bg-chart-2 text-text dark:text-text"
         >
           Save
         </Button>
         <Button
           onClick={handleClear}
-          variant="outline"
-          className="flex-1 hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)] bg-red-500 dark:text-white"
+          className="flex-1 bg-error dark:bg-error hover:bg-destructive dark:hover:bg-destructive text-text dark:text-text"
         >
           Clear
         </Button>
