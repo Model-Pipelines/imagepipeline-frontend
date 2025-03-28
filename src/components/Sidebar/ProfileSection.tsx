@@ -110,7 +110,7 @@ export function ProfileSection({ planName, creditsLeft }: ProfileSectionProps) {
         </Link>
 
         <Link
-          href={`/account`}
+          href={`/account/${uniqueName}`}
           className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200 cursor-pointer"
         >
           <User className="h-4 w-4 text-gray-800 dark:text-bordergray hover:text-creative dark:hover:text-chart-4 transition-colors duration-200" />
