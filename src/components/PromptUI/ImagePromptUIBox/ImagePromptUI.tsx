@@ -160,29 +160,43 @@ const ImagePromptUI = () => {
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const calculatePosition = useCallback(
-    (imgWidth: number = 200, imgHeight: number = 200) => {
-      const canvasWidth = window.innerWidth;
-      const offsetX = 20;
-      const offsetY = 20;
-      const imagesPerRow = Math.floor(canvasWidth / (imgWidth + offsetX));
-      const row = Math.floor(images.length / imagesPerRow);
-      const col = images.length % imagesPerRow;
-      return {
-        x: col * (imgWidth + offsetX),
-        y: row * (imgHeight + offsetY),
-      };
+  // Function to calculate the next position based on existing images
+  const calculateNextPosition = useCallback(
+    (width: number = 200, height: number = 200) => {
+      if (images.length === 0) {
+        // For the first image, place it at a fixed starting point
+        return { x: 20, y: 20 };
+      }
+
+      // Find the rightmost and bottommost positions of existing images
+      const maxX = Math.max(...images.map((img) => img.position.x + img.size.width));
+      const maxY = Math.max(...images.map((img) => img.position.y));
+      const canvasWidth = window.innerWidth - 20; // Account for right margin
+
+      // Check if adding the new image fits in the current row
+      const nextX = maxX + 20; // 20px offset
+      if (nextX + width <= canvasWidth) {
+        return { x: nextX, y: maxY };
+      }
+
+      // Start a new row below the tallest image in the previous row
+      const maxHeightInRow = Math.max(
+        ...images
+          .filter((img) => img.position.y === maxY)
+          .map((img) => img.size.height)
+      );
+      return { x: 20, y: maxY + maxHeightInRow + 20 };
     },
-    [images.length]
+    [images]
   );
 
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
       setGenerateTaskId(taskId);
-      // Use aspect ratio from store if available, otherwise default to 200x200
       const tempWidth = aspectWidth || 200;
       const tempHeight = aspectHeight || 200;
-      const initialPosition = calculatePosition(tempWidth, tempHeight);
+      const initialPosition = calculateNextPosition(tempWidth, tempHeight);
+      console.log("Initial Skeleton Position:", initialPosition);
       setSkeletonPosition(initialPosition);
     },
   });
@@ -422,7 +436,8 @@ const ImagePromptUI = () => {
           }
         }
 
-        const finalPosition = calculatePosition(width, height);
+        const finalPosition = calculateNextPosition(width, height);
+        console.log("Final Image Position:", finalPosition);
 
         // Update skeleton to final position before adding image
         setSkeletonPosition(finalPosition);
@@ -463,7 +478,7 @@ const ImagePromptUI = () => {
       setGenerateTaskId(null);
       setSkeletonPosition(null);
     }
-  }, [generateTaskStatus, addImage, toast, calculatePosition, aspectWidth, aspectHeight]);
+  }, [generateTaskStatus, addImage, toast, calculateNextPosition, aspectWidth, aspectHeight]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
