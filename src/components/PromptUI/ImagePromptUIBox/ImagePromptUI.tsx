@@ -55,7 +55,7 @@ import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
-import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
+import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal"; // Import the skeleton component
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -125,7 +125,7 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
-  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null);
+  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null); // New state for skeleton position
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -163,12 +163,18 @@ const ImagePromptUI = () => {
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
       setGenerateTaskId(taskId);
-      // Set skeleton position when generation starts
-      const lastImage = images[images.length - 1];
-      const newPosition = lastImage
-        ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-        : { x: 50, y: 60 };
-      setSkeletonPosition(newPosition);
+      // Calculate initial skeleton position when generation starts
+      const canvasWidth = window.innerWidth;
+      const offsetX = 20;
+      const offsetY = 20;
+      const tempWidth = 200; // Temporary width for skeleton
+      const imagesPerRow = Math.floor(canvasWidth / (tempWidth + offsetX));
+      const row = Math.floor(images.length / imagesPerRow);
+      const col = images.length % imagesPerRow;
+      setSkeletonPosition({
+        x: col * (tempWidth + offsetX),
+        y: row * (tempWidth + offsetY),
+      });
     },
   });
 
@@ -282,7 +288,7 @@ const ImagePromptUI = () => {
         if (faceImages.length === 1) {
           return getStyleImageStatusOneFace(generateTaskId!, token);
         }
-        return getFaceControlStatusFaceDailog(generateTaskId!, token);
+        return getFaceControlStatusFaceDailog(generateTaskId!, token); // Fallback for multiple faces
       }
       if (activeTab === "reference+face") {
         return getFaceControlStatusFaceReference(generateTaskId!, token);
@@ -390,7 +396,7 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
-        setSkeletonPosition(null);
+        setSkeletonPosition(null); // Hide skeleton on failure
         return;
       }
       const img = new Image();
@@ -401,8 +407,7 @@ const ImagePromptUI = () => {
           ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
           : { x: 50, y: 60 };
 
-        // Use dimensions from useAspectRatioStore
-        const scaleFactor = 200 / Math.max(height, width);
+        const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
 
@@ -417,8 +422,10 @@ const ImagePromptUI = () => {
           title: "Success",
           description: "Image generated successfully!",
         });
-        setGenerateTaskId(null);
-        setSkeletonPosition(null);
+        setTimeout(() => {
+          setGenerateTaskId(null);
+          setSkeletonPosition(null); // Hide skeleton after a delay
+        }, 1000); // Match Toolbar.tsx delay
       };
       img.onerror = () => {
         toast({
@@ -427,7 +434,7 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
-        setSkeletonPosition(null);
+        setSkeletonPosition(null); // Hide skeleton on failure
       };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
@@ -436,7 +443,7 @@ const ImagePromptUI = () => {
         variant: "destructive",
       });
       setGenerateTaskId(null);
-      setSkeletonPosition(null);
+      setSkeletonPosition(null); // Hide skeleton on failure
     }
   }, [generateTaskStatus, addImage, images, toast, height, width]);
 
@@ -853,8 +860,8 @@ const ImagePromptUI = () => {
         )}
       </div>
 
-      {/* Loading skeleton for generated images */}
-      {isGenerating && skeletonPosition && (
+      {/* Skeleton for image generation */}
+      {skeletonPosition && !!generateTaskId && (
         <div
           style={{
             position: "absolute",
