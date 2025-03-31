@@ -18,7 +18,6 @@ import { useMutation } from "@tanstack/react-query";
 import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +26,7 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ShinyGradientSkeletonHorizontal } from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
 // Dynamically import TawkMessengerReact to avoid SSR issues
 const TawkMessengerReact = dynamic(
@@ -41,6 +41,8 @@ interface ToolbarProps {
 export default function Toolbar({ onUpload }: ToolbarProps) {
   const tawkMessengerRef = useRef<any>(null);
   const [mounted, setMounted] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null);
   const addImage = useImageStore((state) => state.addImage);
   const images = useImageStore((state) => state.images);
   const { toast } = useToast();
@@ -63,6 +65,8 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
         description: error.message || "Failed to upload image",
         variant: "destructive",
       });
+      setIsUploading(false);
+      setSkeletonPosition(null);
     },
   });
 
@@ -106,6 +110,23 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
       }
 
       try {
+        setIsUploading(true);
+        console.log("Upload started, isUploading set to true");
+
+        // Initial skeleton position (rough estimate)
+        const canvasWidth = window.innerWidth;
+        const offsetX = 20;
+        const offsetY = 20;
+        const tempWidth = 200; // Temporary width for skeleton
+        const imagesPerRow = Math.floor(canvasWidth / (tempWidth + offsetX));
+        const row = Math.floor(images.length / imagesPerRow);
+        const col = images.length % imagesPerRow;
+        setSkeletonPosition({
+          x: col * (tempWidth + offsetX),
+          y: row * (tempWidth + offsetY), // Using tempWidth for height as a placeholder
+        });
+        console.log("Initial skeleton position set:", skeletonPosition);
+
         const uploadedImageUrl: string = await uploadImage({
           data: file,
           token,
@@ -130,28 +151,25 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           width = height * aspectRatio;
         }
 
-        const canvasWidth = window.innerWidth;
-        const offsetX = 20;
-        const offsetY = 20;
-        const imagesPerRow = Math.floor(canvasWidth / (width + offsetX));
-        const row = Math.floor(images.length / imagesPerRow);
-        const col = images.length % imagesPerRow;
-
-        const position = {
+        const finalPosition = {
           x: col * (width + offsetX),
           y: row * (height + offsetY),
         };
+
+        console.log("Final position calculated:", finalPosition);
+        setSkeletonPosition(finalPosition); // Update to final position
 
         addImage({
           id: uuidv4(),
           url: uploadedImageUrl,
           element,
-          position,
+          position: finalPosition,
           size: { width, height },
         });
 
+        console.log("Image added at:", finalPosition);
         toast({
-          title: "Upload Started",
+          title: "Upload Completed",
           description: "Your image has been uploaded.",
         });
       } catch (error: any) {
@@ -161,9 +179,15 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           description: error.message || "Failed to upload image",
           variant: "destructive",
         });
+      } finally {
+        setTimeout(() => {
+          setIsUploading(false);
+          setSkeletonPosition(null);
+          console.log("Skeleton hidden after 1000ms delay");
+        }, 1000); // Keep 1000ms for visibility
       }
     },
-    [uploadImage, toast, addImage, images.length, getToken]
+    [uploadImage, toast, addImage, images.length, getToken, skeletonPosition]
   );
 
   const handleReset = () => {
@@ -175,7 +199,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
 
   return (
     <>
-      {/* Tawk.to widget moved to left side */}
       {mounted && (
         <div className="absolute bottom-4 left-16 translate-x-1/2 z-10">
           <TawkMessengerReact
@@ -188,7 +211,6 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           />
         </div>
       )}
-      {/* Toolbar - keeping it on the right side as original */}
       <div className="toolbar absolute bottom-4 right-16 -translate-x-1/2 z-10 bg-white/90 dark:bg-[#1B1B1D]/90 backdrop-blur-sm rounded-lg shadow-lg p-2 flex gap-2">
         <label className="cursor-pointer">
           <Button
@@ -271,6 +293,20 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Skeleton moved outside toolbar */}
+      {isUploading && skeletonPosition && (
+        <div
+          style={{
+            position: "absolute",
+            top: skeletonPosition.y,
+            left: skeletonPosition.x,
+            zIndex: 1000,
+          }}
+        >
+          <ShinyGradientSkeletonHorizontal />
+        </div>
+      )}
     </>
   );
 }

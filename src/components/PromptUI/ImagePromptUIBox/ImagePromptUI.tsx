@@ -55,6 +55,7 @@ import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
+import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -124,6 +125,7 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
+  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null);
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -159,7 +161,15 @@ const ImagePromptUI = () => {
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
   const { handleGenerate, isGenerating } = GenerateHandler({
-    onTaskStarted: (taskId) => setGenerateTaskId(taskId),
+    onTaskStarted: (taskId) => {
+      setGenerateTaskId(taskId);
+      // Set skeleton position when generation starts
+      const lastImage = images[images.length - 1];
+      const newPosition = lastImage
+        ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+        : { x: 50, y: 60 };
+      setSkeletonPosition(newPosition);
+    },
   });
 
   useEffect(() => {
@@ -272,7 +282,7 @@ const ImagePromptUI = () => {
         if (faceImages.length === 1) {
           return getStyleImageStatusOneFace(generateTaskId!, token);
         }
-        return getFaceControlStatusFaceDailog(generateTaskId!, token); // Fallback for multiple faces
+        return getFaceControlStatusFaceDailog(generateTaskId!, token);
       }
       if (activeTab === "reference+face") {
         return getFaceControlStatusFaceReference(generateTaskId!, token);
@@ -380,6 +390,7 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
+        setSkeletonPosition(null);
         return;
       }
       const img = new Image();
@@ -391,7 +402,7 @@ const ImagePromptUI = () => {
           : { x: 50, y: 60 };
 
         // Use dimensions from useAspectRatioStore
-        const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
+        const scaleFactor = 200 / Math.max(height, width);
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
 
@@ -399,7 +410,7 @@ const ImagePromptUI = () => {
           id: uuidv4(),
           url: imageUrl,
           position: newPosition,
-          size: { width: scaledWidth, height: scaledHeight }, // Dynamic size based on aspect ratio
+          size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
         toast({
@@ -407,6 +418,7 @@ const ImagePromptUI = () => {
           description: "Image generated successfully!",
         });
         setGenerateTaskId(null);
+        setSkeletonPosition(null);
       };
       img.onerror = () => {
         toast({
@@ -415,6 +427,7 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
+        setSkeletonPosition(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
@@ -423,6 +436,7 @@ const ImagePromptUI = () => {
         variant: "destructive",
       });
       setGenerateTaskId(null);
+      setSkeletonPosition(null);
     }
   }, [generateTaskStatus, addImage, images, toast, height, width]);
 
@@ -838,6 +852,20 @@ const ImagePromptUI = () => {
           </div>
         )}
       </div>
+
+      {/* Loading skeleton for generated images */}
+      {isGenerating && skeletonPosition && (
+        <div
+          style={{
+            position: "absolute",
+            top: skeletonPosition.y,
+            left: skeletonPosition.x,
+            zIndex: 1000,
+          }}
+        >
+          <ShinyGradientSkeletonHorizontal />
+        </div>
+      )}
     </>
   );
 };
