@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
@@ -160,25 +160,26 @@ const ImagePromptUI = () => {
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const calculateNewPosition = () => {
-    const lastImage = images[images.length - 1];
-    const offsetX = 10;
-    const offsetY = 10;
+  const calculateNewPosition = useCallback(() => {
+    const canvasWidth = window.innerWidth;
+    const offsetX = 20;
+    const offsetY = 20;
+    const tempWidth = 200; // Temporary width for skeleton
+    const imagesPerRow = Math.floor(canvasWidth / (tempWidth + offsetX));
+    const row = Math.floor(images.length / imagesPerRow);
+    const col = images.length % imagesPerRow;
     
-    if (lastImage) {
-      return {
-        x: lastImage.position.x + offsetX,
-        y: lastImage.position.y + offsetY
-      };
-    }
-    return { x: 50, y: 60 }; // Default position if no images exist
-  };
+    return {
+      x: col * (tempWidth + offsetX),
+      y: row * (tempWidth + offsetY),
+    };
+  }, [images.length]);
 
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
       setGenerateTaskId(taskId);
-      const newPosition = calculateNewPosition();
-      setSkeletonPosition(newPosition);
+      const initialPosition = calculateNewPosition();
+      setSkeletonPosition(initialPosition);
     },
   });
 
@@ -403,27 +404,43 @@ const ImagePromptUI = () => {
         setSkeletonPosition(null);
         return;
       }
+      
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        // Use the same position that was calculated when the task started
         if (!skeletonPosition) return;
         
-        const scaleFactor = 200 / Math.max(height, width);
-        const scaledHeight = height * scaleFactor;
-        const scaledWidth = width * scaleFactor;
+        const aspectRatio = img.width / img.height;
+        let width = 200;
+        let height = width / aspectRatio;
+        if (height > 200) {
+          height = 200;
+          width = height * aspectRatio;
+        }
+
+        const imagesPerRow = Math.floor(window.innerWidth / (width + 20));
+        const row = Math.floor(images.length / imagesPerRow);
+        const col = images.length % imagesPerRow;
+        const finalPosition = {
+          x: col * (width + 20),
+          y: row * (height + 20),
+        };
+
+        setSkeletonPosition(finalPosition);
 
         addImage({
           id: uuidv4(),
           url: imageUrl,
-          position: skeletonPosition,
-          size: { width: scaledWidth, height: scaledHeight },
+          position: finalPosition,
+          size: { width, height },
           element: img,
         });
+
         toast({
           title: "Success",
           description: "Image generated successfully!",
         });
+
         setTimeout(() => {
           setGenerateTaskId(null);
           setSkeletonPosition(null);
@@ -447,7 +464,7 @@ const ImagePromptUI = () => {
       setGenerateTaskId(null);
       setSkeletonPosition(null);
     }
-  }, [generateTaskStatus, addImage, toast, height, width, skeletonPosition]);
+  }, [generateTaskStatus, addImage, toast, images.length]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -862,7 +879,6 @@ const ImagePromptUI = () => {
         )}
       </div>
 
-      {/* Skeleton for image generation */}
       {skeletonPosition && !!generateTaskId && (
         <div
           style={{
