@@ -16,7 +16,6 @@ import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQ
 import { useQuery } from "@tanstack/react-query"
 import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi"
 import { motion } from "framer-motion"
-import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal"
 
 interface TaskResponse {
   status: "PENDING" | "SUCCESS" | "FAILURE"
@@ -44,7 +43,6 @@ export default function BackGroundChange() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [taskId, setTaskId] = useState<string | null>(null)
-  const [isImageLoading, setIsImageLoading] = useState(false)
   const { selectedImageId, images } = useImageStore()
   const { toast } = useToast()
   const { addTask } = useBackgroundTaskStore()
@@ -100,7 +98,6 @@ export default function BackGroundChange() {
       return
     }
 
-    setIsImageLoading(true)
     const payload = {
       init_image: selectedImage.url,
       prompt,
@@ -123,7 +120,6 @@ export default function BackGroundChange() {
               variant: "destructive",
             })
             setIsGenerating(false)
-            setIsImageLoading(false)
             return
           }
           setTaskId(response.id)
@@ -140,7 +136,6 @@ export default function BackGroundChange() {
             variant: "destructive",
           })
           setIsGenerating(false)
-          setIsImageLoading(false)
         },
       },
     )
@@ -156,7 +151,6 @@ export default function BackGroundChange() {
           description: "Background changed successfully!",
         })
         setTaskId(null)
-        setIsImageLoading(false)
       } else if (taskStatus.status === "FAILURE") {
         toast({
           title: "Error",
@@ -164,7 +158,6 @@ export default function BackGroundChange() {
           variant: "destructive",
         })
         setTaskId(null)
-        setIsImageLoading(false)
       }
     }
 
@@ -186,13 +179,11 @@ export default function BackGroundChange() {
           })
           return
         }
-        setIsImageLoading(true)
         uploadBackgroundImage(
           { data: file, token },
           {
             onSuccess: (imageUrl) => {
               setBackgroundImage(imageUrl)
-              setIsImageLoading(false)
               toast({ title: "Success", description: "Background image uploaded!" })
             },
             onError: (error: any) => {
@@ -201,7 +192,6 @@ export default function BackGroundChange() {
                 description: error.message || "Failed to upload background image.",
                 variant: "destructive",
               })
-              setIsImageLoading(false)
             },
           },
         )
@@ -243,9 +233,7 @@ export default function BackGroundChange() {
                 <Label className="text-base font-normal">Selected Image</Label>
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
-              {isImageLoading ? (
-                <ShinyGradientSkeletonHorizontal />
-              ) : selectedImage ? (
+              {selectedImage ? (
                 <motion.img
                   whileHover={{ scale: 1.02 }}
                   src={selectedImage.url || "/placeholder.svg"}
@@ -262,9 +250,7 @@ export default function BackGroundChange() {
                 <Label className="text-base font-normal">Reference Background</Label>
                 <InfoTooltip content="Optional: Upload an image to use as style reference" />
               </div>
-              {isImageLoading ? (
-                <ShinyGradientSkeletonHorizontal />
-              ) : !backgroundImage ? (
+              {!backgroundImage ? (
                 <FileInput onChange={handleBackgroundImageUpload} />
               ) : (
                 <div className="relative">
@@ -290,18 +276,15 @@ export default function BackGroundChange() {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedImage || isGenerating || isImageLoading}
+              disabled={!selectedImage || isGenerating}
               className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
             >
-              {isGenerating || isImageLoading ? (
-                <TextShimmerWave>Generating...</TextShimmerWave>
-              ) : (
-                "Generate"
-              )}
+              {isGenerating ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
     </motion.div>
-  )
+)
 }
+
