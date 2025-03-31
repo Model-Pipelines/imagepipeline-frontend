@@ -16,7 +16,6 @@ import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQ
 import { useQuery } from "@tanstack/react-query"
 import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi"
 import { motion } from "framer-motion"
-import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal"
 
 interface TaskResponse {
   status: "PENDING" | "SUCCESS" | "FAILURE"
@@ -44,8 +43,7 @@ export default function BackGroundChange() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [taskId, setTaskId] = useState<string | null>(null)
-  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
-  const { selectedImageId, images, updateImage } = useImageStore()
+  const { selectedImageId, images } = useImageStore()
   const { toast } = useToast()
   const { addTask } = useBackgroundTaskStore()
   const { getToken } = useAuth()
@@ -63,20 +61,40 @@ export default function BackGroundChange() {
       return getBackgroundTaskStatus(taskId!, token)
     },
     enabled: !!taskId,
-    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
+    refetchInterval: (query) => {
+      const data = query.state.data
+      return data?.status === "PENDING" ? 5000 : false
+    },
     staleTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
   })
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedImage || !prompt) {
-      toast({ title: "Error", description: "Missing image or prompt", variant: "destructive" })
+    if (!selectedImage) {
+      toast({
+        title: "Error",
+        description: "No image selected. Please select an image first.",
+        variant: "destructive",
+      })
       return
     }
+    if (!prompt) {
+      toast({
+        title: "Error",
+        description: "Please provide a prompt for the new background.",
+        variant: "destructive",
+      })
+      return
+    }
+
     const token = await getToken()
     if (!token) {
-      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" })
+      toast({
+        title: "Error",
+        description: "Authentication token not available.",
+        variant: "destructive",
+      })
       return
     }
 
@@ -96,7 +114,11 @@ export default function BackGroundChange() {
       {
         onSuccess: (response) => {
           if (!response?.id) {
-            toast({ title: "Error", description: "Missing task ID", variant: "destructive" })
+            toast({
+              title: "Error",
+              description: "Invalid response structure: Missing task ID.",
+              variant: "destructive",
+            })
             setIsGenerating(false)
             return
           }
@@ -104,32 +126,45 @@ export default function BackGroundChange() {
           addTask(response.id, selectedImageId!, "background")
           setPrompt("")
           setBackgroundImage(null)
+          setIsGenerating(false)
           toast({ title: "Started", description: "Background change in progress..." })
         },
         onError: (error: any) => {
-          toast({ title: "Error", description: error.message || "Failed", variant: "destructive" })
+          toast({
+            title: "Error",
+            description: error.message || "Failed to change background.",
+            variant: "destructive",
+          })
           setIsGenerating(false)
         },
-      }
+      },
     )
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask])
 
   useEffect(() => {
     if (!taskStatus) return
-    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
-      setGeneratedImageUrl(taskStatus.image_url)
-      if (selectedImageId) {
-        updateImage(selectedImageId, { url: taskStatus.image_url }) // Update the store with the new image
+
+    const handleTaskCompletion = () => {
+      if (taskStatus.status === "SUCCESS") {
+        toast({
+          title: "Success",
+          description: "Background changed successfully!",
+        })
+        setTaskId(null)
+      } else if (taskStatus.status === "FAILURE") {
+        toast({
+          title: "Error",
+          description: taskStatus.error || "Failed to change background",
+          variant: "destructive",
+        })
+        setTaskId(null)
       }
-      setIsGenerating(false)
-      setTaskId(null)
-      toast({ title: "Success", description: "Background changed successfully!" })
-    } else if (taskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: taskStatus.error || "Failed", variant: "destructive" })
-      setIsGenerating(false)
-      setTaskId(null)
     }
-  }, [taskStatus, toast, selectedImageId, updateImage])
+
+    if (taskStatus.status !== "PENDING") {
+      handleTaskCompletion()
+    }
+  }, [taskStatus, toast])
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,7 +172,11 @@ export default function BackGroundChange() {
       if (file) {
         const token = await getToken()
         if (!token) {
-          toast({ title: "Error", description: "Authentication token not available", variant: "destructive" })
+          toast({
+            title: "Error",
+            description: "Authentication token not available.",
+            variant: "destructive",
+          })
           return
         }
         uploadBackgroundImage(
@@ -148,13 +187,17 @@ export default function BackGroundChange() {
               toast({ title: "Success", description: "Background image uploaded!" })
             },
             onError: (error: any) => {
-              toast({ title: "Error", description: error.message || "Failed", variant: "destructive" })
+              toast({
+                title: "Error",
+                description: error.message || "Failed to upload background image.",
+                variant: "destructive",
+              })
             },
-          }
+          },
         )
       }
     },
-    [uploadBackgroundImage, toast, getToken]
+    [uploadBackgroundImage, toast, getToken],
   )
 
   return (
@@ -164,12 +207,14 @@ export default function BackGroundChange() {
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold">Background Change</h3>
-              <InfoTooltip content="Transform your image backgrounds using AI..." />
+              <InfoTooltip content="Transform your image backgrounds using AI. You can either provide a reference image or describe the desired background in text. Perfect for changing scenes, environments, or creating entirely new contexts for your subjects." />
             </div>
           </div>
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Label htmlFor="prompt" className="text-base font-normal">Prompt</Label>
+              <Label htmlFor="prompt" className="text-base font-normal">
+                Prompt
+              </Label>
               <InfoTooltip content="Describe how you want the new background to look" />
             </div>
             <motion.div whileHover={{ scale: 1.01 }}>
@@ -188,12 +233,10 @@ export default function BackGroundChange() {
                 <Label className="text-base font-normal">Selected Image</Label>
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
-              {isGenerating && !generatedImageUrl ? (
-                <ShinyGradientSkeletonHorizontal />
-              ) : selectedImage ? (
+              {selectedImage ? (
                 <motion.img
                   whileHover={{ scale: 1.02 }}
-                  src={generatedImageUrl || selectedImage.url || "/placeholder.svg"}
+                  src={selectedImage.url || "/placeholder.svg"}
                   alt="Selected"
                   className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
                 />
@@ -201,6 +244,7 @@ export default function BackGroundChange() {
                 <p className="text-gray-500 text-base font-normal">No image selected</p>
               )}
             </div>
+
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-normal">Reference Background</Label>
@@ -241,5 +285,6 @@ export default function BackGroundChange() {
         </CardFooter>
       </Card>
     </motion.div>
-  )
+)
 }
+
