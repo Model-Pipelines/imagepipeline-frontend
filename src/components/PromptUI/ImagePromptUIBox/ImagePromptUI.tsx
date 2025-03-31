@@ -125,7 +125,7 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
-  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null);
+  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -196,8 +196,11 @@ const ImagePromptUI = () => {
       const tempWidth = aspectWidth || 200;
       const tempHeight = aspectHeight || 200;
       const initialPosition = calculateNextPosition(tempWidth, tempHeight);
-      console.log("Initial Skeleton Position:", initialPosition);
-      setSkeletonPosition(initialPosition);
+      setSkeletonPosition({
+        ...initialPosition,
+        width: tempWidth,
+        height: tempHeight
+      });
     },
   });
 
@@ -437,10 +440,6 @@ const ImagePromptUI = () => {
         }
 
         const finalPosition = calculateNextPosition(width, height);
-        console.log("Final Image Position:", finalPosition);
-
-        // Update skeleton to final position before adding image
-        setSkeletonPosition(finalPosition);
 
         addImage({
           id: uuidv4(),
@@ -455,10 +454,8 @@ const ImagePromptUI = () => {
           description: "Image generated successfully!",
         });
 
-        setTimeout(() => {
-          setGenerateTaskId(null);
-          setSkeletonPosition(null);
-        }, 1000);
+        setGenerateTaskId(null);
+        setSkeletonPosition(null);
       };
       img.onerror = () => {
         toast({
@@ -897,8 +894,10 @@ const ImagePromptUI = () => {
         <div
           style={{
             position: "absolute",
-            top: skeletonPosition.y,
-            left: skeletonPosition.x,
+            top: `${skeletonPosition.y}px`,
+            left: `${skeletonPosition.x}px`,
+            width: `${skeletonPosition.width}px`,
+            height: `${skeletonPosition.height}px`,
             zIndex: 1000,
           }}
         >
