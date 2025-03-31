@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import {
@@ -55,7 +55,6 @@ import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
-import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -125,12 +124,6 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
-  const [skeletonPosition, setSkeletonPosition] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -159,46 +152,14 @@ const ImagePromptUI = () => {
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
-  const { height: aspectHeight, width: aspectWidth } = useAspectRatioStore();
+  const { height, width } = useAspectRatioStore();
   const [describeTaskId, setDescribeTaskId] = useState<string | null>(null);
 
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const calculateNextPosition = useCallback(
-    (width: number = 200, height: number = 200) => {
-      const offsetX = 20;
-      const offsetY = 20;
-      const canvasWidth = window.innerWidth - offsetX;
-
-      if (images.length === 0) {
-        return { x: offsetX, y: offsetY };
-      }
-
-      const imagesPerRow = Math.floor(canvasWidth / (width + offsetX));
-      const row = Math.floor(images.length / imagesPerRow);
-      const col = images.length % imagesPerRow;
-
-      return {
-        x: col * (width + offsetX),
-        y: row * (height + offsetY),
-      };
-    },
-    [images.length]
-  );
-
   const { handleGenerate, isGenerating } = GenerateHandler({
-    onTaskStarted: (taskId) => {
-      setGenerateTaskId(taskId);
-      const tempWidth = aspectWidth || 200;
-      const tempHeight = aspectHeight || 200;
-      const initialPosition = calculateNextPosition(tempWidth, tempHeight);
-      setSkeletonPosition({
-        ...initialPosition,
-        width: tempWidth,
-        height: tempHeight,
-      });
-    },
+    onTaskStarted: (taskId) => setGenerateTaskId(taskId),
   });
 
   useEffect(() => {
@@ -311,7 +272,7 @@ const ImagePromptUI = () => {
         if (faceImages.length === 1) {
           return getStyleImageStatusOneFace(generateTaskId!, token);
         }
-        return getFaceControlStatusFaceDailog(generateTaskId!, token);
+        return getFaceControlStatusFaceDailog(generateTaskId!, token); // Fallback for multiple faces
       }
       if (activeTab === "reference+face") {
         return getFaceControlStatusFaceReference(generateTaskId!, token);
@@ -419,40 +380,33 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
-        setSkeletonPosition(null);
         return;
       }
-
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        const aspectRatio = img.width / img.height;
-        let width = aspectWidth || 200;
-        let height = aspectHeight || width / aspectRatio;
-        if (!aspectWidth && !aspectHeight && height > 200) {
-          height = 200;
-          width = height * aspectRatio;
-        }
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
 
-        const finalPosition = calculateNextPosition(width, height);
+        // Use dimensions from useAspectRatioStore
+        const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
+        const scaledHeight = height * scaleFactor;
+        const scaledWidth = width * scaleFactor;
 
         addImage({
           id: uuidv4(),
           url: imageUrl,
-          position: finalPosition,
-          size: { width, height },
+          position: newPosition,
+          size: { width: scaledWidth, height: scaledHeight }, // Dynamic size based on aspect ratio
           element: img,
         });
-
         toast({
           title: "Success",
           description: "Image generated successfully!",
         });
-
-        setTimeout(() => {
-          setGenerateTaskId(null);
-          setSkeletonPosition(null);
-        }, 1000); // Match toolbar.tsx delay
+        setGenerateTaskId(null);
       };
       img.onerror = () => {
         toast({
@@ -461,7 +415,6 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         setGenerateTaskId(null);
-        setSkeletonPosition(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
@@ -470,16 +423,8 @@ const ImagePromptUI = () => {
         variant: "destructive",
       });
       setGenerateTaskId(null);
-      setSkeletonPosition(null);
     }
-  }, [
-    generateTaskStatus,
-    addImage,
-    toast,
-    calculateNextPosition,
-    aspectWidth,
-    aspectHeight,
-  ]);
+  }, [generateTaskStatus, addImage, images, toast, height, width]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -490,73 +435,12 @@ const ImagePromptUI = () => {
   };
 
   const handleFileUpload = async (file: File) => {
-    if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Error",
-        description: "Please upload a valid image file",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Error",
-        description: "File size exceeds 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const token = await getToken();
-    if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
       setIsUploading(true);
-      const tempWidth = 200;
-      const tempHeight = 200;
-      const initialPosition = calculateNextPosition(tempWidth, tempHeight);
-      setSkeletonPosition({
-        ...initialPosition,
-        width: tempWidth,
-        height: tempHeight,
-      });
-
       const imageUrl = await uploadBackendFile({ data: file, token });
       if (!imageUrl) throw new Error("Failed to upload image");
-
-      const element = new Image();
-      element.src = imageUrl;
-      await new Promise<void>((resolve, reject) => {
-        element.onload = () => resolve();
-        element.onerror = () =>
-          reject(new Error("Failed to load image element"));
-      });
-
-      const aspectRatio = element.width / element.height;
-      let width = 200;
-      let height = width / aspectRatio;
-      if (height > 200) {
-        height = 200;
-        width = height * aspectRatio;
-      }
-
-      const finalPosition = calculateNextPosition(width, height);
-
-      addImage({
-        id: uuidv4(),
-        url: imageUrl,
-        element,
-        position: finalPosition,
-        size: { width, height },
-      });
-
       setImageUrl(imageUrl);
       setShowDescribeButton(true);
       toast({
@@ -572,10 +456,7 @@ const ImagePromptUI = () => {
         variant: "destructive",
       });
     } finally {
-      setTimeout(() => {
-        setIsUploading(false);
-        setSkeletonPosition(null);
-      }, 1000); // Match toolbar.tsx delay
+      setIsUploading(false);
     }
   };
 
@@ -957,23 +838,6 @@ const ImagePromptUI = () => {
           </div>
         )}
       </div>
-
-      {(skeletonPosition && (isUploading || !!generateTaskId)) && (
-        <div
-          style={{
-            position: "absolute",
-            top: `${skeletonPosition.y}px`,
-            left: `${skeletonPosition.x}px`,
-            width: `${skeletonPosition.width}px`,
-            height: `${skeletonPosition.height
-
-}px`,
-            zIndex: 1000,
-          }}
-        >
-          <ShinyGradientSkeletonHorizontal />
-        </div>
-      )}
     </>
   );
 };
