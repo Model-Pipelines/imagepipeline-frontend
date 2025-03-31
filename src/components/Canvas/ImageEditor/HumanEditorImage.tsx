@@ -143,7 +143,7 @@ export function HumanEditorImage() {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold">Human Editor</h3>
+              <h3 className="text-lg mt-2 font-bold">Human Editor</h3>
               <InfoTooltip content="Edit human subjects in your images with advanced AI face and body modifications. Upload a reference image and describe the desired changes to modify facial features while maintaining natural looks." />
             </div>
           </div>
@@ -218,7 +218,7 @@ export function HumanEditorImage() {
             <Button
               onClick={handleSubmit}
               disabled={!selectedImage || !humanImage || !prompt.trim() || isProcessing}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold disabled:opacity-100"
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold text-text dark:text-text disabled:opacity-100"
             >
               {isProcessing ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>

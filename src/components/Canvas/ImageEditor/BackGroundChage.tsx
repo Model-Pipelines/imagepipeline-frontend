@@ -206,7 +206,7 @@ export default function BackGroundChange() {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold">Background Change</h3>
+              <h3 className="text-lg mt-2 font-bold">Background Change</h3>
               <InfoTooltip content="Transform your image backgrounds using AI. You can either provide a reference image or describe the desired background in text. Perfect for changing scenes, environments, or creating entirely new contexts for your subjects." />
             </div>
           </div>
@@ -277,7 +277,7 @@ export default function BackGroundChange() {
             <Button
               onClick={handleSubmit}
               disabled={!selectedImage || isGenerating}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold text-text dark:text-text"
             >
               {isGenerating ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>

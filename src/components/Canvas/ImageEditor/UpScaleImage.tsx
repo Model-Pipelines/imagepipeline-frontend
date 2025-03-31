@@ -84,7 +84,7 @@ const Upscale = () => {
         <CardContent className="space-y-6">
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold">Image Upscaling</h3>
+              <h3 className="text-lg mt-2 font-bold">Image Upscaling</h3>
               <InfoTooltip content="Enhance your image quality using advanced AI upscaling. This tool automatically upscales your image to 2x resolution while preserving details and reducing artifacts. Perfect for improving image clarity and preparing for large format printing." />
             </div>
           </div>
@@ -110,7 +110,7 @@ const Upscale = () => {
             <Button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base text-text dark:text-text font-bold"
             >
               {isLoading ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
