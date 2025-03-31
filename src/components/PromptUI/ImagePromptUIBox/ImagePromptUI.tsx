@@ -72,7 +72,7 @@ const getSavedTabsCount = () => {
       try {
         const parsed = JSON.parse(storedData);
         if (
-          (Array.isArray(parsed) && parsed.length > 0 ||
+          (Array.isArray(parsed) && parsed.length > 0) ||
           (typeof parsed === "object" &&
             parsed !== null &&
             Object.keys(parsed).length > 0)
@@ -160,24 +160,14 @@ const ImagePromptUI = () => {
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const calculateNewPosition = () => {
-    const lastImage = images[images.length - 1];
-    const offsetX = 10;
-    const offsetY = 10;
-    
-    if (lastImage) {
-      return {
-        x: lastImage.position.x + offsetX,
-        y: lastImage.position.y + offsetY
-      };
-    }
-    return { x: 50, y: 60 }; // Default position if no images exist
-  };
-
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
       setGenerateTaskId(taskId);
-      const newPosition = calculateNewPosition();
+      // Calculate skeleton position to match addImage logic
+      const lastImage = images[images.length - 1];
+      const newPosition = lastImage
+        ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+        : { x: 50, y: 60 };
       setSkeletonPosition(newPosition);
     },
   });
@@ -406,9 +396,11 @@ const ImagePromptUI = () => {
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        // Use the same position that was calculated when the task started
-        if (!skeletonPosition) return;
-        
+        const lastImage = images[images.length - 1];
+        const newPosition = lastImage
+          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
+          : { x: 50, y: 60 };
+
         const scaleFactor = 200 / Math.max(height, width);
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
@@ -416,7 +408,7 @@ const ImagePromptUI = () => {
         addImage({
           id: uuidv4(),
           url: imageUrl,
-          position: skeletonPosition,
+          position: newPosition,
           size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
@@ -426,7 +418,7 @@ const ImagePromptUI = () => {
         });
         setTimeout(() => {
           setGenerateTaskId(null);
-          setSkeletonPosition(null);
+          setSkeletonPosition(null); // Hide skeleton after delay
         }, 1000);
       };
       img.onerror = () => {
@@ -447,7 +439,7 @@ const ImagePromptUI = () => {
       setGenerateTaskId(null);
       setSkeletonPosition(null);
     }
-  }, [generateTaskStatus, addImage, toast, height, width, skeletonPosition]);
+  }, [generateTaskStatus, addImage, images, toast, height, width]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
