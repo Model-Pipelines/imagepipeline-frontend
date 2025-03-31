@@ -16,6 +16,7 @@ import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQ
 import { useQuery } from "@tanstack/react-query"
 import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi"
 import { motion } from "framer-motion"
+import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal"
 
 interface TaskResponse {
   status: "PENDING" | "SUCCESS" | "FAILURE"
@@ -43,6 +44,7 @@ export default function BackGroundChange() {
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [taskId, setTaskId] = useState<string | null>(null)
+  const [skeletonPosition, setSkeletonPosition] = useState<{ x: number; y: number } | null>(null)
   const { selectedImageId, images } = useImageStore()
   const { toast } = useToast()
   const { addTask } = useBackgroundTaskStore()
@@ -108,37 +110,50 @@ export default function BackGroundChange() {
       num_outputs: 1,
     }
 
-    setIsGenerating(true)
-    startBackgroundChange(
-      { data: payload, token },
-      {
-        onSuccess: (response) => {
-          if (!response?.id) {
+    try {
+      const rect = document.querySelector('.selected-image')?.getBoundingClientRect()
+      if (rect) {
+        setSkeletonPosition({ x: rect.left, y: rect.top })
+      }
+
+      setIsGenerating(true)
+      startBackgroundChange(
+        { data: payload, token },
+        {
+          onSuccess: (response) => {
+            if (!response?.id) {
+              toast({
+                title: "Error",
+                description: "Invalid response structure: Missing task ID.",
+                variant: "destructive",
+              })
+              setIsGenerating(false)
+              setSkeletonPosition(null)
+              return
+            }
+            setTaskId(response.id)
+            addTask(response.id, selectedImageId!, "background")
+            setPrompt("")
+            setBackgroundImage(null)
+            setIsGenerating(false)
+            setSkeletonPosition(null)
+            toast({ title: "Started", description: "Background change in progress..." })
+          },
+          onError: (error: any) => {
             toast({
               title: "Error",
-              description: "Invalid response structure: Missing task ID.",
+              description: error.message || "Failed to change background.",
               variant: "destructive",
             })
             setIsGenerating(false)
-            return
-          }
-          setTaskId(response.id)
-          addTask(response.id, selectedImageId!, "background")
-          setPrompt("")
-          setBackgroundImage(null)
-          setIsGenerating(false)
-          toast({ title: "Started", description: "Background change in progress..." })
+            setSkeletonPosition(null)
+          },
         },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to change background.",
-            variant: "destructive",
-          })
-          setIsGenerating(false)
-        },
-      },
-    )
+      )
+    } catch (error) {
+      setIsGenerating(false)
+      setSkeletonPosition(null)
+    }
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask])
 
   useEffect(() => {
@@ -233,18 +248,31 @@ export default function BackGroundChange() {
                 <Label className="text-base font-normal">Selected Image</Label>
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
-              {selectedImage ? (
-                <motion.img
-                  whileHover={{ scale: 1.02 }}
-                  src={selectedImage.url || "/placeholder.svg"}
-                  alt="Selected"
-                  className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                />
-              ) : (
-                <p className="text-gray-500 text-base font-normal">No image selected</p>
-              )}
+              <div className="relative">
+                {selectedImage ? (
+                  <motion.img
+                    whileHover={{ scale: 1.02 }}
+                    src={selectedImage.url || "/placeholder.svg"}
+                    alt="Selected"
+                    className="w-full h-auto rounded-md border border-white/10 dark:border-white/5 selected-image"
+                  />
+                ) : (
+                  <p className="text-gray-500 text-base font-normal">No image selected</p>
+                )}
+                {isGenerating && skeletonPosition && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      zIndex: 1000,
+                    }}
+                  >
+                    <ShinyGradientSkeletonHorizontal />
+                  </div>
+                )}
+              </div>
             </div>
-
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-normal">Reference Background</Label>
@@ -285,6 +313,5 @@ export default function BackGroundChange() {
         </CardFooter>
       </Card>
     </motion.div>
-)
+  )
 }
-
