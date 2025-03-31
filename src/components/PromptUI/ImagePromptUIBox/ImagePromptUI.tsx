@@ -154,31 +154,35 @@ const ImagePromptUI = () => {
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images } = useImageStore();
-  const { height, width } = useAspectRatioStore();
+  const { height: aspectHeight, width: aspectWidth } = useAspectRatioStore();
   const [describeTaskId, setDescribeTaskId] = useState<string | null>(null);
 
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
-  const calculateNewPosition = useCallback(() => {
-    const canvasWidth = window.innerWidth;
-    const offsetX = 20;
-    const offsetY = 20;
-    const tempWidth = 200; // Temporary width for skeleton
-    const imagesPerRow = Math.floor(canvasWidth / (tempWidth + offsetX));
-    const row = Math.floor(images.length / imagesPerRow);
-    const col = images.length % imagesPerRow;
-    
-    return {
-      x: col * (tempWidth + offsetX),
-      y: row * (tempWidth + offsetY),
-    };
-  }, [images.length]);
+  const calculatePosition = useCallback(
+    (imgWidth: number = 200, imgHeight: number = 200) => {
+      const canvasWidth = window.innerWidth;
+      const offsetX = 20;
+      const offsetY = 20;
+      const imagesPerRow = Math.floor(canvasWidth / (imgWidth + offsetX));
+      const row = Math.floor(images.length / imagesPerRow);
+      const col = images.length % imagesPerRow;
+      return {
+        x: col * (imgWidth + offsetX),
+        y: row * (imgHeight + offsetY),
+      };
+    },
+    [images.length]
+  );
 
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
       setGenerateTaskId(taskId);
-      const initialPosition = calculateNewPosition();
+      // Use aspect ratio from store if available, otherwise default to 200x200
+      const tempWidth = aspectWidth || 200;
+      const tempHeight = aspectHeight || 200;
+      const initialPosition = calculatePosition(tempWidth, tempHeight);
       setSkeletonPosition(initialPosition);
     },
   });
@@ -404,28 +408,23 @@ const ImagePromptUI = () => {
         setSkeletonPosition(null);
         return;
       }
-      
+
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        if (!skeletonPosition) return;
-        
         const aspectRatio = img.width / img.height;
-        let width = 200;
-        let height = width / aspectRatio;
-        if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
+        let width = aspectWidth || 200;
+        let height = aspectHeight || width / aspectRatio;
+        if (!aspectWidth && !aspectHeight) {
+          if (height > 200) {
+            height = 200;
+            width = height * aspectRatio;
+          }
         }
 
-        const imagesPerRow = Math.floor(window.innerWidth / (width + 20));
-        const row = Math.floor(images.length / imagesPerRow);
-        const col = images.length % imagesPerRow;
-        const finalPosition = {
-          x: col * (width + 20),
-          y: row * (height + 20),
-        };
+        const finalPosition = calculatePosition(width, height);
 
+        // Update skeleton to final position before adding image
         setSkeletonPosition(finalPosition);
 
         addImage({
@@ -464,7 +463,7 @@ const ImagePromptUI = () => {
       setGenerateTaskId(null);
       setSkeletonPosition(null);
     }
-  }, [generateTaskStatus, addImage, toast, images.length]);
+  }, [generateTaskStatus, addImage, toast, calculatePosition, aspectWidth, aspectHeight]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
