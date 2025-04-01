@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect,useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { Edit, Trash2, Loader2 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useCanvasStore } from "@/lib/store";
@@ -30,7 +30,7 @@ export default function InfiniteCanvas() {
     updateImage,
     addImage,
     removeImage,
-    pendingImages, // New: track pending images
+    pendingImages,
   } = useImageStore();
   const {
     scale,
@@ -57,22 +57,30 @@ export default function InfiniteCanvas() {
   const { mutate: uploadImage } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
     onSuccess: async (imageUrl) => {
-      const img = await loadImage(imageUrl);
-      const numImages = images.length;
-      const gridSize = Math.ceil(Math.sqrt(numImages + 1));
-      const spacing = 50;
-      const newPosition = {
-        x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
-        y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
-      };
-      addImage({
-        id: crypto.randomUUID(),
-        url: imageUrl,
-        position: newPosition,
-        size: { width: INITIAL_IMAGE_SIZE, height: INITIAL_IMAGE_SIZE },
-        element: img,
-      });
-      toast({ title: "Success", description: "Image uploaded successfully!" });
+      try {
+        const img = await loadImage(imageUrl);
+        const numImages = images.length;
+        const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+        const spacing = 50;
+        const newPosition = {
+          x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
+          y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
+        };
+        addImage({
+          id: crypto.randomUUID(),
+          url: imageUrl,
+          position: newPosition,
+          size: { width: INITIAL_IMAGE_SIZE, height: INITIAL_IMAGE_SIZE },
+          element: img,
+        });
+        toast({ title: "Success", description: "Image uploaded successfully!" });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load uploaded image",
+          variant: "destructive",
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -324,12 +332,14 @@ export default function InfiniteCanvas() {
         }
       });
     ctx.restore();
-    requestAnimationFrame(draw);
   }, [images, selectedImageId, scale, offset]);
 
   useEffect(() => {
+    const handleResize = () => draw();
+    window.addEventListener("resize", handleResize);
     draw();
-  }, [draw]);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [draw, pendingImages]);
 
   return (
     <div className="relative w-full h-full flex">
@@ -340,7 +350,7 @@ export default function InfiniteCanvas() {
         <canvas
           ref={canvasRef}
           className={cn(
-            "absolute inset-0 bg-text dark:bg-black/25 touch-none",
+            "absolute inset-0 bg-text dark:bg-black/25 touch-none z-0",
             isDragging ? "cursor-grabbing" : "cursor-grab",
             isResizing ? "cursor-nwse-resize" : ""
           )}
@@ -354,26 +364,13 @@ export default function InfiniteCanvas() {
           onTouchCancel={handleTouchEnd}
         />
         {images.map((img) => (
-          <div key={img.id} style={{ zIndex: -100 }}>
-            {(!img.element || !img.element.complete) && (
-              <div
-                className="absolute"
-                style={{
-                  transform: `translate(${img.position.x * scale + offset.x}px, ${img.position.y * scale + offset.y}px)`,
-                  width: `${img.size.width * scale}px`,
-                  height: `${img.size.height * scale}px`,
-                  zIndex: 10,
-                }}
-              >
-                <ShinyGradientSkeletonHorizontal />
-              </div>
-            )}
+          <div key={img.id} style={{ zIndex: 5 }}>
             {img.id === selectedImageId && img.element && img.element.complete && (
               <div
                 className="absolute"
                 style={{
                   transform: `translate(${(img.position.x + img.size.width) * scale + offset.x + 10}px, ${img.position.y * scale + offset.y - 10}px)`,
-                  zIndex: 10,
+                  zIndex: 20,
                 }}
               >
                 <DropdownMenuBar />
@@ -381,20 +378,22 @@ export default function InfiniteCanvas() {
             )}
           </div>
         ))}
-        {pendingImages.map((pending) => (
-          <div
-            key={pending.id}
-            className="absolute"
-            style={{
-              transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
-              width: `${pending.size.width * scale}px`,
-              height: `${pending.size.height * scale}px`,
-              zIndex: 10,
-            }}
-          >
-            <ShinyGradientSkeletonHorizontal />
-          </div>
-        ))}
+        {pendingImages
+          .filter((pending) => !images.some((img) => img.id === pending.id))
+          .map((pending) => (
+            <div
+              key={pending.id}
+              className="absolute"
+              style={{
+                transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
+                width: `${pending.size.width * scale}px`,
+                height: `${pending.size.height * scale}px`,
+                zIndex: 10,
+              }}
+            >
+              <ShinyGradientSkeletonHorizontal />
+            </div>
+          ))}
       </div>
       <ParentPrompt />
     </div>

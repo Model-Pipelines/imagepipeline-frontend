@@ -55,7 +55,7 @@ import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
-import { useCanvasStore } from "@/lib/store"; // Import for scale and offset
+import { useCanvasStore } from "@/lib/store";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -125,6 +125,7 @@ const ImagePromptUI = () => {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Track the pending image ID
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -154,14 +155,17 @@ const ImagePromptUI = () => {
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
   const { addImage, images, addPendingImage, removePendingImage } = useImageStore();
   const { height, width } = useAspectRatioStore();
-  const { scale, offset } = useCanvasStore(); // For positioning
+  const { scale, offset } = useCanvasStore();
   const [describeTaskId, setDescribeTaskId] = useState<string | null>(null);
 
   const { mutate: describeImageMutation } = useDescribeImage();
   const { mutateAsync: uploadBackendFile } = useUploadBackendFiles();
 
   const { handleGenerate, isGenerating } = GenerateHandler({
-    onTaskStarted: (taskId) => setGenerateTaskId(taskId),
+    onTaskStarted: (taskId) => {
+      setGenerateTaskId(taskId);
+      setPendingImageId(taskId); // Use taskId as pendingImageId for simplicity
+    },
   });
 
   useEffect(() => {
@@ -274,7 +278,7 @@ const ImagePromptUI = () => {
         if (faceImages.length === 1) {
           return getStyleImageStatusOneFace(generateTaskId!, token);
         }
-        return getFaceControlStatusFaceDailog(generateTaskId!, token); // Fallback for multiple faces
+        return getFaceControlStatusFaceDailog(generateTaskId!, token);
       }
       if (activeTab === "reference+face") {
         return getFaceControlStatusFaceReference(generateTaskId!, token);
@@ -370,11 +374,9 @@ const ImagePromptUI = () => {
     }
   }, [describeTaskStatus, toast, setInputTextStore]);
 
-  // Calculate position for skeleton and final image
   const calculatePosition = () => {
     const lastImage = images[images.length - 1];
-    const spacing = 50; // Consistent with InfiniteCanvas
-    const gridSize = Math.ceil(Math.sqrt(images.length + 1));
+    const spacing = 50;
     return lastImage
       ? {
           x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
@@ -387,7 +389,8 @@ const ImagePromptUI = () => {
   };
 
   useEffect(() => {
-    if (!generateTaskStatus) return;
+    if (!generateTaskStatus || !pendingImageId) return;
+
     if (generateTaskStatus.status === "SUCCESS") {
       const imageUrl =
         generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
@@ -397,14 +400,16 @@ const ImagePromptUI = () => {
           description: "Image URL not found",
           variant: "destructive",
         });
+        removePendingImage(pendingImageId);
+        setPendingImageId(null);
         setGenerateTaskId(null);
         return;
       }
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        const position = calculatePosition(); // Use same position as skeleton
-        const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
+        const position = calculatePosition();
+        const scaleFactor = 200 / Math.max(height, width);
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
 
@@ -415,10 +420,12 @@ const ImagePromptUI = () => {
           size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
+        removePendingImage(pendingImageId); // Remove skeleton on success
         toast({
           title: "Success",
           description: "Image generated successfully!",
         });
+        setPendingImageId(null);
         setGenerateTaskId(null);
       };
       img.onerror = () => {
@@ -427,7 +434,8 @@ const ImagePromptUI = () => {
           description: "Failed to load generated image",
           variant: "destructive",
         });
-        removePendingImage(generateTaskId!); // Clean up on error
+        removePendingImage(pendingImageId);
+        setPendingImageId(null);
         setGenerateTaskId(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
@@ -436,10 +444,11 @@ const ImagePromptUI = () => {
         description: generateTaskStatus.error || "Image generation failed",
         variant: "destructive",
       });
-      removePendingImage(generateTaskId!); // Clean up on failure
+      removePendingImage(pendingImageId); // Remove skeleton on failure
+      setPendingImageId(null);
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage]);
+  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage, pendingImageId]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -585,16 +594,18 @@ const ImagePromptUI = () => {
       position,
       size: { width: scaledWidth, height: scaledHeight },
     });
+    setPendingImageId(pendingId); // Track the pending image ID
 
     try {
-      await handleGenerate(); // Trigger the generation process
+      await handleGenerate(); // This will set generateTaskId and pendingImageId via onTaskStarted
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to start image generation",
         variant: "destructive",
       });
-      removePendingImage(pendingId); // Clean up if generation fails to start
+      removePendingImage(pendingId);
+      setPendingImageId(null);
     }
   };
 
@@ -711,7 +722,7 @@ const ImagePromptUI = () => {
               </motion.div>
             </div>
             <motion.button
-              onClick={handleGenerateWithSkeleton} // Updated to new handler
+              onClick={handleGenerateWithSkeleton}
               disabled={isGenerating || !!generateTaskId}
               className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg font-medium transition-all ${
                 isGenerating || !!generateTaskId
