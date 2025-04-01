@@ -1,28 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect,useState, useRef } from "react";
 import { Edit, Trash2, Loader2 } from "lucide-react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useCanvasStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import ParentPrompt from "../PromptUI/ParentPrompt";
 import Sidebar from "../Sidebar/Sidebar";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "../ui/dialog";
 import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
 import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 import { useMutation } from "@tanstack/react-query";
-import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi"; // Import uploadBackendFiles
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
-import { useToast } from "@/hooks/use-toast"; // Import useToast for feedback
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
+import { useAuth } from "@clerk/nextjs";
+import { useToast } from "@/hooks/use-toast";
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
@@ -36,6 +30,7 @@ export default function InfiniteCanvas() {
     updateImage,
     addImage,
     removeImage,
+    pendingImages, // New: track pending images
   } = useImageStore();
   const {
     scale,
@@ -48,45 +43,28 @@ export default function InfiniteCanvas() {
     setResizeHandle,
     setOffset,
   } = useCanvasStore();
-  const { getToken } = useAuth(); // Get token function from Clerk
-  const { toast } = useToast(); // For user feedback
+  const { getToken } = useAuth();
+  const { toast } = useToast();
 
-  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
+  const [actionStart, setActionStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [currentAction, setCurrentAction] = useState<"move" | "resize" | "canvas-drag" | null>(null);
-  const [generatingImages, setGeneratingImages] = useState<Set<string>>(new Set());
   const [touchDistance, setTouchDistance] = useState<number | null>(null);
 
-
-  // Add function to calculate distance between two touch points
   const getTouchDistance = (touch1: Touch, touch2: Touch) => {
-    return Math.hypot(
-      touch1.clientX - touch2.clientX,
-      touch1.clientY - touch2.clientY
-    );
+    return Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
   };
 
-  
-
-
-  // Mutation for uploading images to the backend
   const { mutate: uploadImage } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
     onSuccess: async (imageUrl) => {
       const img = await loadImage(imageUrl);
-
-      // Calculate new position to avoid stacking
       const numImages = images.length;
       const gridSize = Math.ceil(Math.sqrt(numImages + 1));
       const spacing = 50;
-
       const newPosition = {
         x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
         y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
       };
-
       addImage({
         id: crypto.randomUUID(),
         url: imageUrl,
@@ -94,7 +72,6 @@ export default function InfiniteCanvas() {
         size: { width: INITIAL_IMAGE_SIZE, height: INITIAL_IMAGE_SIZE },
         element: img,
       });
-
       toast({ title: "Success", description: "Image uploaded successfully!" });
     },
     onError: (error: any) => {
@@ -106,7 +83,6 @@ export default function InfiniteCanvas() {
     },
   });
 
-  // Initialize images on mount
   useEffect(() => {
     const initialize = async () => {
       await useImageStore.getState().initializeImages();
@@ -114,22 +90,15 @@ export default function InfiniteCanvas() {
     initialize();
   }, []);
 
-  // Handle image upload with token
   const handleUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
       const token = await getToken();
       if (!token) {
-        toast({
-          title: "Error",
-          description: "Authentication token not available",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
         return;
       }
-
       uploadImage({ data: file, token });
     },
     [uploadImage, getToken, toast]
@@ -144,7 +113,6 @@ export default function InfiniteCanvas() {
     });
   };
 
-  // Coordinate transformation
   const getCanvasCoords = (clientX: number, clientY: number) => {
     const rect = canvasRef.current?.getBoundingClientRect();
     return {
@@ -153,7 +121,6 @@ export default function InfiniteCanvas() {
     };
   };
 
-  // Mouse and touch handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     const canvasPos = getCanvasCoords(e.clientX, e.clientY);
     handleActionStart(canvasPos);
@@ -161,13 +128,11 @@ export default function InfiniteCanvas() {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // Initialize pinch-to-zoom
       const touch1 = e.touches[0] as Touch;
       const touch2 = e.touches[1] as Touch;
       setTouchDistance(getTouchDistance(touch1, touch2));
       return;
     }
-
     const touch = e.touches[0];
     const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
     handleActionStart(canvasPos);
@@ -181,7 +146,6 @@ export default function InfiniteCanvas() {
         canvasPos.y >= img.position.y &&
         canvasPos.y <= img.position.y + img.size.height
     );
-
     if (selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (img) {
@@ -195,7 +159,6 @@ export default function InfiniteCanvas() {
         }
       }
     }
-
     if (clickedImage) {
       setSelectedImageId(clickedImage.id);
       setIsDragging(true);
@@ -214,7 +177,6 @@ export default function InfiniteCanvas() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // Handle pinch-to-zoom
       const touch1 = e.touches[0] as Touch;
       const touch2 = e.touches[1] as Touch;
       const currentDistance = getTouchDistance(touch1, touch2);
@@ -226,53 +188,36 @@ export default function InfiniteCanvas() {
       setTouchDistance(currentDistance);
       return;
     }
-
     const touch = e.touches[0];
     const canvasPos = getCanvasCoords(touch.clientX, touch.clientY);
     handleActionMove(canvasPos);
   };
-  
 
   const handleActionMove = (canvasPos: { x: number; y: number }) => {
     if (!canvasRef.current) return;
-
     if (currentAction === "move" && selectedImageId) {
       const img = images.find((img) => img.id === selectedImageId);
       if (!img) return;
-
       const dx = canvasPos.x - actionStart.x;
       const dy = canvasPos.y - actionStart.y;
-
       updateImage(selectedImageId, {
-        position: {
-          x: img.position.x + dx,
-          y: img.position.y + dy,
-        },
+        position: { x: img.position.x + dx, y: img.position.y + dy },
       });
-
       setActionStart(canvasPos);
     } else if (currentAction === "canvas-drag") {
       const dx = canvasPos.x - actionStart.x;
       const dy = canvasPos.y - actionStart.y;
-
-      setOffset({
-        x: offset.x + dx * scale,
-        y: offset.y + dy * scale,
-      });
-
+      setOffset({ x: offset.x + dx * scale, y: offset.y + dy * scale });
       setActionStart(canvasPos);
     } else if (currentAction === "resize" && selectedImageId && resizeHandle) {
       const img = images.find((img) => img.id === selectedImageId);
       if (!img) return;
-
       const dx = (canvasPos.x - actionStart.x) * scale;
       const dy = (canvasPos.y - actionStart.y) * scale;
-
       let newWidth = img.size.width;
       let newHeight = img.size.height;
       let newX = img.position.x;
       let newY = img.position.y;
-
       switch (resizeHandle) {
         case "nw":
           newWidth = Math.max(50, img.size.width - dx);
@@ -295,12 +240,10 @@ export default function InfiniteCanvas() {
           newHeight = Math.max(50, img.size.height + dy);
           break;
       }
-
       updateImage(selectedImageId, {
         position: { x: newX, y: newY },
         size: { width: newWidth, height: newHeight },
       });
-
       setActionStart(canvasPos);
     }
   };
@@ -313,7 +256,6 @@ export default function InfiniteCanvas() {
     setTouchDistance(null);
     handleActionEnd();
   };
-
 
   const handleActionEnd = () => {
     setIsDragging(false);
@@ -329,7 +271,6 @@ export default function InfiniteCanvas() {
       { id: "sw", x: img.position.x, y: img.position.y + img.size.height, region: HANDLE_SIZE / scale },
       { id: "se", x: img.position.x + img.size.width, y: img.position.y + img.size.height, region: HANDLE_SIZE / scale },
     ];
-
     return (
       handles.find(
         (handle) =>
@@ -346,26 +287,16 @@ export default function InfiniteCanvas() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
     ctx.save();
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
-
     images
       .filter((img) => img.element && img.element.complete)
       .forEach((img) => {
-        ctx.drawImage(
-          img.element!,
-          img.position.x,
-          img.position.y,
-          img.size.width,
-          img.size.height
-        );
-
+        ctx.drawImage(img.element!, img.position.x, img.position.y, img.size.width, img.size.height);
         if (img.id === selectedImageId) {
           ctx.strokeStyle = "#3b82f6";
           ctx.lineWidth = 2 / scale;
@@ -375,7 +306,6 @@ export default function InfiniteCanvas() {
             img.size.width + 4 / scale,
             img.size.height + 4 / scale
           );
-
           ctx.fillStyle = "#3b82f6";
           const handles = [
             { x: img.position.x, y: img.position.y },
@@ -383,7 +313,6 @@ export default function InfiniteCanvas() {
             { x: img.position.x, y: img.position.y + img.size.height },
             { x: img.position.x + img.size.width, y: img.position.y + img.size.height },
           ];
-
           handles.forEach((handle) => {
             ctx.fillRect(
               handle.x - HANDLE_SIZE / (2 * scale),
@@ -394,7 +323,6 @@ export default function InfiniteCanvas() {
           });
         }
       });
-
     ctx.restore();
     requestAnimationFrame(draw);
   }, [images, selectedImageId, scale, offset]);
@@ -409,7 +337,6 @@ export default function InfiniteCanvas() {
       <div className="flex-1 relative">
         <Toolbar onUpload={handleUpload} />
         <ZoomControls />
-
         <canvas
           ref={canvasRef}
           className={cn(
@@ -426,10 +353,9 @@ export default function InfiniteCanvas() {
           onTouchEnd={handleTouchEnd}
           onTouchCancel={handleTouchEnd}
         />
-
         {images.map((img) => (
           <div key={img.id} style={{ zIndex: -100 }}>
-            {(!img.element || !img.element.complete || generatingImages.has(img.id)) && (
+            {(!img.element || !img.element.complete) && (
               <div
                 className="absolute"
                 style={{
@@ -440,10 +366,9 @@ export default function InfiniteCanvas() {
                 }}
               >
                 <ShinyGradientSkeletonHorizontal />
-                
               </div>
             )}
-            {img.id === selectedImageId && img.element && img.element.complete && !generatingImages.has(img.id) && (
+            {img.id === selectedImageId && img.element && img.element.complete && (
               <div
                 className="absolute"
                 style={{
@@ -454,6 +379,20 @@ export default function InfiniteCanvas() {
                 <DropdownMenuBar />
               </div>
             )}
+          </div>
+        ))}
+        {pendingImages.map((pending) => (
+          <div
+            key={pending.id}
+            className="absolute"
+            style={{
+              transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
+              width: `${pending.size.width * scale}px`,
+              height: `${pending.size.height * scale}px`,
+              zIndex: 10,
+            }}
+          >
+            <ShinyGradientSkeletonHorizontal />
           </div>
         ))}
       </div>

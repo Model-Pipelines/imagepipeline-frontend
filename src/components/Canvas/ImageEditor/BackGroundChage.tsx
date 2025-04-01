@@ -16,8 +16,7 @@ import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQ
 import { useQuery } from "@tanstack/react-query";
 import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
 import { motion } from "framer-motion";
-import { useSkeletonLoader } from "@/hooks/useSkeletonLoader";
-import { GlobalSkeleton } from "@/components/ImageSkeleton/GlobalSkeleton";
+import { useCanvasStore } from "@/lib/store";
 import { v4 as uuidv4 } from "uuid";
 
 interface TaskResponse {
@@ -41,12 +40,12 @@ const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HT
   </motion.div>
 ));
 
-export default function BackGroundChange() {
+export default function BackgroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const { isLoading, skeletonPosition, showSkeleton, hideSkeleton } = useSkeletonLoader();
-  const { selectedImageId, images, addImage } = useImageStore();
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
+  const { scale, offset } = useCanvasStore(); // Use canvas state for positioning
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
@@ -69,6 +68,18 @@ export default function BackGroundChange() {
     retry: false,
     refetchOnWindowFocus: false,
   });
+
+  const calculatePosition = useCallback(() => {
+    const numImages = images.length;
+    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const spacing = 50;
+    const width = 200; // Default size
+    const height = 200;
+    return {
+      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
+    };
+  }, [images.length, scale, offset]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -108,7 +119,14 @@ export default function BackGroundChange() {
       num_outputs: 1,
     };
 
-    const position = showSkeleton(); // Show skeleton and get position
+    const position = calculatePosition();
+    const pendingId = uuidv4();
+    addPendingImage({
+      id: pendingId,
+      position,
+      size: { width: 200, height: 200 },
+    });
+
     startBackgroundChange(
       { data: payload, token },
       {
@@ -119,7 +137,7 @@ export default function BackGroundChange() {
               description: "Invalid response structure: Missing task ID.",
               variant: "destructive",
             });
-            hideSkeleton();
+            removePendingImage(pendingId);
             return;
           }
           setTaskId(response.id);
@@ -134,7 +152,7 @@ export default function BackGroundChange() {
             description: error.message || "Failed to change background.",
             variant: "destructive",
           });
-          hideSkeleton();
+          removePendingImage(pendingId);
         },
       }
     );
@@ -147,12 +165,13 @@ export default function BackGroundChange() {
     getToken,
     selectedImageId,
     addTask,
-    showSkeleton,
-    hideSkeleton,
+    addPendingImage,
+    removePendingImage,
+    calculatePosition,
   ]);
 
   useEffect(() => {
-    if (!taskStatus) return;
+    if (!taskStatus || !taskId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -165,7 +184,7 @@ export default function BackGroundChange() {
           height = 200;
           width = height * aspectRatio;
         }
-        const position = skeletonPosition || { x: 0, y: 0 }; // Use skeleton position
+        const position = calculatePosition(); // Recalculate to ensure alignment
         addImage({
           id: uuidv4(),
           url: taskStatus.image_url!,
@@ -173,8 +192,9 @@ export default function BackGroundChange() {
           position,
           size: { width, height },
         });
+        removePendingImage(taskId); // Remove skeleton
         toast({ title: "Success", description: "Background changed successfully!" });
-        hideSkeleton();
+        setTaskId(null);
       };
       element.onerror = () => {
         toast({
@@ -182,7 +202,8 @@ export default function BackGroundChange() {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        hideSkeleton();
+        removePendingImage(taskId);
+        setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({
@@ -190,9 +211,10 @@ export default function BackGroundChange() {
         description: taskStatus.error || "Failed to change background",
         variant: "destructive",
       });
-      hideSkeleton();
+      removePendingImage(taskId);
+      setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, skeletonPosition, hideSkeleton]);
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -303,15 +325,14 @@ export default function BackGroundChange() {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedImage || isLoading}
+              disabled={!selectedImage || !!taskId}
               className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
             >
-              {isLoading ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
+              {taskId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
-      <GlobalSkeleton isLoading={isLoading} position={skeletonPosition} />
     </motion.div>
   );
 }
