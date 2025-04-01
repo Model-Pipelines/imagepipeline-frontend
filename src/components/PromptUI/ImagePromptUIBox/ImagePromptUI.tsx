@@ -114,7 +114,7 @@ const ImagePromptUI = () => {
   const { ip_adapter_image: styleImages } = useStyleStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const { addImage, images, addPendingImage, removePendingImage } = useImageStore();
+  const { addImage, images, addPendingImage, removePendingImage, pendingImages } = useImageStore();
   const { height, width } = useAspectRatioStore();
   const { scale, offset } = useCanvasStore();
   const [describeTaskId, setDescribeTaskId] = useState<string | null>(null);
@@ -124,18 +124,20 @@ const ImagePromptUI = () => {
 
   const { handleGenerate, isGenerating } = GenerateHandler({
     onTaskStarted: (taskId) => {
+      console.log("Task started with ID:", taskId);
       setGenerateTaskId(taskId);
       const position = calculatePosition();
       const scaleFactor = 200 / Math.max(height, width);
       const scaledHeight = height * scaleFactor;
       const scaledWidth = width * scaleFactor;
-      const pendingId = taskId; // Use taskId as pendingImageId for consistency
+      const pendingId = taskId; // Use taskId consistently
       addPendingImage({
         id: pendingId,
         position,
         size: { width: scaledWidth, height: scaledHeight },
       });
       setPendingImageId(pendingId);
+      console.log("Pending image added with ID:", pendingId);
     },
   });
 
@@ -326,8 +328,13 @@ const ImagePromptUI = () => {
   useEffect(() => {
     if (!generateTaskStatus || !pendingImageId) return;
 
+    console.log("Generate task status:", generateTaskStatus);
+    console.log("Current pendingImageId:", pendingImageId);
+    console.log("Pending images in store:", pendingImages);
+
     if (generateTaskStatus.status === "SUCCESS") {
       const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
+      console.log("Image URL from status:", imageUrl);
       if (!imageUrl) {
         toast({
           title: "Error",
@@ -335,10 +342,12 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         removePendingImage(pendingImageId);
+        console.log("Removed pending image due to missing URL, ID:", pendingImageId);
         setPendingImageId(null);
         setGenerateTaskId(null);
         return;
       }
+
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
@@ -347,14 +356,17 @@ const ImagePromptUI = () => {
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
 
+        const newImageId = uuidv4();
         addImage({
-          id: uuidv4(),
+          id: newImageId,
           url: imageUrl,
           position,
           size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
-        removePendingImage(pendingImageId); // Remove skeleton on success
+        console.log("Image added with ID:", newImageId);
+        removePendingImage(pendingImageId);
+        console.log("Removed pending image on success, ID:", pendingImageId);
         toast({
           title: "Success",
           description: "Image generated successfully!",
@@ -369,6 +381,7 @@ const ImagePromptUI = () => {
           variant: "destructive",
         });
         removePendingImage(pendingImageId);
+        console.log("Removed pending image due to load error, ID:", pendingImageId);
         setPendingImageId(null);
         setGenerateTaskId(null);
       };
@@ -379,10 +392,11 @@ const ImagePromptUI = () => {
         variant: "destructive",
       });
       removePendingImage(pendingImageId);
+      console.log("Removed pending image on failure, ID:", pendingImageId);
       setPendingImageId(null);
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage, pendingImageId]);
+  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage, pendingImageId, pendingImages]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -502,7 +516,8 @@ const ImagePromptUI = () => {
     }
 
     try {
-      await handleGenerate(); // Skeleton added in onTaskStarted callback
+      await handleGenerate();
+      console.log("Generate initiated");
     } catch (error) {
       toast({
         title: "Error",
@@ -637,7 +652,7 @@ const ImagePromptUI = () => {
                   <TooltipTrigger asChild>
                     <Button
                       variant="outline"
-                      size="iconSTONE"
+                      size="icon"
                       className={cn(
                         "h-10 w-10 rounded-md border transition-colors",
                         magic_prompt
