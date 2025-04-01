@@ -25,7 +25,6 @@ interface TaskResponse {
 const Upscale = () => {
   const [upscaleFactor] = useState<number>(2);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
@@ -37,11 +36,9 @@ const Upscale = () => {
     const numImages = images.length;
     const gridSize = Math.ceil(Math.sqrt(numImages + 1));
     const spacing = 50;
-    const width = 200;
-    const height = 200;
     return {
-      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
-      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
+      x: ((numImages % gridSize) * (200 + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (200 + spacing)) / scale - offset.y,
     };
   }, [images.length, scale, offset]);
 
@@ -49,35 +46,17 @@ const Upscale = () => {
     mutationFn: ({ data: payload, token }: { data: any; token: string }) => upscaleImage(payload, token),
     onSuccess: (response) => {
       if (!response.id) {
-        toast({
-          title: "Error",
-          description: "Invalid response: Missing task ID",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
         return;
       }
       setTaskId(response.id);
-      setPendingImageId(response.id);
       addTask(response.id, selectedImageId!, "upscale");
       const position = calculatePosition();
-      addPendingImage({
-        id: response.id,
-        position,
-        size: { width: 200, height: 200 },
-      });
-      toast({
-        title: "Processing",
-        description: "Upscaling in progress...",
-      });
+      addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } });
+      toast({ title: "Processing", description: "Upscaling in progress..." });
     },
     onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start upscaling",
-        variant: "destructive",
-      });
-      // Do not add a skeleton if the task fails to start
-      setPendingImageId(null);
+      toast({ title: "Error", description: error.message || "Failed to start upscaling", variant: "destructive" });
       setTaskId(null);
     },
   });
@@ -98,36 +77,29 @@ const Upscale = () => {
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
-      toast({
-        title: "Error",
-        description: "Please select an image to upscale",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please select an image to upscale", variant: "destructive" });
       return;
     }
 
     const token = await getToken();
     if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
       return;
     }
 
-    const payload = {
-      input_image: selectedImage.url,
-    };
+    const payload = { input_image: selectedImage.url };
+    const position = calculatePosition();
+    const pendingId = uuidv4();
+    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
 
     upscaleImageMutation({
       data: payload,
       token,
     });
-  }, [selectedImage, upscaleImageMutation, toast, getToken]);
+  }, [selectedImage, upscaleImageMutation, toast, getToken, addPendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !pendingImageId) return;
+    if (!taskStatus || !taskId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -141,39 +113,22 @@ const Upscale = () => {
           width = height * aspectRatio;
         }
         const position = calculatePosition();
-        addImage({
-          id: uuidv4(),
-          url: taskStatus.image_url!,
-          element,
-          position,
-          size: { width, height },
-        });
-        removePendingImage(pendingImageId);
+        addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
+        removePendingImage(taskId);
         toast({ title: "Success", description: "Image upscaled successfully!" });
-        setPendingImageId(null);
         setTaskId(null);
       };
       element.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to load the resulting image.",
-          variant: "destructive",
-        });
-        removePendingImage(pendingImageId);
-        setPendingImageId(null);
+        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
+        removePendingImage(taskId);
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
-      toast({
-        title: "Error",
-        description: taskStatus.error || "Failed to upscale image",
-        variant: "destructive",
-      });
-      removePendingImage(pendingImageId);
-      setPendingImageId(null);
+      toast({ title: "Error", description: taskStatus.error || "Failed to upscale image", variant: "destructive" });
+      removePendingImage(taskId);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -182,21 +137,16 @@ const Upscale = () => {
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold">Image Upscaling</h3>
-              <InfoTooltip content="Enhance your image quality using advanced AI upscaling. This tool automatically upscales your image to 2x resolution while preserving details and reducing artifacts. Perfect for improving image clarity and preparing for large format printing." />
+              <InfoTooltip content="Enhance your image quality using advanced AI upscaling." />
             </div>
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label className="text-base font-normal">Selected Image</Label>
-              <InfoTooltip content="The image you want to upscale to higher resolution" />
+              <InfoTooltip content="The image you want to upscale" />
             </div>
             {selectedImage ? (
-              <motion.img
-                whileHover={{ scale: 1.02 }}
-                src={selectedImage.url || "/placeholder.svg"}
-                alt="Selected"
-                className="w-40 h-auto rounded-md border border-white/10 dark:border-white/5"
-              />
+              <motion.img whileHover={{ scale: 1.02 }} src={selectedImage.url || "/placeholder.svg"} alt="Selected" className="w-40 h-auto rounded-md border border-white/10 dark:border-white/5" />
             ) : (
               <p className="text-gray-500 text-base font-normal">No image selected</p>
             )}
@@ -204,11 +154,7 @@ const Upscale = () => {
         </CardContent>
         <CardFooter className="rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button
-              onClick={handleSubmit}
-              disabled={!!taskId}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
-            >
+            <Button onClick={handleSubmit} disabled={!!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
               {taskId ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>

@@ -27,16 +27,8 @@ interface TaskResponse {
 }
 
 const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 dark:border-white/10"
-  >
-    <input
-      type="file"
-      accept="image/*"
-      onChange={onChange}
-      className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10"
-    />
+  <motion.div whileHover={{ scale: 1.02 }} className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 dark:border-white/10">
+    <input type="file" accept="image/*" onChange={onChange} className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10" />
   </motion.div>
 ));
 
@@ -44,7 +36,6 @@ export default function BackgroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
@@ -52,9 +43,18 @@ export default function BackgroundChange() {
   const { getToken } = useAuth();
 
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
-
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
+
+  const calculatePosition = useCallback(() => {
+    const numImages = images.length;
+    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const spacing = 50;
+    return {
+      x: ((numImages % gridSize) * (200 + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (200 + spacing)) / scale - offset.y,
+    };
+  }, [images.length, scale, offset]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -70,43 +70,19 @@ export default function BackgroundChange() {
     refetchOnWindowFocus: false,
   });
 
-  const calculatePosition = useCallback(() => {
-    const numImages = images.length;
-    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
-    const spacing = 50;
-    const width = 200;
-    const height = 200;
-    return {
-      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
-      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
-    };
-  }, [images.length, scale, offset]);
-
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
-      toast({
-        title: "Error",
-        description: "No image selected. Please select an image first.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No image selected.", variant: "destructive" });
       return;
     }
     if (!prompt) {
-      toast({
-        title: "Error",
-        description: "Please provide a prompt for the new background.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Please provide a prompt.", variant: "destructive" });
       return;
     }
 
     const token = await getToken();
     if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Authentication token not available.", variant: "destructive" });
       return;
     }
 
@@ -120,58 +96,34 @@ export default function BackgroundChange() {
       num_outputs: 1,
     };
 
+    const position = calculatePosition();
+    const pendingId = uuidv4(); // Use a unique ID for the pending image
+    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
+
     startBackgroundChange(
       { data: payload, token },
       {
         onSuccess: (response) => {
           if (!response?.id) {
-            toast({
-              title: "Error",
-              description: "Invalid response structure: Missing task ID.",
-              variant: "destructive",
-            });
+            toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
+            removePendingImage(pendingId);
             return;
           }
           setTaskId(response.id);
-          setPendingImageId(response.id);
           addTask(response.id, selectedImageId!, "background");
-          const position = calculatePosition();
-          addPendingImage({
-            id: response.id,
-            position,
-            size: { width: 200, height: 200 },
-          });
-          setPrompt("");
-          setBackgroundImage(null);
           toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to change background.",
-            variant: "destructive",
-          });
-          // Do not add a skeleton if the task fails to start
-          setPendingImageId(null);
+          toast({ title: "Error", description: error.message || "Failed to change background.", variant: "destructive" });
+          removePendingImage(pendingId);
           setTaskId(null);
         },
       }
     );
-  }, [
-    selectedImage,
-    prompt,
-    backgroundImage,
-    startBackgroundChange,
-    toast,
-    getToken,
-    selectedImageId,
-    addTask,
-    addPendingImage,
-    calculatePosition,
-  ]);
+  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, removePendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !pendingImageId) return;
+    if (!taskStatus || !taskId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -185,39 +137,22 @@ export default function BackgroundChange() {
           width = height * aspectRatio;
         }
         const position = calculatePosition();
-        addImage({
-          id: uuidv4(),
-          url: taskStatus.image_url!,
-          element,
-          position,
-          size: { width, height },
-        });
-        removePendingImage(pendingImageId);
+        addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
+        removePendingImage(taskId); // Use taskId to match the skeleton
         toast({ title: "Success", description: "Background changed successfully!" });
-        setPendingImageId(null);
         setTaskId(null);
       };
       element.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to load the resulting image.",
-          variant: "destructive",
-        });
-        removePendingImage(pendingImageId);
-        setPendingImageId(null);
+        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
+        removePendingImage(taskId);
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
-      toast({
-        title: "Error",
-        description: taskStatus.error || "Failed to change background",
-        variant: "destructive",
-      });
-      removePendingImage(pendingImageId);
-      setPendingImageId(null);
+      toast({ title: "Error", description: taskStatus.error || "Failed to change background", variant: "destructive" });
+      removePendingImage(taskId);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,11 +160,7 @@ export default function BackgroundChange() {
       if (file) {
         const token = await getToken();
         if (!token) {
-          toast({
-            title: "Error",
-            description: "Authentication token not available.",
-            variant: "destructive",
-          });
+          toast({ title: "Error", description: "Authentication token not available.", variant: "destructive" });
           return;
         }
         uploadBackgroundImage(
@@ -240,11 +171,7 @@ export default function BackgroundChange() {
               toast({ title: "Success", description: "Background image uploaded!" });
             },
             onError: (error: any) => {
-              toast({
-                title: "Error",
-                description: error.message || "Failed to upload background image.",
-                variant: "destructive",
-              });
+              toast({ title: "Error", description: error.message || "Failed to upload.", variant: "destructive" });
             },
           }
         );
@@ -260,24 +187,16 @@ export default function BackgroundChange() {
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold">Background Change</h3>
-              <InfoTooltip content="Transform your image backgrounds using AI. You can either provide a reference image or describe the desired background in text. Perfect for changing scenes, environments, or creating entirely new contexts for your subjects." />
+              <InfoTooltip content="Transform your image backgrounds using AI." />
             </div>
           </div>
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Label htmlFor="prompt" className="text-base font-normal">
-                Prompt
-              </Label>
+              <Label htmlFor="prompt" className="text-base font-normal">Prompt</Label>
               <InfoTooltip content="Describe how you want the new background to look" />
             </div>
             <motion.div whileHover={{ scale: 1.01 }}>
-              <Input
-                id="prompt"
-                placeholder="Describe the new background"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200"
-              />
+              <Input id="prompt" placeholder="Describe the new background" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200" />
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -287,12 +206,7 @@ export default function BackgroundChange() {
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
               {selectedImage ? (
-                <motion.img
-                  whileHover={{ scale: 1.02 }}
-                  src={selectedImage.url || "/placeholder.svg"}
-                  alt="Selected"
-                  className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                />
+                <motion.img whileHover={{ scale: 1.02 }} src={selectedImage.url || "/placeholder.svg"} alt="Selected" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
               ) : (
                 <p className="text-gray-500 text-base font-normal">No image selected</p>
               )}
@@ -306,17 +220,8 @@ export default function BackgroundChange() {
                 <FileInput onChange={handleBackgroundImageUpload} />
               ) : (
                 <div className="relative">
-                  <motion.img
-                    whileHover={{ scale: 1.02 }}
-                    src={backgroundImage || "/placeholder.svg"}
-                    alt="Reference"
-                    className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.2 }}
-                    onClick={() => setBackgroundImage(null)}
-                    className="absolute top-2 right-2 text-white/70 hover:text-white/100"
-                  >
+                  <motion.img whileHover={{ scale: 1.02 }} src={backgroundImage || "/placeholder.svg"} alt="Reference" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
+                  <motion.button whileHover={{ scale: 1.2 }} onClick={() => setBackgroundImage(null)} className="absolute top-2 right-2 text-white/70 hover:text-white/100">
                     <X className="w-4 h-4" />
                   </motion.button>
                 </div>
@@ -326,11 +231,7 @@ export default function BackgroundChange() {
         </CardContent>
         <CardFooter className="mt-6 rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedImage || !!taskId}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
-            >
+            <Button onClick={handleSubmit} disabled={!selectedImage || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
               {taskId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>

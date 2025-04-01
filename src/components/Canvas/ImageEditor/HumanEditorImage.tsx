@@ -1,7 +1,6 @@
 "use client";
 
-import type React from "react";
-import { useCallback, useState, useMemo, useEffect } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
@@ -26,16 +25,8 @@ interface TaskResponse {
 }
 
 const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 dark:border-white/10"
-  >
-    <input
-      type="file"
-      accept="image/*"
-      onChange={onChange}
-      className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10"
-    />
+  <motion.div whileHover={{ scale: 1.02 }} className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 dark:border-white/10">
+    <input type="file" accept="image/*" onChange={onChange} className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10" />
   </motion.div>
 );
 
@@ -43,7 +34,6 @@ export function HumanEditorImage() {
   const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
@@ -51,65 +41,18 @@ export function HumanEditorImage() {
   const { getToken } = useAuth();
 
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
+  const { mutate: uploadHumanImage } = useMutation({ mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token) });
+  const { mutate: startHumanModification } = useMutation({ mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeHuman(payload, token) });
 
   const calculatePosition = useCallback(() => {
     const numImages = images.length;
     const gridSize = Math.ceil(Math.sqrt(numImages + 1));
     const spacing = 50;
-    const width = 200;
-    const height = 200;
     return {
-      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
-      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
+      x: ((numImages % gridSize) * (200 + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (200 + spacing)) / scale - offset.y,
     };
   }, [images.length, scale, offset]);
-
-  const { mutate: uploadHumanImage } = useMutation({
-    mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
-    onSuccess: (imageUrl) => {
-      setHumanImage(imageUrl);
-      toast({ title: "Success", description: "Reference image uploaded!" });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to upload reference image",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const { mutate: startHumanModification } = useMutation({
-    mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeHuman(payload, token),
-    onSuccess: (response) => {
-      if (!response.id) {
-        toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
-        return;
-      }
-      setTaskId(response.id);
-      setPendingImageId(response.id);
-      addTask(response.id, selectedImageId!, "human");
-      const position = calculatePosition();
-      addPendingImage({
-        id: response.id,
-        position,
-        size: { width: 200, height: 200 },
-      });
-      toast({ title: "Processing", description: "Human modification in progress..." });
-      setPrompt("");
-      setHumanImage(null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to start modification",
-        variant: "destructive",
-      });
-      // Do not add a skeleton if the task fails to start
-      setPendingImageId(null);
-      setTaskId(null);
-    },
-  });
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["humanTask", taskId],
@@ -126,41 +69,46 @@ export function HumanEditorImage() {
   });
 
   const handleSubmit = useCallback(async () => {
-    if (!selectedImage) {
-      toast({ title: "Error", description: "Please select a base image first", variant: "destructive" });
-      return;
-    }
-    if (!humanImage) {
-      toast({ title: "Error", description: "Please upload a reference image", variant: "destructive" });
-      return;
-    }
-    if (!prompt.trim()) {
-      toast({ title: "Error", description: "Please enter a description for the human", variant: "destructive" });
+    if (!selectedImage || !humanImage || !prompt.trim()) {
+      toast({ title: "Error", description: "Missing required fields.", variant: "destructive" });
       return;
     }
 
     const token = await getToken();
     if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Authentication token not available.", variant: "destructive" });
       return;
     }
 
-    const payload = {
-      input_image: selectedImage.url,
-      input_face: humanImage,
-      prompt: prompt.trim(),
-      seed: -1,
-    };
+    const payload = { input_image: selectedImage.url, input_face: humanImage, prompt: prompt.trim(), seed: -1 };
+    const position = calculatePosition();
+    const pendingId = uuidv4();
+    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
 
-    startHumanModification({ data: payload, token });
-  }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken]);
+    startHumanModification(
+      { data: payload, token },
+      {
+        onSuccess: (response) => {
+          if (!response.id) {
+            toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
+            removePendingImage(pendingId);
+            return;
+          }
+          setTaskId(response.id);
+          addTask(response.id, selectedImageId!, "human");
+          toast({ title: "Processing", description: "Human modification in progress..." });
+        },
+        onError: (error: any) => {
+          toast({ title: "Error", description: error.message || "Failed to start modification.", variant: "destructive" });
+          removePendingImage(pendingId);
+          setTaskId(null);
+        },
+      }
+    );
+  }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken, selectedImageId, addTask, addPendingImage, removePendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !pendingImageId) return;
+    if (!taskStatus || !taskId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -174,56 +122,44 @@ export function HumanEditorImage() {
           width = height * aspectRatio;
         }
         const position = calculatePosition();
-        addImage({
-          id: uuidv4(),
-          url: taskStatus.image_url!,
-          element,
-          position,
-          size: { width, height },
-        });
-        removePendingImage(pendingImageId);
+        addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
+        removePendingImage(taskId);
         toast({ title: "Success", description: "Human modification completed successfully!" });
-        setPendingImageId(null);
         setTaskId(null);
       };
       element.onerror = () => {
-        toast({
-          title: "Error",
-          description: "Failed to load the resulting image.",
-          variant: "destructive",
-        });
-        removePendingImage(pendingImageId);
-        setPendingImageId(null);
+        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
+        removePendingImage(taskId);
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
-      toast({
-        title: "Error",
-        description: taskStatus.error || "Failed to modify human",
-        variant: "destructive",
-      });
-      removePendingImage(pendingImageId);
-      setPendingImageId(null);
+      toast({ title: "Error", description: taskStatus.error || "Failed to modify human", variant: "destructive" });
+      removePendingImage(taskId);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-
       const token = await getToken();
       if (!token) {
-        toast({
-          title: "Error",
-          description: "Authentication token not available",
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: "Authentication token not available.", variant: "destructive" });
         return;
       }
-
-      uploadHumanImage({ data: file, token });
+      uploadHumanImage(
+        { data: file, token },
+        {
+          onSuccess: (imageUrl) => {
+            setHumanImage(imageUrl);
+            toast({ title: "Success", description: "Reference image uploaded!" });
+          },
+          onError: (error: any) => {
+            toast({ title: "Error", description: error.message || "Failed to upload.", variant: "destructive" });
+          },
+        }
+      );
     },
     [uploadHumanImage, toast, getToken]
   );
@@ -235,25 +171,17 @@ export function HumanEditorImage() {
           <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold">Human Editor</h3>
-              <InfoTooltip content="Edit human subjects in your images with advanced AI face and body modifications. Upload a reference image and describe the desired changes to modify facial features while maintaining natural looks." />
+              <InfoTooltip content="Edit human subjects in your images with advanced AI modifications." />
             </div>
           </div>
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Label htmlFor="description" className="text-base font-normal">
-                  Modification Description
-                </Label>
+                <Label htmlFor="description" className="text-base font-normal">Modification Description</Label>
                 <InfoTooltip content="Describe the changes you want to make to the person" />
               </div>
               <motion.div whileHover={{ scale: 1.01 }}>
-                <Input
-                  id="description"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the desired changes..."
-                  className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200"
-                />
+                <Input id="description" value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Describe the desired changes..." className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200" />
               </motion.div>
             </div>
             <div className="flex flex-col md:flex-row gap-6">
@@ -263,12 +191,7 @@ export function HumanEditorImage() {
                   <InfoTooltip content="The main image containing the person to modify" />
                 </div>
                 {selectedImage ? (
-                  <motion.img
-                    whileHover={{ scale: 1.02 }}
-                    src={selectedImage.url || "/placeholder.svg"}
-                    alt="Selected base"
-                    className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                  />
+                  <motion.img whileHover={{ scale: 1.02 }} src={selectedImage.url || "/placeholder.svg"} alt="Selected base" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
                 ) : (
                   <p className="text-gray-500 text-base font-normal">No base image selected</p>
                 )}
@@ -283,17 +206,8 @@ export function HumanEditorImage() {
                     <FileInput onChange={handleHumanImageUpload} />
                   ) : (
                     <div className="relative">
-                      <motion.img
-                        whileHover={{ scale: 1.02 }}
-                        src={humanImage || "/placeholder.svg"}
-                        alt="Reference preview"
-                        className="w-40 h-auto rounded-md border border-white/10 dark:border-white/5"
-                      />
-                      <motion.button
-                        whileHover={{ scale: 1.2 }}
-                        onClick={() => setHumanImage(null)}
-                        className="absolute top-2 right-2 text-white/70 hover:text-white/100"
-                      >
+                      <motion.img whileHover={{ scale: 1.02 }} src={humanImage || "/placeholder.svg"} alt="Reference preview" className="w-40 h-auto rounded-md border border-white/10 dark:border-white/5" />
+                      <motion.button whileHover={{ scale: 1.2 }} onClick={() => setHumanImage(null)} className="absolute top-2 right-2 text-white/70 hover:text-white/100">
                         <X className="w-4 h-4" />
                       </motion.button>
                     </div>
@@ -305,11 +219,7 @@ export function HumanEditorImage() {
         </CardContent>
         <CardFooter className="rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedImage || !humanImage || !prompt.trim() || !!taskId}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold disabled:opacity-100"
-            >
+            <Button onClick={handleSubmit} disabled={!selectedImage || !humanImage || !prompt.trim() || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold disabled:opacity-100">
               {taskId ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
