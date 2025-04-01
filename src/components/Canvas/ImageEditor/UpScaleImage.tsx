@@ -1,29 +1,50 @@
-"use client"
+"use client";
 
-import { useCallback, useMemo, useState } from "react"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { useImageStore } from "@/AxiosApi/ZustandImageStore"
-import { useToast } from "@/hooks/use-toast"
-import { TextShimmerWave } from "@/components/ui/text-shimmer-wave"
-import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"
-import { useAuth } from "@clerk/nextjs"
-import { useMutation } from "@tanstack/react-query"
-import { upscaleImage } from "@/AxiosApi/GenerativeApi"
-import { InfoTooltip } from "@/components/ui/info-tooltip"
-import { motion } from "framer-motion"
+import { useCallback, useMemo, useState, useEffect } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useToast } from "@/hooks/use-toast";
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
+import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
+import { useAuth } from "@clerk/nextjs";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { upscaleImage, getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { motion } from "framer-motion";
+import { useCanvasStore } from "@/lib/store";
+import { v4 as uuidv4 } from "uuid";
+
+interface TaskResponse {
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  image_url?: string;
+  error?: string;
+}
 
 const Upscale = () => {
-  const [upscaleFactor] = useState<number>(2)
-  const { toast } = useToast()
-  const { addTask } = useBackgroundTaskStore()
-  const { getToken } = useAuth()
+  const [upscaleFactor] = useState<number>(2);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth();
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
+  const { scale, offset } = useCanvasStore();
+  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
 
-  const { selectedImageId, images } = useImageStore()
-  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId])
+  const calculatePosition = useCallback(() => {
+    const numImages = images.length;
+    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const spacing = 50;
+    const width = 200;
+    const height = 200;
+    return {
+      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
+    };
+  }, [images.length, scale, offset]);
 
-  const { mutate: upscaleImageMutation, status } = useMutation({
+  const { mutate: upscaleImageMutation } = useMutation({
     mutationFn: ({ data: payload, token }: { data: any; token: string }) => upscaleImage(payload, token),
     onSuccess: (response) => {
       if (!response.id) {
@@ -31,25 +52,39 @@ const Upscale = () => {
           title: "Error",
           description: "Invalid response: Missing task ID",
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
-      addTask(response.id, selectedImageId!, "upscale")
+      setTaskId(response.id);
+      addTask(response.id, selectedImageId!, "upscale");
       toast({
         title: "Processing",
         description: "Upscaling in progress...",
-      })
+      });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to start upscaling",
         variant: "destructive",
-      })
+      });
+      removePendingImage(taskId || "");
     },
-  })
+  });
 
-  const isLoading = status === "pending"
+  const { data: taskStatus } = useQuery<TaskResponse, Error>({
+    queryKey: ["upscaleTask", taskId],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getBackgroundTaskStatus(taskId!, token);
+    },
+    enabled: !!taskId,
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
+    staleTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -57,26 +92,83 @@ const Upscale = () => {
         title: "Error",
         description: "Please select an image to upscale",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    const token = await getToken()
+    const token = await getToken();
     if (!token) {
       toast({
         title: "Error",
         description: "Authentication token not available",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     const payload = {
       input_image: selectedImage.url,
-    }
+    };
 
-    upscaleImageMutation({ data: payload, token })
-  }, [selectedImage, upscaleImageMutation, toast, addTask, selectedImageId, getToken])
+    const position = calculatePosition();
+    const pendingId = uuidv4();
+    addPendingImage({
+      id: pendingId,
+      position,
+      size: { width: 200, height: 200 },
+    });
+
+    upscaleImageMutation({
+      data: payload,
+      token,
+    });
+  }, [selectedImage, upscaleImageMutation, toast, addTask, selectedImageId, getToken, addPendingImage, calculatePosition]);
+
+  useEffect(() => {
+    if (!taskStatus || !taskId) return;
+
+    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
+      const element = new Image();
+      element.src = taskStatus.image_url;
+      element.onload = () => {
+        const aspectRatio = element.width / element.height;
+        let width = 200;
+        let height = width / aspectRatio;
+        if (height > 200) {
+          height = 200;
+          width = height * aspectRatio;
+        }
+        const position = calculatePosition();
+        addImage({
+          id: uuidv4(),
+          url: taskStatus.image_url!,
+          element,
+          position,
+          size: { width, height },
+        });
+        removePendingImage(taskId);
+        toast({ title: "Success", description: "Image upscaled successfully!" });
+        setTaskId(null);
+      };
+      element.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load the resulting image.",
+          variant: "destructive",
+        });
+        removePendingImage(taskId);
+        setTaskId(null);
+      };
+    } else if (taskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: taskStatus.error || "Failed to upscale image",
+        variant: "destructive",
+      });
+      removePendingImage(taskId);
+      setTaskId(null);
+    }
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -109,17 +201,16 @@ const Upscale = () => {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
             <Button
               onClick={handleSubmit}
-              disabled={isLoading}
+              disabled={!!taskId}
               className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
             >
-              {isLoading ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
+              {taskId ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
     </motion.div>
-  )
-}
+  );
+};
 
-export default Upscale
-
+export default Upscale;

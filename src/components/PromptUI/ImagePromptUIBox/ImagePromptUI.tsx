@@ -55,6 +55,7 @@ import { GenerateHandler } from "./GenerateHandler";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
+import { useCanvasStore } from "@/lib/store"; // Import for scale and offset
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -151,8 +152,9 @@ const ImagePromptUI = () => {
   const { ip_adapter_image: styleImages } = useStyleStore();
   const { toast } = useToast();
   const textAreaRef = useRef<HTMLTextAreaElement>(null);
-  const { addImage, images } = useImageStore();
+  const { addImage, images, addPendingImage, removePendingImage } = useImageStore();
   const { height, width } = useAspectRatioStore();
+  const { scale, offset } = useCanvasStore(); // For positioning
   const [describeTaskId, setDescribeTaskId] = useState<string | null>(null);
 
   const { mutate: describeImageMutation } = useDescribeImage();
@@ -368,6 +370,22 @@ const ImagePromptUI = () => {
     }
   }, [describeTaskStatus, toast, setInputTextStore]);
 
+  // Calculate position for skeleton and final image
+  const calculatePosition = () => {
+    const lastImage = images[images.length - 1];
+    const spacing = 50; // Consistent with InfiniteCanvas
+    const gridSize = Math.ceil(Math.sqrt(images.length + 1));
+    return lastImage
+      ? {
+          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
+          y: lastImage.position.y / scale - offset.y,
+        }
+      : {
+          x: (spacing / scale) - offset.x,
+          y: (spacing * 2 / scale) - offset.y,
+        };
+  };
+
   useEffect(() => {
     if (!generateTaskStatus) return;
     if (generateTaskStatus.status === "SUCCESS") {
@@ -385,12 +403,7 @@ const ImagePromptUI = () => {
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        const lastImage = images[images.length - 1];
-        const newPosition = lastImage
-          ? { x: lastImage.position.x + 10, y: lastImage.position.y + 10 }
-          : { x: 50, y: 60 };
-
-        // Use dimensions from useAspectRatioStore
+        const position = calculatePosition(); // Use same position as skeleton
         const scaleFactor = 200 / Math.max(height, width); // Scale to fit within 200px
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
@@ -398,8 +411,8 @@ const ImagePromptUI = () => {
         addImage({
           id: uuidv4(),
           url: imageUrl,
-          position: newPosition,
-          size: { width: scaledWidth, height: scaledHeight }, // Dynamic size based on aspect ratio
+          position,
+          size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
         toast({
@@ -414,6 +427,7 @@ const ImagePromptUI = () => {
           description: "Failed to load generated image",
           variant: "destructive",
         });
+        removePendingImage(generateTaskId!); // Clean up on error
         setGenerateTaskId(null);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
@@ -422,9 +436,10 @@ const ImagePromptUI = () => {
         description: generateTaskStatus.error || "Image generation failed",
         variant: "destructive",
       });
+      removePendingImage(generateTaskId!); // Clean up on failure
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast, height, width]);
+  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage]);
 
   const handleTogglePublic = () => {
     if (isFreePlan()) {
@@ -549,6 +564,40 @@ const ImagePromptUI = () => {
     toggleMagicPrompt();
   };
 
+  const handleGenerateWithSkeleton = async () => {
+    if (!text.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt to generate an image",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const position = calculatePosition();
+    const scaleFactor = 200 / Math.max(height, width);
+    const scaledHeight = height * scaleFactor;
+    const scaledWidth = width * scaleFactor;
+
+    const pendingId = uuidv4();
+    addPendingImage({
+      id: pendingId,
+      position,
+      size: { width: scaledWidth, height: scaledHeight },
+    });
+
+    try {
+      await handleGenerate(); // Trigger the generation process
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to start image generation",
+        variant: "destructive",
+      });
+      removePendingImage(pendingId); // Clean up if generation fails to start
+    }
+  };
+
   useEffect(() => {
     const fetchPlanData = async () => {
       try {
@@ -662,7 +711,7 @@ const ImagePromptUI = () => {
               </motion.div>
             </div>
             <motion.button
-              onClick={handleGenerate}
+              onClick={handleGenerateWithSkeleton} // Updated to new handler
               disabled={isGenerating || !!generateTaskId}
               className={`h-12 px-4 sm:px-6 flex items-center justify-center rounded-full sm:rounded-lg font-medium transition-all ${
                 isGenerating || !!generateTaskId

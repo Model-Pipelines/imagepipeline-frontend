@@ -1,21 +1,29 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useCallback, useState, useMemo } from "react"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { useImageStore } from "@/AxiosApi/ZustandImageStore"
-import { useToast } from "@/hooks/use-toast"
-import { useMutation } from "@tanstack/react-query"
-import { uploadBackendFiles, changeHuman } from "@/AxiosApi/GenerativeApi"
-import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"
-import { TextShimmerWave } from "@/components/ui/text-shimmer-wave"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { X } from "lucide-react"
-import { useAuth } from "@clerk/nextjs"
-import { InfoTooltip } from "@/components/ui/info-tooltip"
-import { motion } from "framer-motion"
+import type React from "react";
+import { useCallback, useState, useMemo, useEffect } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { uploadBackendFiles, changeHuman, getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
+import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
+import { useAuth } from "@clerk/nextjs";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { motion } from "framer-motion";
+import { useCanvasStore } from "@/lib/store";
+import { v4 as uuidv4 } from "uuid";
+
+interface TaskResponse {
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  image_url?: string;
+  error?: string;
+}
 
 const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
   <motion.div
@@ -29,81 +37,106 @@ const FileInput = ({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElem
       className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10"
     />
   </motion.div>
-)
+);
 
 export function HumanEditorImage() {
-  const [prompt, setPrompt] = useState("")
-  const [humanImage, setHumanImage] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [prompt, setPrompt] = useState("");
+  const [humanImage, setHumanImage] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
+  const { scale, offset } = useCanvasStore();
+  const { toast } = useToast();
+  const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth();
 
-  const { selectedImageId, images } = useImageStore()
-  const { toast } = useToast()
-  const { addTask } = useBackgroundTaskStore()
-  const { getToken } = useAuth()
+  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
 
-  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId])
+  const calculatePosition = useCallback(() => {
+    const numImages = images.length;
+    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const spacing = 50;
+    const width = 200;
+    const height = 200;
+    return {
+      x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
+      y: (Math.floor(numImages / gridSize) * (height + spacing)) / scale - offset.y,
+    };
+  }, [images.length, scale, offset]);
 
   const { mutate: uploadHumanImage } = useMutation({
     mutationFn: ({ data: file, token }: { data: File; token: string }) => uploadBackendFiles(file, token),
     onSuccess: (imageUrl) => {
-      setHumanImage(imageUrl)
-      toast({ title: "Success", description: "Reference image uploaded!" })
+      setHumanImage(imageUrl);
+      toast({ title: "Success", description: "Reference image uploaded!" });
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to upload reference image",
         variant: "destructive",
-      })
+      });
     },
-  })
+  });
 
   const { mutate: startHumanModification } = useMutation({
     mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeHuman(payload, token),
     onSuccess: (response) => {
       if (!response.id) {
-        toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" })
-        setIsProcessing(false)
-        return
+        toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
+        return;
       }
-      addTask(response.id, selectedImageId!, "human")
-      toast({ title: "Processing", description: "Human modification in progress..." })
-      setIsProcessing(false)
-      setPrompt("")
-      setHumanImage(null)
+      setTaskId(response.id);
+      addTask(response.id, selectedImageId!, "human");
+      toast({ title: "Processing", description: "Human modification in progress..." });
+      setPrompt("");
+      setHumanImage(null);
     },
     onError: (error: any) => {
       toast({
         title: "Error",
         description: error.message || "Failed to start modification",
         variant: "destructive",
-      })
-      setIsProcessing(false)
+      });
+      removePendingImage(taskId || "");
     },
-  })
+  });
+
+  const { data: taskStatus } = useQuery<TaskResponse, Error>({
+    queryKey: ["humanTask", taskId],
+    queryFn: async () => {
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getBackgroundTaskStatus(taskId!, token);
+    },
+    enabled: !!taskId,
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
+    staleTime: 0,
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
-      toast({ title: "Error", description: "Please select a base image first", variant: "destructive" })
-      return
+      toast({ title: "Error", description: "Please select a base image first", variant: "destructive" });
+      return;
     }
     if (!humanImage) {
-      toast({ title: "Error", description: "Please upload a reference image", variant: "destructive" })
-      return
+      toast({ title: "Error", description: "Please upload a reference image", variant: "destructive" });
+      return;
     }
     if (!prompt.trim()) {
-      toast({ title: "Error", description: "Please enter a description for the human", variant: "destructive" })
-      return
+      toast({ title: "Error", description: "Please enter a description for the human", variant: "destructive" });
+      return;
     }
 
-    const token = await getToken()
+    const token = await getToken();
     if (!token) {
       toast({
         title: "Error",
         description: "Authentication token not available",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     const payload = {
@@ -111,31 +144,84 @@ export function HumanEditorImage() {
       input_face: humanImage,
       prompt: prompt.trim(),
       seed: -1,
-    }
+    };
 
-    setIsProcessing(true)
-    startHumanModification({ data: payload, token })
-  }, [selectedImage, humanImage, prompt, startHumanModification, toast, addTask, selectedImageId, getToken])
+    const position = calculatePosition();
+    const pendingId = uuidv4();
+    addPendingImage({
+      id: pendingId,
+      position,
+      size: { width: 200, height: 200 },
+    });
+
+    startHumanModification({ data: payload, token });
+  }, [selectedImage, humanImage, prompt, startHumanModification, toast, addTask, selectedImageId, getToken, addPendingImage, calculatePosition]);
+
+  useEffect(() => {
+    if (!taskStatus || !taskId) return;
+
+    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
+      const element = new Image();
+      element.src = taskStatus.image_url;
+      element.onload = () => {
+        const aspectRatio = element.width / element.height;
+        let width = 200;
+        let height = width / aspectRatio;
+        if (height > 200) {
+          height = 200;
+          width = height * aspectRatio;
+        }
+        const position = calculatePosition();
+        addImage({
+          id: uuidv4(),
+          url: taskStatus.image_url!,
+          element,
+          position,
+          size: { width, height },
+        });
+        removePendingImage(taskId);
+        toast({ title: "Success", description: "Human modification completed successfully!" });
+        setTaskId(null);
+      };
+      element.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to load the resulting image.",
+          variant: "destructive",
+        });
+        removePendingImage(taskId);
+        setTaskId(null);
+      };
+    } else if (taskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: taskStatus.error || "Failed to modify human",
+        variant: "destructive",
+      });
+      removePendingImage(taskId);
+      setTaskId(null);
+    }
+  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
 
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
-      if (!file) return
+      const file = e.target.files?.[0];
+      if (!file) return;
 
-      const token = await getToken()
+      const token = await getToken();
       if (!token) {
         toast({
           title: "Error",
           description: "Authentication token not available",
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
-      uploadHumanImage({ data: file, token })
+      uploadHumanImage({ data: file, token });
     },
-    [uploadHumanImage, toast, getToken],
-  )
+    [uploadHumanImage, toast, getToken]
+  );
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -147,7 +233,6 @@ export function HumanEditorImage() {
               <InfoTooltip content="Edit human subjects in your images with advanced AI face and body modifications. Upload a reference image and describe the desired changes to modify facial features while maintaining natural looks." />
             </div>
           </div>
-
           <div className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -213,18 +298,18 @@ export function HumanEditorImage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="rounded-b-lg ">
+        <CardFooter className="rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedImage || !humanImage || !prompt.trim() || isProcessing}
+              disabled={!selectedImage || !humanImage || !prompt.trim() || !!taskId}
               className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold disabled:opacity-100"
             >
-              {isProcessing ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
+              {taskId ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
     </motion.div>
-  )
+  );
 }
