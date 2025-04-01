@@ -44,7 +44,6 @@ export function HumanEditorImage() {
   const [humanImage, setHumanImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [pendingImageId, setPendingImageId] = useState<string | null>(null);
-  const [pendingPosition, setPendingPosition] = useState<{ x: number; y: number } | null>(null); // Store the position
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
@@ -87,11 +86,10 @@ export function HumanEditorImage() {
         toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
         return;
       }
-      const position = calculatePosition(); // Calculate position once
-      setPendingPosition(position); // Store the position
       setTaskId(response.id);
       setPendingImageId(response.id);
       addTask(response.id, selectedImageId!, "human");
+      const position = calculatePosition();
       addPendingImage({
         id: response.id,
         position,
@@ -107,9 +105,9 @@ export function HumanEditorImage() {
         description: error.message || "Failed to start modification",
         variant: "destructive",
       });
+      // Do not add a skeleton if the task fails to start
       setPendingImageId(null);
       setTaskId(null);
-      setPendingPosition(null);
     },
   });
 
@@ -162,7 +160,7 @@ export function HumanEditorImage() {
   }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken]);
 
   useEffect(() => {
-    if (!taskStatus || !pendingImageId || !pendingPosition) return;
+    if (!taskStatus || !pendingImageId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -175,18 +173,18 @@ export function HumanEditorImage() {
           height = 200;
           width = height * aspectRatio;
         }
+        const position = calculatePosition();
         addImage({
           id: uuidv4(),
           url: taskStatus.image_url!,
           element,
-          position: pendingPosition, // Use the stored position
+          position,
           size: { width, height },
         });
         removePendingImage(pendingImageId);
         toast({ title: "Success", description: "Human modification completed successfully!" });
         setPendingImageId(null);
         setTaskId(null);
-        setPendingPosition(null);
       };
       element.onerror = () => {
         toast({
@@ -197,7 +195,6 @@ export function HumanEditorImage() {
         removePendingImage(pendingImageId);
         setPendingImageId(null);
         setTaskId(null);
-        setPendingPosition(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({
@@ -208,9 +205,8 @@ export function HumanEditorImage() {
       removePendingImage(pendingImageId);
       setPendingImageId(null);
       setTaskId(null);
-      setPendingPosition(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, pendingPosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
 
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
