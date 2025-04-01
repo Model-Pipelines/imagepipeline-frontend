@@ -1,27 +1,30 @@
-"use client"
+"use client";
 
-import React, { useCallback, useState, useMemo, useEffect } from "react"
-import { Card, CardContent, CardFooter } from "@/components/ui/card"
-import { useImageStore } from "@/AxiosApi/ZustandImageStore"
-import { useToast } from "@/hooks/use-toast"
-import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"
-import { TextShimmerWave } from "@/components/ui/text-shimmer-wave"
-import { Label } from "@/components/ui/label"
-import { X } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { useAuth } from "@clerk/nextjs"
-import { InfoTooltip } from "@/components/ui/info-tooltip"
-import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery"
-import { useQuery } from "@tanstack/react-query"
-import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi"
-import { motion } from "framer-motion"
+import React, { useCallback, useState, useMemo, useEffect } from "react";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useImageStore } from "@/AxiosApi/ZustandImageStore";
+import { useToast } from "@/hooks/use-toast";
+import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
+import { Label } from "@/components/ui/label";
+import { X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@clerk/nextjs";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
+import { useQuery } from "@tanstack/react-query";
+import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
+import { motion } from "framer-motion";
+import { useSkeletonLoader } from "@/hooks/useSkeletonLoader";
+import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
+import { v4 as uuidv4 } from "uuid";
 
 interface TaskResponse {
-  status: "PENDING" | "SUCCESS" | "FAILURE"
-  download_urls?: string[]
-  image_url?: string
-  error?: string
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  download_urls?: string[];
+  image_url?: string;
+  error?: string;
 }
 
 const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
@@ -36,39 +39,36 @@ const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HT
       className="block w-full text-sm text-base font-normal text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:bg-white/10 dark:file:bg-slate-800/10 file:backdrop-blur-sm hover:file:bg-white/20 dark:hover:file:bg-slate-800/20 file:border file:border-white/20 dark:file:border-white/10"
     />
   </motion.div>
-))
+));
 
 export default function BackGroundChange() {
-  const [prompt, setPrompt] = useState("")
-  const [backgroundImage, setBackgroundImage] = useState<string | null>(null)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [taskId, setTaskId] = useState<string | null>(null)
-  const { selectedImageId, images } = useImageStore()
-  const { toast } = useToast()
-  const { addTask } = useBackgroundTaskStore()
-  const { getToken } = useAuth()
+  const [prompt, setPrompt] = useState("");
+  const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const { isLoading, skeletonPosition, showSkeleton, hideSkeleton, calculatePosition } = useSkeletonLoader();
+  const { selectedImageId, images, addImage } = useImageStore();
+  const { toast } = useToast();
+  const { addTask } = useBackgroundTaskStore();
+  const { getToken } = useAuth();
 
-  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId])
+  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
 
-  const { mutate: uploadBackgroundImage } = useUploadBackendFiles()
-  const { mutate: startBackgroundChange } = useChangeBackground()
+  const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
+  const { mutate: startBackgroundChange } = useChangeBackground();
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
     queryFn: async () => {
-      const token = await getToken()
-      if (!token) throw new Error("Authentication token not available")
-      return getBackgroundTaskStatus(taskId!, token)
+      const token = await getToken();
+      if (!token) throw new Error("Authentication token not available");
+      return getBackgroundTaskStatus(taskId!, token);
     },
     enabled: !!taskId,
-    refetchInterval: (query) => {
-      const data = query.state.data
-      return data?.status === "PENDING" ? 5000 : false
-    },
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
     staleTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
-  })
+  });
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -76,26 +76,26 @@ export default function BackGroundChange() {
         title: "Error",
         description: "No image selected. Please select an image first.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
     if (!prompt) {
       toast({
         title: "Error",
         description: "Please provide a prompt for the new background.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    const token = await getToken()
+    const token = await getToken();
     if (!token) {
       toast({
         title: "Error",
         description: "Authentication token not available.",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     const payload = {
@@ -106,9 +106,9 @@ export default function BackGroundChange() {
       negative_prompt: "pixelated, low res, blurry, watermark, text, bad anatomy",
       seed: -1,
       num_outputs: 1,
-    }
+    };
 
-    setIsGenerating(true)
+    showSkeleton();
     startBackgroundChange(
       { data: payload, token },
       {
@@ -118,87 +118,115 @@ export default function BackGroundChange() {
               title: "Error",
               description: "Invalid response structure: Missing task ID.",
               variant: "destructive",
-            })
-            setIsGenerating(false)
-            return
+            });
+            hideSkeleton();
+            return;
           }
-          setTaskId(response.id)
-          addTask(response.id, selectedImageId!, "background")
-          setPrompt("")
-          setBackgroundImage(null)
-          setIsGenerating(false)
-          toast({ title: "Started", description: "Background change in progress..." })
+          setTaskId(response.id);
+          addTask(response.id, selectedImageId!, "background");
+          setPrompt("");
+          setBackgroundImage(null);
+          toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
           toast({
             title: "Error",
             description: error.message || "Failed to change background.",
             variant: "destructive",
-          })
-          setIsGenerating(false)
+          });
+          hideSkeleton();
         },
-      },
-    )
-  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask])
+      }
+    );
+  }, [
+    selectedImage,
+    prompt,
+    backgroundImage,
+    startBackgroundChange,
+    toast,
+    getToken,
+    selectedImageId,
+    addTask,
+    showSkeleton,
+    hideSkeleton,
+  ]);
 
   useEffect(() => {
-    if (!taskStatus) return
+    if (!taskStatus) return;
 
-    const handleTaskCompletion = () => {
-      if (taskStatus.status === "SUCCESS") {
-        toast({
-          title: "Success",
-          description: "Background changed successfully!",
-        })
-        setTaskId(null)
-      } else if (taskStatus.status === "FAILURE") {
+    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
+      const element = new Image();
+      element.src = taskStatus.image_url;
+      element.onload = () => {
+        const aspectRatio = element.width / element.height;
+        let width = 200;
+        let height = width / aspectRatio;
+        if (height > 200) {
+          height = 200;
+          width = height * aspectRatio;
+        }
+        const finalPosition = calculatePosition(width, height);
+        addImage({
+          id: uuidv4(),
+          url: taskStatus.image_url!,
+          element,
+          position: finalPosition,
+          size: { width, height },
+        });
+        toast({ title: "Success", description: "Background changed successfully!" });
+        hideSkeleton();
+      };
+      element.onerror = () => {
         toast({
           title: "Error",
-          description: taskStatus.error || "Failed to change background",
+          description: "Failed to load the resulting image.",
           variant: "destructive",
-        })
-        setTaskId(null)
-      }
+        });
+        hideSkeleton();
+      };
+    } else if (taskStatus.status === "FAILURE") {
+      toast({
+        title: "Error",
+        description: taskStatus.error || "Failed to change background",
+        variant: "destructive",
+      });
+      hideSkeleton();
     }
-
-    if (taskStatus.status !== "PENDING") {
-      handleTaskCompletion()
-    }
-  }, [taskStatus, toast])
+  }, [taskStatus, toast, addImage, calculatePosition, hideSkeleton]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0]
+      const file = e.target.files?.[0];
       if (file) {
-        const token = await getToken()
+        const token = await getToken();
         if (!token) {
           toast({
             title: "Error",
             description: "Authentication token not available.",
             variant: "destructive",
-          })
-          return
+          });
+          return;
         }
         uploadBackgroundImage(
           { data: file, token },
           {
             onSuccess: (imageUrl) => {
-              setBackgroundImage(imageUrl)
-              toast({ title: "Success", description: "Background image uploaded!" })
+              setBackgroundImage(imageUrl);
+              toast({ title: "Success", description: "Background image uploaded!" });
             },
             onError: (error: any) => {
               toast({
                 title: "Error",
                 description: error.message || "Failed to upload background image.",
                 variant: "destructive",
-              })
+              });
             },
-          },
-        )
+          }
+        );
       }
     },
-    [uploadBackgroundImage, toast, getToken],
-  )
+    [uploadBackgroundImage, toast, getToken]
+  );
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -276,15 +304,26 @@ export default function BackGroundChange() {
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedImage || isGenerating}
+              disabled={!selectedImage || isLoading}
               className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
             >
-              {isGenerating ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
+              {isLoading ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
       </Card>
+      {isLoading && skeletonPosition && (
+        <div
+          style={{
+            position: "absolute",
+            top: skeletonPosition.y,
+            left: skeletonPosition.x,
+            zIndex: 1000,
+          }}
+        >
+          <ShinyGradientSkeletonHorizontal />
+        </div>
+      )}
     </motion.div>
-)
+  );
 }
-
