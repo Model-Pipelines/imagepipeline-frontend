@@ -121,6 +121,9 @@ export default function BackgroundChange() {
   useEffect(() => {
     if (!taskStatus || !taskId) return;
 
+    console.log("Task status:", taskStatus);
+    console.log("Pending images before processing:", useImageStore.getState().pendingImages);
+
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
       element.src = taskStatus.image_url;
@@ -133,8 +136,13 @@ export default function BackgroundChange() {
           width = height * aspectRatio;
         }
         const position = calculatePosition();
-        addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
-        removePendingImage(taskId); // Use taskId consistently
+        const newImageId = uuidv4();
+        // Remove pending image FIRST
+        removePendingImage(taskId);
+        console.log("Removed pending image before adding, ID:", taskId);
+        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width, height } });
+        console.log("Image added with ID:", newImageId);
+        console.log("Pending images after adding:", useImageStore.getState().pendingImages);
         toast({ title: "Success", description: "Background changed successfully!" });
         setTaskId(null);
       };
