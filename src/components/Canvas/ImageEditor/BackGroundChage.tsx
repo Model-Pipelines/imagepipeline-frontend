@@ -120,10 +120,10 @@ export default function BackgroundChange() {
 
   useEffect(() => {
     if (!taskStatus || !taskId) return;
-
+  
     console.log("Task status:", taskStatus);
     console.log("Pending images before processing:", useImageStore.getState().pendingImages);
-
+  
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
       element.src = taskStatus.image_url;
@@ -135,15 +135,22 @@ export default function BackgroundChange() {
           height = 200;
           width = height * aspectRatio;
         }
-        const position = calculatePosition();
+        // Retrieve the position from the pendingImages entry
+        const pendingImage = useImageStore.getState().pendingImages.find((pending) => pending.id === taskId);
+        if (!pendingImage) {
+          toast({ title: "Error", description: "Pending image position not found", variant: "destructive" });
+          removePendingImage(taskId);
+          setTaskId(null);
+          return;
+        }
+        const position = pendingImage.position; // Use the stored position
         const newImageId = uuidv4();
-        // Remove pending image FIRST
         removePendingImage(taskId);
         console.log("Removed pending image before adding, ID:", taskId);
         addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width, height } });
         console.log("Image added with ID:", newImageId);
         console.log("Pending images after adding:", useImageStore.getState().pendingImages);
-        toast({ title: "Success", description: "Background changed successfully!" });
+        toast({ title: "Success", description: "Image upscaled successfully!" });
         setTaskId(null);
       };
       element.onerror = () => {
@@ -152,11 +159,11 @@ export default function BackgroundChange() {
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: taskStatus.error || "Failed to change background", variant: "destructive" });
+      toast({ title: "Error", description: taskStatus.error || "Failed to upscale image", variant: "destructive" });
       removePendingImage(taskId);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, taskId]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
