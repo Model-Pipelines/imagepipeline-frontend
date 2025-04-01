@@ -25,7 +25,7 @@ interface TaskResponse {
 const Upscale = () => {
   const [upscaleFactor] = useState<number>(2);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Added
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
@@ -57,11 +57,11 @@ const Upscale = () => {
         return;
       }
       setTaskId(response.id);
-      setPendingImageId(response.id); // Set pendingImageId
+      setPendingImageId(response.id);
       addTask(response.id, selectedImageId!, "upscale");
       const position = calculatePosition();
       addPendingImage({
-        id: response.id, // Use taskId
+        id: response.id,
         position,
         size: { width: 200, height: 200 },
       });
@@ -76,7 +76,9 @@ const Upscale = () => {
         description: error.message || "Failed to start upscaling",
         variant: "destructive",
       });
-      removePendingImage(pendingImageId || ""); // Use pendingImageId
+      // Do not add a skeleton if the task fails to start
+      setPendingImageId(null);
+      setTaskId(null);
     },
   });
 
@@ -146,7 +148,7 @@ const Upscale = () => {
           position,
           size: { width, height },
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         toast({ title: "Success", description: "Image upscaled successfully!" });
         setPendingImageId(null);
         setTaskId(null);
@@ -157,7 +159,7 @@ const Upscale = () => {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         setPendingImageId(null);
         setTaskId(null);
       };
@@ -167,7 +169,7 @@ const Upscale = () => {
         description: taskStatus.error || "Failed to upscale image",
         variant: "destructive",
       });
-      removePendingImage(pendingImageId); // Use pendingImageId
+      removePendingImage(pendingImageId);
       setPendingImageId(null);
       setTaskId(null);
     }

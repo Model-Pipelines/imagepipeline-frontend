@@ -43,7 +43,7 @@ export function HumanEditorImage() {
   const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Added
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
@@ -87,11 +87,11 @@ export function HumanEditorImage() {
         return;
       }
       setTaskId(response.id);
-      setPendingImageId(response.id); // Set pendingImageId
+      setPendingImageId(response.id);
       addTask(response.id, selectedImageId!, "human");
       const position = calculatePosition();
       addPendingImage({
-        id: response.id, // Use taskId
+        id: response.id,
         position,
         size: { width: 200, height: 200 },
       });
@@ -105,7 +105,9 @@ export function HumanEditorImage() {
         description: error.message || "Failed to start modification",
         variant: "destructive",
       });
-      removePendingImage(pendingImageId || ""); // Use pendingImageId
+      // Do not add a skeleton if the task fails to start
+      setPendingImageId(null);
+      setTaskId(null);
     },
   });
 
@@ -179,7 +181,7 @@ export function HumanEditorImage() {
           position,
           size: { width, height },
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         toast({ title: "Success", description: "Human modification completed successfully!" });
         setPendingImageId(null);
         setTaskId(null);
@@ -190,7 +192,7 @@ export function HumanEditorImage() {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         setPendingImageId(null);
         setTaskId(null);
       };
@@ -200,7 +202,7 @@ export function HumanEditorImage() {
         description: taskStatus.error || "Failed to modify human",
         variant: "destructive",
       });
-      removePendingImage(pendingImageId); // Use pendingImageId
+      removePendingImage(pendingImageId);
       setPendingImageId(null);
       setTaskId(null);
     }

@@ -44,7 +44,7 @@ export default function BackgroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Added
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
@@ -133,11 +133,11 @@ export default function BackgroundChange() {
             return;
           }
           setTaskId(response.id);
-          setPendingImageId(response.id); // Set pendingImageId
+          setPendingImageId(response.id);
           addTask(response.id, selectedImageId!, "background");
           const position = calculatePosition();
           addPendingImage({
-            id: response.id, // Use taskId
+            id: response.id,
             position,
             size: { width: 200, height: 200 },
           });
@@ -151,7 +151,9 @@ export default function BackgroundChange() {
             description: error.message || "Failed to change background.",
             variant: "destructive",
           });
-          removePendingImage(pendingImageId || ""); // Use pendingImageId
+          // Do not add a skeleton if the task fails to start
+          setPendingImageId(null);
+          setTaskId(null);
         },
       }
     );
@@ -165,7 +167,6 @@ export default function BackgroundChange() {
     selectedImageId,
     addTask,
     addPendingImage,
-    removePendingImage,
     calculatePosition,
   ]);
 
@@ -191,7 +192,7 @@ export default function BackgroundChange() {
           position,
           size: { width, height },
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         toast({ title: "Success", description: "Background changed successfully!" });
         setPendingImageId(null);
         setTaskId(null);
@@ -202,7 +203,7 @@ export default function BackgroundChange() {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        removePendingImage(pendingImageId); // Use pendingImageId
+        removePendingImage(pendingImageId);
         setPendingImageId(null);
         setTaskId(null);
       };
@@ -212,7 +213,7 @@ export default function BackgroundChange() {
         description: taskStatus.error || "Failed to change background",
         variant: "destructive",
       });
-      removePendingImage(pendingImageId); // Use pendingImageId
+      removePendingImage(pendingImageId);
       setPendingImageId(null);
       setTaskId(null);
     }
