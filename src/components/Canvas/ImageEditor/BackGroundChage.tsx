@@ -17,7 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
 import { motion } from "framer-motion";
 import { useSkeletonLoader } from "@/hooks/useSkeletonLoader";
-import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
+import { GlobalSkeleton } from "@/components/ImageSkeleton/GlobalSkeleton";
 import { v4 as uuidv4 } from "uuid";
 
 interface TaskResponse {
@@ -45,7 +45,7 @@ export default function BackGroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const { isLoading, skeletonPosition, showSkeleton, hideSkeleton, calculatePosition } = useSkeletonLoader();
+  const { isLoading, skeletonPosition, showSkeleton, hideSkeleton } = useSkeletonLoader();
   const { selectedImageId, images, addImage } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
@@ -108,7 +108,7 @@ export default function BackGroundChange() {
       num_outputs: 1,
     };
 
-    showSkeleton();
+    const position = showSkeleton(); // Show skeleton and get position
     startBackgroundChange(
       { data: payload, token },
       {
@@ -165,12 +165,12 @@ export default function BackGroundChange() {
           height = 200;
           width = height * aspectRatio;
         }
-        const finalPosition = calculatePosition(width, height);
+        const position = skeletonPosition || { x: 0, y: 0 }; // Use skeleton position
         addImage({
           id: uuidv4(),
           url: taskStatus.image_url!,
           element,
-          position: finalPosition,
+          position,
           size: { width, height },
         });
         toast({ title: "Success", description: "Background changed successfully!" });
@@ -192,7 +192,7 @@ export default function BackGroundChange() {
       });
       hideSkeleton();
     }
-  }, [taskStatus, toast, addImage, calculatePosition, hideSkeleton]);
+  }, [taskStatus, toast, addImage, skeletonPosition, hideSkeleton]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,7 +272,6 @@ export default function BackGroundChange() {
                 <p className="text-gray-500 text-base font-normal">No image selected</p>
               )}
             </div>
-
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-normal">Reference Background</Label>
@@ -312,18 +311,7 @@ export default function BackGroundChange() {
           </motion.div>
         </CardFooter>
       </Card>
-      {isLoading && skeletonPosition && (
-        <div
-          style={{
-            position: "absolute",
-            top: skeletonPosition.y,
-            left: skeletonPosition.x,
-            zIndex: 1000,
-          }}
-        >
-          <ShinyGradientSkeletonHorizontal />
-        </div>
-      )}
+      <GlobalSkeleton isLoading={isLoading} position={skeletonPosition} />
     </motion.div>
   );
 }

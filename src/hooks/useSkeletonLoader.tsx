@@ -1,4 +1,4 @@
-// hooks/useSkeletonLoader.ts
+// hooks/useSkeletonLoader.tsx
 import { useState, useCallback } from "react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 
@@ -8,7 +8,7 @@ export const useSkeletonLoader = () => {
   const { images } = useImageStore();
 
   const calculatePosition = useCallback((width: number = 200, height: number = 200) => {
-    const canvasWidth = window.innerWidth;
+    const canvasWidth = window.innerWidth; // Adjust if canvas has a specific width
     const offsetX = 20;
     const offsetY = 20;
     const imagesPerRow = Math.floor(canvasWidth / (width + offsetX));
@@ -20,10 +20,11 @@ export const useSkeletonLoader = () => {
     };
   }, [images.length]);
 
-  const showSkeleton = useCallback(() => {
+  const showSkeleton = useCallback((width?: number, height?: number) => {
     setIsLoading(true);
-    const position = calculatePosition();
+    const position = calculatePosition(width, height);
     setSkeletonPosition(position);
+    return position; // Return position for use in addImage
   }, [calculatePosition]);
 
   const hideSkeleton = useCallback(() => {
