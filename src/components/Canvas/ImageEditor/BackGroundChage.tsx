@@ -44,8 +44,9 @@ export default function BackgroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Added
   const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
-  const { scale, offset } = useCanvasStore(); // Use canvas state for positioning
+  const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
@@ -73,7 +74,7 @@ export default function BackgroundChange() {
     const numImages = images.length;
     const gridSize = Math.ceil(Math.sqrt(numImages + 1));
     const spacing = 50;
-    const width = 200; // Default size
+    const width = 200;
     const height = 200;
     return {
       x: ((numImages % gridSize) * (width + spacing)) / scale - offset.x,
@@ -119,14 +120,6 @@ export default function BackgroundChange() {
       num_outputs: 1,
     };
 
-    const position = calculatePosition();
-    const pendingId = uuidv4();
-    addPendingImage({
-      id: pendingId,
-      position,
-      size: { width: 200, height: 200 },
-    });
-
     startBackgroundChange(
       { data: payload, token },
       {
@@ -137,11 +130,17 @@ export default function BackgroundChange() {
               description: "Invalid response structure: Missing task ID.",
               variant: "destructive",
             });
-            removePendingImage(pendingId);
             return;
           }
           setTaskId(response.id);
+          setPendingImageId(response.id); // Set pendingImageId
           addTask(response.id, selectedImageId!, "background");
+          const position = calculatePosition();
+          addPendingImage({
+            id: response.id, // Use taskId
+            position,
+            size: { width: 200, height: 200 },
+          });
           setPrompt("");
           setBackgroundImage(null);
           toast({ title: "Started", description: "Background change in progress..." });
@@ -152,7 +151,7 @@ export default function BackgroundChange() {
             description: error.message || "Failed to change background.",
             variant: "destructive",
           });
-          removePendingImage(pendingId);
+          removePendingImage(pendingImageId || ""); // Use pendingImageId
         },
       }
     );
@@ -171,7 +170,7 @@ export default function BackgroundChange() {
   ]);
 
   useEffect(() => {
-    if (!taskStatus || !taskId) return;
+    if (!taskStatus || !pendingImageId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -184,7 +183,7 @@ export default function BackgroundChange() {
           height = 200;
           width = height * aspectRatio;
         }
-        const position = calculatePosition(); // Recalculate to ensure alignment
+        const position = calculatePosition();
         addImage({
           id: uuidv4(),
           url: taskStatus.image_url!,
@@ -192,8 +191,9 @@ export default function BackgroundChange() {
           position,
           size: { width, height },
         });
-        removePendingImage(taskId); // Remove skeleton
+        removePendingImage(pendingImageId); // Use pendingImageId
         toast({ title: "Success", description: "Background changed successfully!" });
+        setPendingImageId(null);
         setTaskId(null);
       };
       element.onerror = () => {
@@ -202,7 +202,8 @@ export default function BackgroundChange() {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        removePendingImage(taskId);
+        removePendingImage(pendingImageId); // Use pendingImageId
+        setPendingImageId(null);
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
@@ -211,10 +212,11 @@ export default function BackgroundChange() {
         description: taskStatus.error || "Failed to change background",
         variant: "destructive",
       });
-      removePendingImage(taskId);
+      removePendingImage(pendingImageId); // Use pendingImageId
+      setPendingImageId(null);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

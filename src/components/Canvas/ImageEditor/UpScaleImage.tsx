@@ -25,6 +25,7 @@ interface TaskResponse {
 const Upscale = () => {
   const [upscaleFactor] = useState<number>(2);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null); // Added
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
@@ -56,7 +57,14 @@ const Upscale = () => {
         return;
       }
       setTaskId(response.id);
+      setPendingImageId(response.id); // Set pendingImageId
       addTask(response.id, selectedImageId!, "upscale");
+      const position = calculatePosition();
+      addPendingImage({
+        id: response.id, // Use taskId
+        position,
+        size: { width: 200, height: 200 },
+      });
       toast({
         title: "Processing",
         description: "Upscaling in progress...",
@@ -68,7 +76,7 @@ const Upscale = () => {
         description: error.message || "Failed to start upscaling",
         variant: "destructive",
       });
-      removePendingImage(taskId || "");
+      removePendingImage(pendingImageId || ""); // Use pendingImageId
     },
   });
 
@@ -110,22 +118,14 @@ const Upscale = () => {
       input_image: selectedImage.url,
     };
 
-    const position = calculatePosition();
-    const pendingId = uuidv4();
-    addPendingImage({
-      id: pendingId,
-      position,
-      size: { width: 200, height: 200 },
-    });
-
     upscaleImageMutation({
       data: payload,
       token,
     });
-  }, [selectedImage, upscaleImageMutation, toast, addTask, selectedImageId, getToken, addPendingImage, calculatePosition]);
+  }, [selectedImage, upscaleImageMutation, toast, getToken]);
 
   useEffect(() => {
-    if (!taskStatus || !taskId) return;
+    if (!taskStatus || !pendingImageId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
@@ -146,8 +146,9 @@ const Upscale = () => {
           position,
           size: { width, height },
         });
-        removePendingImage(taskId);
+        removePendingImage(pendingImageId); // Use pendingImageId
         toast({ title: "Success", description: "Image upscaled successfully!" });
+        setPendingImageId(null);
         setTaskId(null);
       };
       element.onerror = () => {
@@ -156,7 +157,8 @@ const Upscale = () => {
           description: "Failed to load the resulting image.",
           variant: "destructive",
         });
-        removePendingImage(taskId);
+        removePendingImage(pendingImageId); // Use pendingImageId
+        setPendingImageId(null);
         setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
@@ -165,10 +167,11 @@ const Upscale = () => {
         description: taskStatus.error || "Failed to upscale image",
         variant: "destructive",
       });
-      removePendingImage(taskId);
+      removePendingImage(pendingImageId); // Use pendingImageId
+      setPendingImageId(null);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
+  }, [taskStatus, toast, addImage, removePendingImage, pendingImageId, calculatePosition]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
