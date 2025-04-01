@@ -96,10 +96,10 @@ const Upscale = () => {
 
   useEffect(() => {
     if (!taskStatus || !taskId) return;
-
+  
     console.log("Task status:", taskStatus);
     console.log("Pending images before processing:", useImageStore.getState().pendingImages);
-
+  
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
       element.src = taskStatus.image_url;
@@ -111,9 +111,16 @@ const Upscale = () => {
           height = 200;
           width = height * aspectRatio;
         }
-        const position = calculatePosition();
+        // Retrieve the position from the pendingImages entry
+        const pendingImage = useImageStore.getState().pendingImages.find((pending) => pending.id === taskId);
+        if (!pendingImage) {
+          toast({ title: "Error", description: "Pending image position not found", variant: "destructive" });
+          removePendingImage(taskId);
+          setTaskId(null);
+          return;
+        }
+        const position = pendingImage.position; // Use the stored position
         const newImageId = uuidv4();
-        // Remove pending image FIRST
         removePendingImage(taskId);
         console.log("Removed pending image before adding, ID:", taskId);
         addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width, height } });
@@ -132,8 +139,8 @@ const Upscale = () => {
       removePendingImage(taskId);
       setTaskId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
-
+  }, [taskStatus, toast, addImage, removePendingImage, taskId]);
+  
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <Card className="bg-white/5 backdrop-blur-[2.5px] border border-white/20 dark:border-white/10 rounded-xl shadow-lg">

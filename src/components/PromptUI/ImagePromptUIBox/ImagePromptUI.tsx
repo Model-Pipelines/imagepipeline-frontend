@@ -327,11 +327,11 @@ const ImagePromptUI = () => {
 
   useEffect(() => {
     if (!generateTaskStatus || !pendingImageId) return;
-
+  
     console.log("Generate task status:", generateTaskStatus);
     console.log("Current pendingImageId:", pendingImageId);
     console.log("Pending images in store:", pendingImages);
-
+  
     if (generateTaskStatus.status === "SUCCESS") {
       const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       console.log("Image URL from status:", imageUrl);
@@ -347,20 +347,34 @@ const ImagePromptUI = () => {
         setGenerateTaskId(null);
         return;
       }
-
+  
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        const position = calculatePosition();
+        // Retrieve the position from the pendingImages entry
+        const pendingImage = pendingImages.find((pending) => pending.id === pendingImageId);
+        if (!pendingImage) {
+          toast({
+            title: "Error",
+            description: "Pending image position not found",
+            variant: "destructive",
+          });
+          removePendingImage(pendingImageId);
+          setPendingImageId(null);
+          setGenerateTaskId(null);
+          return;
+        }
+  
+        const position = pendingImage.position; // Use the stored position
         const scaleFactor = 200 / Math.max(height, width);
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
-
+  
         const newImageId = uuidv4();
         addImage({
           id: newImageId,
           url: imageUrl,
-          position,
+          position, // Use the stored position
           size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
@@ -396,8 +410,8 @@ const ImagePromptUI = () => {
       setPendingImageId(null);
       setGenerateTaskId(null);
     }
-  }, [generateTaskStatus, addImage, images, toast, height, width, removePendingImage, pendingImageId, pendingImages]);
-
+  }, [generateTaskStatus, addImage, toast, height, width, removePendingImage, pendingImageId, pendingImages]);
+  
   const handleTogglePublic = () => {
     if (isFreePlan()) {
       openUpgradePopup();
