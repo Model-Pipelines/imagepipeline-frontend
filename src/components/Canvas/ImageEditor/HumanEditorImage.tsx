@@ -82,8 +82,6 @@ export function HumanEditorImage() {
 
     const payload = { input_image: selectedImage.url, input_face: humanImage, prompt: prompt.trim(), seed: -1 };
     const position = calculatePosition();
-    const pendingId = uuidv4();
-    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
 
     startHumanModification(
       { data: payload, token },
@@ -91,21 +89,20 @@ export function HumanEditorImage() {
         onSuccess: (response) => {
           if (!response.id) {
             toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
-            removePendingImage(pendingId);
             return;
           }
           setTaskId(response.id);
           addTask(response.id, selectedImageId!, "human");
+          addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } }); // Use taskId as pendingId
           toast({ title: "Processing", description: "Human modification in progress..." });
         },
         onError: (error: any) => {
           toast({ title: "Error", description: error.message || "Failed to start modification.", variant: "destructive" });
-          removePendingImage(pendingId);
           setTaskId(null);
         },
       }
     );
-  }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken, selectedImageId, addTask, addPendingImage, removePendingImage, calculatePosition]);
+  }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
 
   useEffect(() => {
     if (!taskStatus || !taskId) return;
@@ -123,7 +120,7 @@ export function HumanEditorImage() {
         }
         const position = calculatePosition();
         addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
-        removePendingImage(taskId);
+        removePendingImage(taskId); // Use taskId consistently
         toast({ title: "Success", description: "Human modification completed successfully!" });
         setTaskId(null);
       };

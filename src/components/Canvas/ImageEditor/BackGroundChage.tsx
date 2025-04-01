@@ -97,30 +97,26 @@ export default function BackgroundChange() {
     };
 
     const position = calculatePosition();
-    const pendingId = uuidv4(); // Use a unique ID for the pending image
-    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
-
     startBackgroundChange(
       { data: payload, token },
       {
         onSuccess: (response) => {
           if (!response?.id) {
             toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
-            removePendingImage(pendingId);
             return;
           }
           setTaskId(response.id);
           addTask(response.id, selectedImageId!, "background");
+          addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } }); // Use taskId as pendingId
           toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
           toast({ title: "Error", description: error.message || "Failed to change background.", variant: "destructive" });
-          removePendingImage(pendingId);
           setTaskId(null);
         },
       }
     );
-  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, removePendingImage, calculatePosition]);
+  }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
 
   useEffect(() => {
     if (!taskStatus || !taskId) return;
@@ -138,7 +134,7 @@ export default function BackgroundChange() {
         }
         const position = calculatePosition();
         addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
-        removePendingImage(taskId); // Use taskId to match the skeleton
+        removePendingImage(taskId); // Use taskId consistently
         toast({ title: "Success", description: "Background changed successfully!" });
         setTaskId(null);
       };

@@ -52,7 +52,7 @@ const Upscale = () => {
       setTaskId(response.id);
       addTask(response.id, selectedImageId!, "upscale");
       const position = calculatePosition();
-      addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } });
+      addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } }); // Use taskId as pendingId
       toast({ title: "Processing", description: "Upscaling in progress..." });
     },
     onError: (error: any) => {
@@ -88,15 +88,11 @@ const Upscale = () => {
     }
 
     const payload = { input_image: selectedImage.url };
-    const position = calculatePosition();
-    const pendingId = uuidv4();
-    addPendingImage({ id: pendingId, position, size: { width: 200, height: 200 } });
-
     upscaleImageMutation({
       data: payload,
       token,
     });
-  }, [selectedImage, upscaleImageMutation, toast, getToken, addPendingImage, calculatePosition]);
+  }, [selectedImage, upscaleImageMutation, toast, getToken]);
 
   useEffect(() => {
     if (!taskStatus || !taskId) return;
@@ -114,7 +110,7 @@ const Upscale = () => {
         }
         const position = calculatePosition();
         addImage({ id: uuidv4(), url: taskStatus.image_url!, element, position, size: { width, height } });
-        removePendingImage(taskId);
+        removePendingImage(taskId); // Use taskId consistently
         toast({ title: "Success", description: "Image upscaled successfully!" });
         setTaskId(null);
       };
