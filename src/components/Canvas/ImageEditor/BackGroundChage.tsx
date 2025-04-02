@@ -186,7 +186,7 @@ export default function BackgroundChange() {
             <Button
               onClick={handleSubmit}
               disabled={!selectedImage || (pendingImageId && tasks[pendingImageId]?.status === "PENDING")}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
             >
               {pendingImageId && tasks[pendingImageId]?.status === "PENDING" ? (
                 <TextShimmerWave>Generating...</TextShimmerWave>

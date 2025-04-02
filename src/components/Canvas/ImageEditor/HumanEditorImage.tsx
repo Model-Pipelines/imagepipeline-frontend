@@ -234,7 +234,7 @@ export function HumanEditorImage() {
         </CardContent>
         <CardFooter className="rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button onClick={handleSubmit} disabled={!selectedImage || !humanImage || !prompt.trim() || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold disabled:opacity-100">
+            <Button onClick={handleSubmit} disabled={!selectedImage || !humanImage || !prompt.trim() || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold disabled:opacity-100">
               {taskId ? <TextShimmerWave duration={1.2}>Processing...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
