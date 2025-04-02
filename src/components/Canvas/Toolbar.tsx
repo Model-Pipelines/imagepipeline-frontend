@@ -283,12 +283,7 @@ export default function Toolbar({ onUpload }: ToolbarProps) {
                   <Bug />
                 </DropdownMenuShortcut>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleMaximizeChat}>
-                Open Live Chat
-                <DropdownMenuShortcut>
-                  <MessageSquareShare />
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
+              
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
