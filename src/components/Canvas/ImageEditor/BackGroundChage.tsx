@@ -50,18 +50,16 @@ export default function BackgroundChange() {
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
-    const position = lastImage
+    return lastImage
       ? {
-          x: lastImage.position.x + lastImage.size.width + spacing,
-          y: lastImage.position.y,
+          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
+          y: lastImage.position.y / scale - offset.y,
         }
       : {
-          x: spacing,
-          y: spacing * 2,
+          x: spacing / scale - offset.x,
+          y: (spacing * 2) / scale - offset.y,
         };
-    console.log("Calculated position for skeleton:", position, "Scale:", scale, "Offset:", offset);
-    return position;
-  }, [images]); // Removed scale and offset from dependencies as they are not needed here
+  }, [images, scale, offset]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -132,45 +130,61 @@ export default function BackgroundChange() {
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !taskId || !pendingImageId) return;
+    if (!taskStatus || !pendingImageId) return;
 
-    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
-      const element = new Image();
-      element.src = taskStatus.image_url;
-      element.onload = () => {
-        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
+    if (taskStatus.status === "SUCCESS") {
+      const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
+      if (!imageUrl) {
+        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
+        removePendingImage(pendingImageId);
+        setPendingImageId(null);
+        setTaskId(null);
+        return;
+      }
+
+      const img = new Image();
+      img.src = imageUrl;
+      img.onload = () => {
+        const pendingImage = pendingImages.find((pending) => pending.id === pendingImageId);
         if (!pendingImage) {
-          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
-          removePendingImage(taskId);
-          setTaskId(null);
+          toast({ title: "Error", description: "Pending image position not found", variant: "destructive" });
+          removePendingImage(pendingImageId);
           setPendingImageId(null);
+          setTaskId(null);
           return;
         }
+
         const position = pendingImage.position;
-        console.log("Position for final image:", position, "Scale:", scale, "Offset:", offset);
-        const scaleFactor = 200 / Math.max(element.width, element.height);
-        const scaledHeight = element.height * scaleFactor;
-        const scaledWidth = element.width * scaleFactor;
+        const scaleFactor = 200 / Math.max(img.width, img.height);
+        const scaledHeight = img.height * scaleFactor;
+        const scaledWidth = img.width * scaleFactor;
         const newImageId = uuidv4();
+
+        addImage({
+          id: newImageId,
+          url: imageUrl,
+          position,
+          size: { width: scaledWidth, height: scaledHeight },
+          element: img,
+        });
         removePendingImage(pendingImageId);
-        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width: scaledWidth, height: scaledHeight } });
         toast({ title: "Success", description: "Background changed successfully!" });
-        setTaskId(null);
         setPendingImageId(null);
+        setTaskId(null);
       };
-      element.onerror = () => {
-        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
+      img.onerror = () => {
+        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
         removePendingImage(pendingImageId);
-        setTaskId(null);
         setPendingImageId(null);
+        setTaskId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({ title: "Error", description: taskStatus.error || "Failed to change background", variant: "destructive" });
       removePendingImage(pendingImageId);
-      setTaskId(null);
       setPendingImageId(null);
+      setTaskId(null);
     }
-  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]); // Removed scale and offset from dependencies
+  }, [taskStatus, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
