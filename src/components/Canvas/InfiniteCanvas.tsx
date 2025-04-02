@@ -13,22 +13,15 @@ import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
 import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { uploadBackendFiles, getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
+import { useMutation } from "@tanstack/react-query";
+import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
-import { v4 as uuidv4 } from "uuid";
+import { BackgroundTaskPoller } from "@/components/Canvas/ImageEditor/BackgroundPoller"; // Import the poller
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
-
-interface TaskResponse {
-  status: "PENDING" | "SUCCESS" | "FAILURE";
-  download_urls?: string[];
-  image_url?: string;
-  error?: string;
-}
 
 export default function InfiniteCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,7 +47,7 @@ export default function InfiniteCanvas() {
   } = useCanvasStore();
   const { getToken } = useAuth();
   const { toast } = useToast();
-  const { tasks, removeTask } = useBackgroundTaskStore();
+  const { tasks } = useBackgroundTaskStore();
 
   const [actionStart, setActionStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [currentAction, setCurrentAction] = useState<"move" | "resize" | "canvas-drag" | null>(null);
@@ -349,76 +342,7 @@ export default function InfiniteCanvas() {
     window.addEventListener("resize", handleResize);
     draw();
     return () => window.removeEventListener("resize", handleResize);
-  }, [draw, pendingImages]);
-
-  // Centralized Task Polling
-  useEffect(() => {
-    const pollTasks = async () => {
-      for (const taskId of Object.keys(tasks)) {
-        const task = tasks[taskId];
-        const { data: taskStatus } = await useQuery<TaskResponse, Error>({
-          queryKey: ["backgroundTask", taskId],
-          queryFn: async () => {
-            const token = await getToken();
-            if (!token) throw new Error("Authentication token not available");
-            return getBackgroundTaskStatus(taskId, token);
-          },
-          enabled: !!taskId,
-          refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
-          staleTime: 0,
-          retry: false,
-          refetchOnWindowFocus: false,
-        });
-
-        if (taskStatus) {
-          if (taskStatus.status === "SUCCESS" && (taskStatus.image_url || taskStatus.download_urls?.[0])) {
-            const imageUrl = taskStatus.image_url || taskStatus.download_urls![0];
-            const element = new Image();
-            element.src = imageUrl;
-
-            element.onload = () => {
-              // Find the corresponding pending image by matching with task context
-              const pendingImage = pendingImages.find((p) => p.id === taskId || p.id === task.associatedPendingId);
-              if (!pendingImage) {
-                toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
-                removeTask(taskId);
-                return;
-              }
-
-              const position = pendingImage.position;
-              const scaleFactor = 200 / Math.max(element.width, element.height);
-              const scaledHeight = element.height * scaleFactor;
-              const scaledWidth = element.width * scaleFactor;
-              const newImageId = uuidv4();
-
-              removeImage(pendingImage.id); // Remove skeleton
-              addImage({
-                id: newImageId,
-                url: imageUrl,
-                element,
-                position,
-                size: { width: scaledWidth, height: scaledHeight },
-              });
-              toast({ title: "Success", description: "Task completed successfully!" });
-              removeTask(taskId);
-            };
-
-            element.onerror = () => {
-              toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
-              removeImage(taskId);
-              removeTask(taskId);
-            };
-          } else if (taskStatus.status === "FAILURE") {
-            toast({ title: "Error", description: taskStatus.error || "Task failed", variant: "destructive" });
-            removeImage(taskId);
-            removeTask(taskId);
-          }
-        }
-      }
-    };
-
-    pollTasks();
-  }, [tasks, pendingImages, addImage, removeImage, removeTask, toast, getToken]);
+  }, [draw]);
 
   return (
     <div className="relative w-full h-full flex">
@@ -457,22 +381,27 @@ export default function InfiniteCanvas() {
             )}
           </div>
         ))}
-        {pendingImages.map((pending) => (
-          <div
-            key={pending.id}
-            className="absolute"
-            style={{
-              transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
-              width: `${pending.size.width * scale}px`,
-              height: `${pending.size.height * scale}px`,
-              zIndex: 10,
-            }}
-          >
-            <ShinyGradientSkeletonHorizontal />
-          </div>
-        ))}
+        {pendingImages.map((pending) => {
+          const task = tasks[pending.id];
+          if (!task || task.status !== "PENDING") return null; // Only render skeleton if task is PENDING
+          return (
+            <div
+              key={pending.id}
+              className="absolute"
+              style={{
+                transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
+                width: `${pending.size.width * scale}px`,
+                height: `${pending.size.height * scale}px`,
+                zIndex: 10,
+              }}
+            >
+              <ShinyGradientSkeletonHorizontal />
+            </div>
+          );
+        })}
       </div>
       <ParentPrompt />
+      <BackgroundTaskPoller /> {/* Add the poller to handle task updates */}
     </div>
   );
 }

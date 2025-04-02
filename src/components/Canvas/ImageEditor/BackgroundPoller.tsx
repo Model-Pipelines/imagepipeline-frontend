@@ -7,20 +7,18 @@ import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { useAuth } from "@clerk/nextjs"; // Import useAuth for token retrieval
+import { useAuth } from "@clerk/nextjs";
 
 const TaskProcessor = ({ taskId }: { taskId: string }) => {
   const { tasks, updateTask, removeTask } = useBackgroundTaskStore();
-  const { images, addImage } = useImageStore();
-  const { getToken } = useAuth(); // Get token function from Clerk
+  const { images, addImage, pendingImages, removePendingImage } = useImageStore();
+  const { getToken } = useAuth();
   const task = tasks[taskId];
 
-  // If the task has been removed, exit early.
   if (!task) return null;
 
   const currentStatus = task.status;
 
-  // Memoize the query function based on task type and taskId, including token retrieval
   const queryFn = useCallback(async () => {
     const token = await getToken();
     if (!token) {
@@ -51,12 +49,12 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
         variant: "destructive",
       });
       removeTask(taskId);
+      removePendingImage(taskId); // Remove skeleton on error
       return;
     }
 
     if (!data || !task) return;
 
-    // Update the task if its status has changed.
     if (currentStatus !== data.status) {
       updateTask(taskId, data);
     }
@@ -66,13 +64,12 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
         const imageUrl = data.download_urls?.[0] || data.image_url;
         if (!imageUrl) return;
 
-        // Prevent duplicate images: check if an image with the same URL already exists.
         if (images.some((img) => img.url === imageUrl)) {
           removeTask(taskId);
+          removePendingImage(taskId);
           return;
         }
 
-        // Create an HTMLImageElement and wait for it to load.
         const element = new Image();
         element.src = imageUrl;
         await new Promise<void>((resolve, reject) => {
@@ -80,7 +77,19 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
           element.onerror = () => reject(new Error("Failed to load image element"));
         });
 
-        // Calculate the size while maintaining aspect ratio (max 200px height).
+        // Find the corresponding pending image to reuse its position
+        const pendingImage = pendingImages.find((p) => p.id === taskId);
+        if (!pendingImage) {
+          toast({
+            title: "Error",
+            description: "Pending image not found.",
+            variant: "destructive",
+          });
+          removeTask(taskId);
+          return;
+        }
+
+        const position = pendingImage.position; // Reuse the skeleton's position
         const aspectRatio = element.width / element.height;
         let width = 200;
         let height = width / aspectRatio;
@@ -89,15 +98,6 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
           width = height * aspectRatio;
         }
 
-        // Calculate dynamic position based on the current number of images.
-        const offsetX = 20;
-        const offsetY = 20;
-        const position = {
-          x: 800 + images.length * offsetX, // starting at x = 800 and shifting right
-          y: 100 + images.length * offsetY, // starting at y = 100 and shifting down
-        };
-
-        // Add the new image to the store.
         addImage({
           id: uuidv4(),
           url: imageUrl,
@@ -116,7 +116,7 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
                 : "Background changed!",
         });
 
-        // Remove the task after processing.
+        removePendingImage(taskId); // Remove skeleton on success
         removeTask(taskId);
       })();
     } else if (data.status === "FAILURE") {
@@ -125,9 +125,10 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
         description: data.error || "Task failed",
         variant: "destructive",
       });
+      removePendingImage(taskId); // Remove skeleton on failure
       removeTask(taskId);
     }
-  }, [data, error, currentStatus, task, taskId, updateTask, removeTask, images, addImage, toast]);
+  }, [data, error, currentStatus, task, taskId, updateTask, removeTask, images, addImage, pendingImages, removePendingImage, toast]);
 
   return null;
 };

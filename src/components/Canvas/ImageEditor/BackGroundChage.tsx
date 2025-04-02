@@ -32,10 +32,8 @@ export default function BackgroundChange() {
   const { getToken } = useAuth();
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
   const { mutate: startBackgroundChange } = useChangeBackground();
-
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
 
-  // Calculate position for new images
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
@@ -44,12 +42,11 @@ export default function BackgroundChange() {
       : { x: spacing, y: spacing * 2 };
   }, [images]);
 
-  // Synchronize pendingImageId with task status
   useEffect(() => {
     if (pendingImageId) {
       const task = tasks[pendingImageId];
       if (task && (task.status === "SUCCESS" || task.status === "FAILURE")) {
-        setPendingImageId(null); // Clear pending state when task completes
+        setPendingImageId(null);
       }
     }
   }, [tasks, pendingImageId]);
@@ -94,9 +91,9 @@ export default function BackgroundChange() {
             toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
             return;
           }
-          setPendingImageId(newId);
+          setPendingImageId(response.id); // Use the task ID as the pendingImageId
           addTask(response.id, selectedImageId!, "background");
-          addPendingImage({ id: newId, position, size: { width: scaledWidth, height: scaledHeight } });
+          addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
           toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
