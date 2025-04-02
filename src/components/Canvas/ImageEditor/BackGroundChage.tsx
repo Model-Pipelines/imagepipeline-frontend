@@ -61,7 +61,7 @@ export default function BackgroundChange() {
         };
     console.log("Calculated position for skeleton:", position, "Scale:", scale, "Offset:", offset);
     return position;
-  }, [images]);
+  }, [images]); // Removed scale and offset from dependencies as they are not needed here
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -170,7 +170,7 @@ export default function BackgroundChange() {
       setTaskId(null);
       setPendingImageId(null);
     }
-  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast, scale, offset]);
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]); // Removed scale and offset from dependencies
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -214,7 +214,13 @@ export default function BackgroundChange() {
               <InfoTooltip content="Describe how you want the new background to look" />
             </div>
             <motion.div whileHover={{ scale: 1.01 }}>
-              <Input id="prompt" placeholder="Describe the new background" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200" />
+              <Input
+                id="prompt"
+                placeholder="Describe the new background"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200"
+              />
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -224,7 +230,12 @@ export default function BackgroundChange() {
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
               {selectedImage ? (
-                <motion.img whileHover={{ scale: 1.02 }} src={selectedImage.url || "/placeholder.svg"} alt="Selected" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
+                <motion.img
+                  whileHover={{ scale: 1.02 }}
+                  src={selectedImage.url || "/placeholder.svg"}
+                  alt="Selected"
+                  className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
+                />
               ) : (
                 <p className="text-gray-500 text-base font-normal">No image selected</p>
               )}
@@ -238,8 +249,17 @@ export default function BackgroundChange() {
                 <FileInput onChange={handleBackgroundImageUpload} />
               ) : (
                 <div className="relative">
-                  <motion.img whileHover={{ scale: 1.02 }} src={backgroundImage || "/placeholder.svg"} alt="Reference" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
-                  <motion.button whileHover={{ scale: 1.2 }} onClick={() => setBackgroundImage(null)} className="absolute top-2 right-2 text-white/70 hover:text-white/100">
+                  <motion.img
+                    whileHover={{ scale: 1.02 }}
+                    src={backgroundImage || "/placeholder.svg"}
+                    alt="Reference"
+                    className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
+                  />
+                  <motion.button
+                    whileHover={{ scale: 1.2 }}
+                    onClick={() => setBackgroundImage(null)}
+                    className="absolute top-2 right-2 text-white/70 hover:text-white/100"
+                  >
                     <X className="w-4 h-4" />
                   </motion.button>
                 </div>
@@ -249,7 +269,11 @@ export default function BackgroundChange() {
         </CardContent>
         <CardFooter className="mt-6 rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button onClick={handleSubmit} disabled={!selectedImage || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
+            <Button
+              onClick={handleSubmit}
+              disabled={!selectedImage || !!taskId}
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
+            >
               {taskId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>

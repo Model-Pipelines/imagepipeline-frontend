@@ -12,7 +12,6 @@ import { EditImageCard } from "./ImageEditor/EditImageCard";
 import Toolbar from "./Toolbar";
 import ZoomControls from "./ZoomControls";
 import DropdownMenuBar from "./ImageEditor/DropdownMenuBar/DropdownMenuBar";
-import ShinyGradientSkeletonHorizontal from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 import { useMutation } from "@tanstack/react-query";
 import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
@@ -63,8 +62,8 @@ export default function InfiniteCanvas() {
         const gridSize = Math.ceil(Math.sqrt(numImages + 1));
         const spacing = 50;
         const newPosition = {
-          x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
-          y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
+          x: (numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing),
+          y: Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing),
         };
         addImage({
           id: crypto.randomUUID(),
@@ -301,6 +300,21 @@ export default function InfiniteCanvas() {
     ctx.save();
     ctx.translate(offset.x, offset.y);
     ctx.scale(scale, scale);
+
+    // Draw pending images (skeletons)
+    pendingImages
+      .filter((pending) => !images.some((img) => img.id === pending.id))
+      .forEach((pending) => {
+        ctx.fillStyle = "#cccccc"; // Gray color for skeleton
+        ctx.fillRect(
+          pending.position.x,
+          pending.position.y,
+          pending.size.width,
+          pending.size.height
+        );
+      });
+
+    // Draw final images
     images
       .filter((img) => img.element && img.element.complete)
       .forEach((img) => {
@@ -332,14 +346,14 @@ export default function InfiniteCanvas() {
         }
       });
     ctx.restore();
-  }, [images, selectedImageId, scale, offset]);
-  
+  }, [images, selectedImageId, scale, offset, pendingImages]);
+
   useEffect(() => {
     const handleResize = () => draw();
     window.addEventListener("resize", handleResize);
     draw();
     return () => window.removeEventListener("resize", handleResize);
-  }, [draw, pendingImages]);
+  }, [draw, images, pendingImages, scale, offset]);
 
   return (
     <div className="relative w-full h-full flex">
@@ -378,22 +392,6 @@ export default function InfiniteCanvas() {
             )}
           </div>
         ))}
-        {pendingImages
-  .filter((pending) => !images.some((img) => img.id === pending.id))
-  .map((pending) => (
-    <div
-      key={pending.id}
-      className="absolute"
-      style={{
-        transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
-        width: `${pending.size.width * scale}px`,
-        height: `${pending.size.height * scale}px`,
-        zIndex: 10,
-      }}
-    >
-      <ShinyGradientSkeletonHorizontal />
-    </div>
-  ))}
       </div>
       <ParentPrompt />
     </div>
