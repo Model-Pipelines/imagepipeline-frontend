@@ -34,7 +34,8 @@ export function HumanEditorImage() {
   const [prompt, setPrompt] = useState("");
   const [humanImage, setHumanImage] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage, pendingImages } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
@@ -45,14 +46,18 @@ export function HumanEditorImage() {
   const { mutate: startHumanModification } = useMutation({ mutationFn: ({ data: payload, token }: { data: any; token: string }) => changeHuman(payload, token) });
 
   const calculatePosition = useCallback(() => {
-    const numImages = images.length;
-    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const lastImage = images[images.length - 1];
     const spacing = 50;
-    return {
-      x: ((numImages % gridSize) * (200 + spacing)) / scale - offset.x,
-      y: (Math.floor(numImages / gridSize) * (200 + spacing)) / scale - offset.y,
-    };
-  }, [images.length, scale, offset]);
+    return lastImage
+      ? {
+          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
+          y: lastImage.position.y / scale - offset.y,
+        }
+      : {
+          x: spacing / scale - offset.x,
+          y: (spacing * 2) / scale - offset.y,
+        };
+  }, [images, scale, offset]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["humanTask", taskId],
@@ -82,6 +87,9 @@ export function HumanEditorImage() {
 
     const payload = { input_image: selectedImage.url, input_face: humanImage, prompt: prompt.trim(), seed: -1 };
     const position = calculatePosition();
+    const scaleFactor = 200 / Math.max(selectedImage.size.width, selectedImage.size.height);
+    const scaledHeight = selectedImage.size.height * scaleFactor;
+    const scaledWidth = selectedImage.size.width * scaleFactor;
 
     startHumanModification(
       { data: payload, token },
@@ -92,57 +100,59 @@ export function HumanEditorImage() {
             return;
           }
           setTaskId(response.id);
+          setPendingImageId(response.id);
           addTask(response.id, selectedImageId!, "human");
-          addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } }); // Use taskId as pendingId
+          addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
           toast({ title: "Processing", description: "Human modification in progress..." });
         },
         onError: (error: any) => {
           toast({ title: "Error", description: error.message || "Failed to start modification.", variant: "destructive" });
           setTaskId(null);
+          setPendingImageId(null);
         },
       }
     );
   }, [selectedImage, humanImage, prompt, startHumanModification, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !taskId) return;
-
-    console.log("Task status:", taskStatus);
-    console.log("Pending images before processing:", useImageStore.getState().pendingImages);
+    if (!taskStatus || !taskId || !pendingImageId) return;
 
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
       element.src = taskStatus.image_url;
       element.onload = () => {
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
-        if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
+        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
+        if (!pendingImage) {
+          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
+          removePendingImage(taskId);
+          setTaskId(null);
+          setPendingImageId(null);
+          return;
         }
-        const position = calculatePosition();
+        const position = pendingImage.position;
+        const scaleFactor = 200 / Math.max(element.width, element.height);
+        const scaledHeight = element.height * scaleFactor;
+        const scaledWidth = element.width * scaleFactor;
         const newImageId = uuidv4();
-        // Remove pending image FIRST
-        removePendingImage(taskId);
-        console.log("Removed pending image before adding, ID:", taskId);
-        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width, height } });
-        console.log("Image added with ID:", newImageId);
-        console.log("Pending images after adding:", useImageStore.getState().pendingImages);
+        removePendingImage(pendingImageId);
+        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width: scaledWidth, height: scaledHeight } });
         toast({ title: "Success", description: "Human modification completed successfully!" });
         setTaskId(null);
+        setPendingImageId(null);
       };
       element.onerror = () => {
         toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
-        removePendingImage(taskId);
+        removePendingImage(pendingImageId);
         setTaskId(null);
+        setPendingImageId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({ title: "Error", description: taskStatus.error || "Failed to modify human", variant: "destructive" });
-      removePendingImage(taskId);
+      removePendingImage(pendingImageId);
       setTaskId(null);
+      setPendingImageId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId, calculatePosition]);
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
 
   const handleHumanImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

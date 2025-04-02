@@ -25,22 +25,27 @@ interface TaskResponse {
 const Upscale = () => {
   const [upscaleFactor] = useState<number>(2);
   const [taskId, setTaskId] = useState<string | null>(null);
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
-  const { selectedImageId, images, addImage, addPendingImage, removePendingImage } = useImageStore();
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage, pendingImages } = useImageStore();
   const { scale, offset } = useCanvasStore();
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
 
   const calculatePosition = useCallback(() => {
-    const numImages = images.length;
-    const gridSize = Math.ceil(Math.sqrt(numImages + 1));
+    const lastImage = images[images.length - 1];
     const spacing = 50;
-    return {
-      x: ((numImages % gridSize) * (200 + spacing)) / scale - offset.x,
-      y: (Math.floor(numImages / gridSize) * (200 + spacing)) / scale - offset.y,
-    };
-  }, [images.length, scale, offset]);
+    return lastImage
+      ? {
+          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
+          y: lastImage.position.y / scale - offset.y,
+        }
+      : {
+          x: spacing / scale - offset.x,
+          y: (spacing * 2) / scale - offset.y,
+        };
+  }, [images, scale, offset]);
 
   const { mutate: upscaleImageMutation } = useMutation({
     mutationFn: ({ data: payload, token }: { data: any; token: string }) => upscaleImage(payload, token),
@@ -50,14 +55,19 @@ const Upscale = () => {
         return;
       }
       setTaskId(response.id);
+      setPendingImageId(response.id);
       addTask(response.id, selectedImageId!, "upscale");
       const position = calculatePosition();
-      addPendingImage({ id: response.id, position, size: { width: 200, height: 200 } }); // Use taskId as pendingId
+      const scaleFactor = 200 / Math.max(selectedImage!.size.width, selectedImage!.size.height);
+      const scaledHeight = selectedImage!.size.height * scaleFactor;
+      const scaledWidth = selectedImage!.size.width * scaleFactor;
+      addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
       toast({ title: "Processing", description: "Upscaling in progress..." });
     },
     onError: (error: any) => {
       toast({ title: "Error", description: error.message || "Failed to start upscaling", variant: "destructive" });
       setTaskId(null);
+      setPendingImageId(null);
     },
   });
 
@@ -95,52 +105,45 @@ const Upscale = () => {
   }, [selectedImage, upscaleImageMutation, toast, getToken]);
 
   useEffect(() => {
-    if (!taskStatus || !taskId) return;
-  
-    console.log("Task status:", taskStatus);
-    console.log("Pending images before processing:", useImageStore.getState().pendingImages);
-  
+    if (!taskStatus || !taskId || !pendingImageId) return;
+
     if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
       const element = new Image();
       element.src = taskStatus.image_url;
       element.onload = () => {
-        const aspectRatio = element.width / element.height;
-        let width = 200;
-        let height = width / aspectRatio;
-        if (height > 200) {
-          height = 200;
-          width = height * aspectRatio;
-        }
-        // Retrieve the position from the pendingImages entry
-        const pendingImage = useImageStore.getState().pendingImages.find((pending) => pending.id === taskId);
+        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
         if (!pendingImage) {
-          toast({ title: "Error", description: "Pending image position not found", variant: "destructive" });
+          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
           removePendingImage(taskId);
           setTaskId(null);
+          setPendingImageId(null);
           return;
         }
-        const position = pendingImage.position; // Use the stored position
+        const position = pendingImage.position;
+        const scaleFactor = 200 / Math.max(element.width, element.height);
+        const scaledHeight = element.height * scaleFactor;
+        const scaledWidth = element.width * scaleFactor;
         const newImageId = uuidv4();
-        removePendingImage(taskId);
-        console.log("Removed pending image before adding, ID:", taskId);
-        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width, height } });
-        console.log("Image added with ID:", newImageId);
-        console.log("Pending images after adding:", useImageStore.getState().pendingImages);
+        removePendingImage(pendingImageId);
+        addImage({ id: newImageId, url: taskStatus.image_url!, element, position, size: { width: scaledWidth, height: scaledHeight } });
         toast({ title: "Success", description: "Image upscaled successfully!" });
         setTaskId(null);
+        setPendingImageId(null);
       };
       element.onerror = () => {
         toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
-        removePendingImage(taskId);
+        removePendingImage(pendingImageId);
         setTaskId(null);
+        setPendingImageId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({ title: "Error", description: taskStatus.error || "Failed to upscale image", variant: "destructive" });
-      removePendingImage(taskId);
+      removePendingImage(pendingImageId);
       setTaskId(null);
+      setPendingImageId(null);
     }
-  }, [taskStatus, toast, addImage, removePendingImage, taskId]);
-  
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <Card className="bg-white/5 backdrop-blur-[2.5px] border border-white/20 dark:border-white/10 rounded-xl shadow-lg">
