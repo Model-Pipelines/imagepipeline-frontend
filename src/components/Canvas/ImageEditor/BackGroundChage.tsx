@@ -50,16 +50,18 @@ export default function BackgroundChange() {
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
-    return lastImage
+    const position = lastImage
       ? {
-          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
-          y: lastImage.position.y / scale - offset.y,
+          x: lastImage.position.x + lastImage.size.width + spacing,
+          y: lastImage.position.y,
         }
       : {
-          x: spacing / scale - offset.x,
-          y: (spacing * 2) / scale - offset.y,
+          x: spacing,
+          y: spacing * 2,
         };
-  }, [images, scale, offset]);
+    console.log("Calculated position for skeleton:", position, "Scale:", scale, "Offset:", offset);
+    return position;
+  }, [images]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -145,6 +147,7 @@ export default function BackgroundChange() {
           return;
         }
         const position = pendingImage.position;
+        console.log("Position for final image:", position, "Scale:", scale, "Offset:", offset);
         const scaleFactor = 200 / Math.max(element.width, element.height);
         const scaledHeight = element.height * scaleFactor;
         const scaledWidth = element.width * scaleFactor;
@@ -167,7 +170,7 @@ export default function BackgroundChange() {
       setTaskId(null);
       setPendingImageId(null);
     }
-  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast, scale, offset]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {

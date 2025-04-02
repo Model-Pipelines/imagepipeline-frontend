@@ -333,7 +333,7 @@ export default function InfiniteCanvas() {
       });
     ctx.restore();
   }, [images, selectedImageId, scale, offset]);
-
+  
   useEffect(() => {
     const handleResize = () => draw();
     window.addEventListener("resize", handleResize);
@@ -379,21 +379,21 @@ export default function InfiniteCanvas() {
           </div>
         ))}
         {pendingImages
-          .filter((pending) => !images.some((img) => img.id === pending.id))
-          .map((pending) => (
-            <div
-              key={pending.id}
-              className="absolute"
-              style={{
-                transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
-                width: `${pending.size.width * scale}px`,
-                height: `${pending.size.height * scale}px`,
-                zIndex: 10,
-              }}
-            >
-              <ShinyGradientSkeletonHorizontal />
-            </div>
-          ))}
+  .filter((pending) => !images.some((img) => img.id === pending.id))
+  .map((pending) => (
+    <div
+      key={pending.id}
+      className="absolute"
+      style={{
+        transform: `translate(${pending.position.x * scale + offset.x}px, ${pending.position.y * scale + offset.y}px)`,
+        width: `${pending.size.width * scale}px`,
+        height: `${pending.size.height * scale}px`,
+        zIndex: 10,
+      }}
+    >
+      <ShinyGradientSkeletonHorizontal />
+    </div>
+  ))}
       </div>
       <ParentPrompt />
     </div>
