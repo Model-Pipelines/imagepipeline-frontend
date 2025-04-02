@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useState, useMemo, useEffect } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
@@ -13,18 +13,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@clerk/nextjs";
 import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { useChangeBackground, useUploadBackendFiles } from "@/AxiosApi/TanstackQuery";
-import { useQuery } from "@tanstack/react-query";
-import { getBackgroundTaskStatus } from "@/AxiosApi/GenerativeApi";
 import { motion } from "framer-motion";
-import { useCanvasStore } from "@/lib/store";
 import { v4 as uuidv4 } from "uuid";
-
-interface TaskResponse {
-  status: "PENDING" | "SUCCESS" | "FAILURE";
-  download_urls?: string[];
-  image_url?: string;
-  error?: string;
-}
 
 const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
   <motion.div whileHover={{ scale: 1.02 }} className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-4 border border-white/20 dark:border-white/10">
@@ -35,51 +25,22 @@ const FileInput = React.memo(({ onChange }: { onChange: (e: React.ChangeEvent<HT
 export default function BackgroundChange() {
   const [prompt, setPrompt] = useState("");
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
-  const [taskId, setTaskId] = useState<string | null>(null);
   const [pendingImageId, setPendingImageId] = useState<string | null>(null);
-  const { selectedImageId, images, addImage, addPendingImage, removePendingImage, pendingImages } = useImageStore();
-  const { scale, offset } = useCanvasStore();
+  const { selectedImageId, images, addPendingImage } = useImageStore();
   const { toast } = useToast();
   const { addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
-
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
-  const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
+  const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
 
-  // Fix 1: Updated position calculation to be consistent
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
-    
-    // Simply calculate position without applying scale/offset 
-    // (the canvas will handle transformations)
-    const position = lastImage
-      ? {
-          x: lastImage.position.x + lastImage.size.width + spacing,
-          y: lastImage.position.y,
-        }
-      : {
-          x: spacing,
-          y: spacing * 2,
-        };
-    
-    return position;
+    return lastImage
+      ? { x: lastImage.position.x + lastImage.size.width + spacing, y: lastImage.position.y }
+      : { x: spacing, y: spacing * 2 };
   }, [images]);
-
-  const { data: taskStatus } = useQuery<TaskResponse, Error>({
-    queryKey: ["backgroundTask", taskId],
-    queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-      return getBackgroundTaskStatus(taskId!, token);
-    },
-    enabled: !!taskId,
-    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
-    staleTime: 0,
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -107,16 +68,11 @@ export default function BackgroundChange() {
       num_outputs: 1,
     };
 
-    // Fix 2: Calculate position once and use for both pending and final image
     const position = calculatePosition();
-    
-    // Use a single consistent ID for both pending image and task
-    const newId = uuidv4();
-    
-    // Size is based on selected image's dimensions
     const scaleFactor = 200 / Math.max(selectedImage.size.width, selectedImage.size.height);
     const scaledHeight = selectedImage.size.height * scaleFactor;
     const scaledWidth = selectedImage.size.width * scaleFactor;
+    const newId = uuidv4();
 
     startBackgroundChange(
       { data: payload, token },
@@ -126,89 +82,18 @@ export default function BackgroundChange() {
             toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
             return;
           }
-          setTaskId(response.id);
           setPendingImageId(newId);
           addTask(response.id, selectedImageId!, "background");
-          
-          // Add pending image with the new ID to track it correctly
-          addPendingImage({ 
-            id: newId, 
-            position, 
-            size: { width: scaledWidth, height: scaledHeight } 
-          });
-          
+          addPendingImage({ id: newId, position, size: { width: scaledWidth, height: scaledHeight } });
           toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
           toast({ title: "Error", description: error.message || "Failed to change background.", variant: "destructive" });
-          setTaskId(null);
           setPendingImageId(null);
         },
       }
     );
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
-
-  useEffect(() => {
-    if (!taskStatus || !taskId || !pendingImageId) return;
-
-    if (taskStatus.status === "SUCCESS" && (taskStatus.image_url || (taskStatus.download_urls && taskStatus.download_urls.length > 0))) {
-      const imageUrl = taskStatus.image_url || taskStatus.download_urls![0];
-      const element = new Image();
-      element.src = imageUrl;
-      
-      element.onload = () => {
-        // Fix 3: Find the pending image by pendingImageId, not taskId
-        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
-        
-        if (!pendingImage) {
-          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
-          removePendingImage(pendingImageId);
-          setTaskId(null);
-          setPendingImageId(null);
-          return;
-        }
-        
-        // Fix 4: Use the exact same position as the pending image
-        const position = pendingImage.position;
-        
-        // Calculate size while maintaining aspect ratio
-        const scaleFactor = 200 / Math.max(element.width, element.height);
-        const scaledHeight = element.height * scaleFactor;
-        const scaledWidth = element.width * scaleFactor;
-        
-        // Create new image ID
-        const newImageId = uuidv4();
-        
-        // Fix 5: IMPORTANT - Remove the pending image first, using pendingImageId not taskId
-        removePendingImage(pendingImageId);
-        
-        // Add the final image at the same position as the skeleton
-        addImage({ 
-          id: newImageId, 
-          url: imageUrl, 
-          element, 
-          position, 
-          size: { width: scaledWidth, height: scaledHeight } 
-        });
-        
-        toast({ title: "Success", description: "Background changed successfully!" });
-        setTaskId(null);
-        setPendingImageId(null);
-      };
-      
-      element.onerror = () => {
-        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
-        removePendingImage(pendingImageId);
-        setTaskId(null);
-        setPendingImageId(null);
-      };
-    } else if (taskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: taskStatus.error || "Failed to change background", variant: "destructive" });
-      removePendingImage(pendingImageId);
-      setTaskId(null);
-      setPendingImageId(null);
-    }
-  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,8 +172,8 @@ export default function BackgroundChange() {
         </CardContent>
         <CardFooter className="mt-6 rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button onClick={handleSubmit} disabled={!selectedImage || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
-              {taskId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
+            <Button onClick={handleSubmit} disabled={!selectedImage || !!pendingImageId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
+              {pendingImageId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
         </CardFooter>
