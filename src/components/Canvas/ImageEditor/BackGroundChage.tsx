@@ -47,19 +47,24 @@ export default function BackgroundChange() {
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
 
+  // Calculate position with consistent handling of scale and offset
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
-    return lastImage
+    
+    // Base position with spacing
+    const position = lastImage
       ? {
-          x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
-          y: lastImage.position.y / scale - offset.y,
+          x: lastImage.position.x + lastImage.size.width + spacing / scale,
+          y: lastImage.position.y,
         }
       : {
-          x: spacing / scale - offset.x,
-          y: (spacing * 2) / scale - offset.y,
+          x: spacing / scale,
+          y: spacing * 2 / scale,
         };
-  }, [images, scale, offset]);
+    
+    return position;
+  }, [images, scale]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -101,7 +106,11 @@ export default function BackgroundChange() {
       num_outputs: 1,
     };
 
+    // Calculate position for the skeleton
     const position = calculatePosition();
+    const newId = uuidv4();
+    
+    // Size is based on selected image's dimensions
     const scaleFactor = 200 / Math.max(selectedImage.size.width, selectedImage.size.height);
     const scaledHeight = selectedImage.size.height * scaleFactor;
     const scaledWidth = selectedImage.size.width * scaleFactor;
@@ -115,9 +124,16 @@ export default function BackgroundChange() {
             return;
           }
           setTaskId(response.id);
-          setPendingImageId(response.id);
+          setPendingImageId(newId);
           addTask(response.id, selectedImageId!, "background");
-          addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
+          
+          // Add pending image with the calculated position
+          addPendingImage({ 
+            id: newId, 
+            position: position, 
+            size: { width: scaledWidth, height: scaledHeight } 
+          });
+          
           toast({ title: "Started", description: "Background change in progress..." });
         },
         onError: (error: any) => {
@@ -130,61 +146,65 @@ export default function BackgroundChange() {
   }, [selectedImage, prompt, backgroundImage, startBackgroundChange, toast, getToken, selectedImageId, addTask, addPendingImage, calculatePosition]);
 
   useEffect(() => {
-    if (!taskStatus || !pendingImageId) return;
+    if (!taskStatus || !taskId || !pendingImageId) return;
 
-    if (taskStatus.status === "SUCCESS") {
-      const imageUrl = taskStatus.download_urls?.[0] || taskStatus.image_url;
-      if (!imageUrl) {
-        toast({ title: "Error", description: "Image URL not found", variant: "destructive" });
-        removePendingImage(pendingImageId);
-        setPendingImageId(null);
-        setTaskId(null);
-        return;
-      }
-
-      const img = new Image();
-      img.src = imageUrl;
-      img.onload = () => {
-        const pendingImage = pendingImages.find((pending) => pending.id === pendingImageId);
+    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
+      const element = new Image();
+      element.src = taskStatus.image_url;
+      
+      element.onload = () => {
+        // Find the pending image to get its position
+        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
+        
         if (!pendingImage) {
-          toast({ title: "Error", description: "Pending image position not found", variant: "destructive" });
-          removePendingImage(pendingImageId);
-          setPendingImageId(null);
+          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
+          if (taskId) removePendingImage(taskId);
           setTaskId(null);
+          setPendingImageId(null);
           return;
         }
-
-        const position = pendingImage.position;
-        const scaleFactor = 200 / Math.max(img.width, img.height);
-        const scaledHeight = img.height * scaleFactor;
-        const scaledWidth = img.width * scaleFactor;
+        
+        // Use the same position as the pending image
+        const position = { ...pendingImage.position };
+        
+        // Calculate appropriate size while maintaining aspect ratio
+        const scaleFactor = 200 / Math.max(element.width, element.height);
+        const scaledHeight = element.height * scaleFactor;
+        const scaledWidth = element.width * scaleFactor;
+        
+        // Create new image ID
         const newImageId = uuidv4();
-
-        addImage({
-          id: newImageId,
-          url: imageUrl,
-          position,
-          size: { width: scaledWidth, height: scaledHeight },
-          element: img,
+        
+        // Remove the pending image first
+        removePendingImage(pendingImageId);
+        
+        // Add the final image at the same position as the skeleton
+        addImage({ 
+          id: newImageId, 
+          url: taskStatus.image_url!, 
+          element, 
+          position, 
+          size: { width: scaledWidth, height: scaledHeight } 
         });
-        removePendingImage(pendingImageId);
+        
         toast({ title: "Success", description: "Background changed successfully!" });
-        setPendingImageId(null);
         setTaskId(null);
+        setPendingImageId(null);
       };
-      img.onerror = () => {
-        toast({ title: "Error", description: "Failed to load generated image", variant: "destructive" });
+      
+      element.onerror = () => {
+        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
         removePendingImage(pendingImageId);
-        setPendingImageId(null);
         setTaskId(null);
+        setPendingImageId(null);
       };
     } else if (taskStatus.status === "FAILURE") {
       toast({ title: "Error", description: taskStatus.error || "Failed to change background", variant: "destructive" });
       removePendingImage(pendingImageId);
-      setPendingImageId(null);
       setTaskId(null);
+      setPendingImageId(null);
     }
-  }, [taskStatus, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
 
   const handleBackgroundImageUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -228,13 +248,7 @@ export default function BackgroundChange() {
               <InfoTooltip content="Describe how you want the new background to look" />
             </div>
             <motion.div whileHover={{ scale: 1.01 }}>
-              <Input
-                id="prompt"
-                placeholder="Describe the new background"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200"
-              />
+              <Input id="prompt" placeholder="Describe the new background" value={prompt} onChange={(e) => setPrompt(e.target.value)} className="w-full bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm border border-white/10 dark:border-white/5 hover:bg-white/20 dark:hover:bg-slate-800/20 text-base font-normal transition-colors duration-200" />
             </motion.div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -244,12 +258,7 @@ export default function BackgroundChange() {
                 <InfoTooltip content="The main image whose background will be changed" />
               </div>
               {selectedImage ? (
-                <motion.img
-                  whileHover={{ scale: 1.02 }}
-                  src={selectedImage.url || "/placeholder.svg"}
-                  alt="Selected"
-                  className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                />
+                <motion.img whileHover={{ scale: 1.02 }} src={selectedImage.url || "/placeholder.svg"} alt="Selected" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
               ) : (
                 <p className="text-gray-500 text-base font-normal">No image selected</p>
               )}
@@ -263,17 +272,8 @@ export default function BackgroundChange() {
                 <FileInput onChange={handleBackgroundImageUpload} />
               ) : (
                 <div className="relative">
-                  <motion.img
-                    whileHover={{ scale: 1.02 }}
-                    src={backgroundImage || "/placeholder.svg"}
-                    alt="Reference"
-                    className="w-full h-auto rounded-md border border-white/10 dark:border-white/5"
-                  />
-                  <motion.button
-                    whileHover={{ scale: 1.2 }}
-                    onClick={() => setBackgroundImage(null)}
-                    className="absolute top-2 right-2 text-white/70 hover:text-white/100"
-                  >
+                  <motion.img whileHover={{ scale: 1.02 }} src={backgroundImage || "/placeholder.svg"} alt="Reference" className="w-full h-auto rounded-md border border-white/10 dark:border-white/5" />
+                  <motion.button whileHover={{ scale: 1.2 }} onClick={() => setBackgroundImage(null)} className="absolute top-2 right-2 text-white/70 hover:text-white/100">
                     <X className="w-4 h-4" />
                   </motion.button>
                 </div>
@@ -283,11 +283,7 @@ export default function BackgroundChange() {
         </CardContent>
         <CardFooter className="mt-6 rounded-b-lg">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button
-              onClick={handleSubmit}
-              disabled={!selectedImage || !!taskId}
-              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
-            >
+            <Button onClick={handleSubmit} disabled={!selectedImage || !!taskId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
               {taskId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
             </Button>
           </motion.div>
