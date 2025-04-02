@@ -1,4 +1,3 @@
-// ZustandImageStore.tsx
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 
@@ -19,15 +18,15 @@ interface PendingImage {
 interface ImageState {
   images: Image[];
   selectedImageId: string | null;
-  pendingImages: PendingImage[]; // New state for skeleton placeholders
+  pendingImages: PendingImage[];
   addImage: (image: Image) => void;
   removeImage: (id: string) => void;
   updateImage: (id: string, updates: Partial<Image>) => void;
   setSelectedImageId: (id: string | null) => void;
   initializeImages: () => Promise<void>;
   downloadImage: (id: string) => void;
-  addPendingImage: (pending: PendingImage) => void; // Add pending image with skeleton
-  removePendingImage: (id: string) => void; // Remove pending image when done
+  addPendingImage: (pending: PendingImage) => void;
+  removePendingImage: (id: string) => void;
 }
 
 export const useImageStore = create<ImageState>()(
@@ -43,13 +42,14 @@ export const useImageStore = create<ImageState>()(
             if (state.images.some((img) => img.id === image.id || img.url === image.url)) return state;
             return {
               images: [...state.images, image],
-              pendingImages: state.pendingImages.filter((p) => p.id !== image.id), // Remove from pending when added
+              pendingImages: state.pendingImages.filter((p) => p.id !== image.id),
             };
           }),
 
         removeImage: (id) =>
           set((state) => ({
             images: state.images.filter((img) => img.id !== id),
+            pendingImages: state.pendingImages.filter((p) => p.id !== id),
             selectedImageId: state.selectedImageId === id ? null : state.selectedImageId,
           })),
 
@@ -108,7 +108,7 @@ export const useImageStore = create<ImageState>()(
         partialize: (state) => ({
           images: state.images.map(({ element, ...rest }) => rest),
           selectedImageId: state.selectedImageId,
-          pendingImages: state.pendingImages, // Persist pending images (no element to exclude)
+          pendingImages: state.pendingImages,
         }),
       }
     )
