@@ -34,13 +34,15 @@ export default function BackgroundChange() {
   const { mutate: startBackgroundChange } = useChangeBackground();
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
 
+  // Calculate position for the skeleton based on the selected image's position
   const calculatePosition = useCallback(() => {
-    const lastImage = images[images.length - 1];
+    if (selectedImage) {
+      return { x: selectedImage.position.x, y: selectedImage.position.y };
+    }
+    // Fallback position if no selected image (shouldn't happen since we validate)
     const spacing = 50;
-    return lastImage
-      ? { x: lastImage.position.x + lastImage.size.width + spacing, y: lastImage.position.y }
-      : { x: spacing, y: spacing * 2 };
-  }, [images]);
+    return { x: spacing, y: spacing * 2 };
+  }, [selectedImage]);
 
   useEffect(() => {
     if (pendingImageId) {
@@ -91,7 +93,7 @@ export default function BackgroundChange() {
             toast({ title: "Error", description: "Missing task ID.", variant: "destructive" });
             return;
           }
-          setPendingImageId(response.id); // Use the task ID as the pendingImageId
+          setPendingImageId(response.id);
           addTask(response.id, selectedImageId!, "background");
           addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
           toast({ title: "Started", description: "Background change in progress..." });
