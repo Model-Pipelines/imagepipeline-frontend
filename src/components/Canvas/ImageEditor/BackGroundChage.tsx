@@ -47,24 +47,25 @@ export default function BackgroundChange() {
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
   const { mutate: startBackgroundChange } = useChangeBackground();
 
-  // Calculate position with consistent handling of scale and offset
+  // Fix 1: Updated position calculation to be consistent
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
     
-    // Base position with spacing
+    // Simply calculate position without applying scale/offset 
+    // (the canvas will handle transformations)
     const position = lastImage
       ? {
-          x: lastImage.position.x + lastImage.size.width + spacing / scale,
+          x: lastImage.position.x + lastImage.size.width + spacing,
           y: lastImage.position.y,
         }
       : {
-          x: spacing / scale,
-          y: spacing * 2 / scale,
+          x: spacing,
+          y: spacing * 2,
         };
     
     return position;
-  }, [images, scale]);
+  }, [images]);
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["backgroundTask", taskId],
@@ -106,8 +107,10 @@ export default function BackgroundChange() {
       num_outputs: 1,
     };
 
-    // Calculate position for the skeleton
+    // Fix 2: Calculate position once and use for both pending and final image
     const position = calculatePosition();
+    
+    // Use a single consistent ID for both pending image and task
     const newId = uuidv4();
     
     // Size is based on selected image's dimensions
@@ -127,10 +130,10 @@ export default function BackgroundChange() {
           setPendingImageId(newId);
           addTask(response.id, selectedImageId!, "background");
           
-          // Add pending image with the calculated position
+          // Add pending image with the new ID to track it correctly
           addPendingImage({ 
             id: newId, 
-            position: position, 
+            position, 
             size: { width: scaledWidth, height: scaledHeight } 
           });
           
@@ -148,26 +151,27 @@ export default function BackgroundChange() {
   useEffect(() => {
     if (!taskStatus || !taskId || !pendingImageId) return;
 
-    if (taskStatus.status === "SUCCESS" && taskStatus.image_url) {
+    if (taskStatus.status === "SUCCESS" && (taskStatus.image_url || (taskStatus.download_urls && taskStatus.download_urls.length > 0))) {
+      const imageUrl = taskStatus.image_url || taskStatus.download_urls![0];
       const element = new Image();
-      element.src = taskStatus.image_url;
+      element.src = imageUrl;
       
       element.onload = () => {
-        // Find the pending image to get its position
+        // Fix 3: Find the pending image by pendingImageId, not taskId
         const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
         
         if (!pendingImage) {
           toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
-          if (taskId) removePendingImage(taskId);
+          removePendingImage(pendingImageId);
           setTaskId(null);
           setPendingImageId(null);
           return;
         }
         
-        // Use the same position as the pending image
-        const position = { ...pendingImage.position };
+        // Fix 4: Use the exact same position as the pending image
+        const position = pendingImage.position;
         
-        // Calculate appropriate size while maintaining aspect ratio
+        // Calculate size while maintaining aspect ratio
         const scaleFactor = 200 / Math.max(element.width, element.height);
         const scaledHeight = element.height * scaleFactor;
         const scaledWidth = element.width * scaleFactor;
@@ -175,13 +179,13 @@ export default function BackgroundChange() {
         // Create new image ID
         const newImageId = uuidv4();
         
-        // Remove the pending image first
+        // Fix 5: IMPORTANT - Remove the pending image first, using pendingImageId not taskId
         removePendingImage(pendingImageId);
         
         // Add the final image at the same position as the skeleton
         addImage({ 
           id: newImageId, 
-          url: taskStatus.image_url!, 
+          url: imageUrl, 
           element, 
           position, 
           size: { width: scaledWidth, height: scaledHeight } 
