@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { useToast } from "@/hooks/use-toast";
@@ -28,12 +28,14 @@ export default function BackgroundChange() {
   const [pendingImageId, setPendingImageId] = useState<string | null>(null);
   const { selectedImageId, images, addPendingImage } = useImageStore();
   const { toast } = useToast();
-  const { addTask } = useBackgroundTaskStore();
+  const { tasks, addTask } = useBackgroundTaskStore();
   const { getToken } = useAuth();
   const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
   const { mutate: startBackgroundChange } = useChangeBackground();
+
   const { mutate: uploadBackgroundImage } = useUploadBackendFiles();
 
+  // Calculate position for new images
   const calculatePosition = useCallback(() => {
     const lastImage = images[images.length - 1];
     const spacing = 50;
@@ -41,6 +43,16 @@ export default function BackgroundChange() {
       ? { x: lastImage.position.x + lastImage.size.width + spacing, y: lastImage.position.y }
       : { x: spacing, y: spacing * 2 };
   }, [images]);
+
+  // Synchronize pendingImageId with task status
+  useEffect(() => {
+    if (pendingImageId) {
+      const task = tasks[pendingImageId];
+      if (task && (task.status === "SUCCESS" || task.status === "FAILURE")) {
+        setPendingImageId(null); // Clear pending state when task completes
+      }
+    }
+  }, [tasks, pendingImageId]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
@@ -170,10 +182,18 @@ export default function BackgroundChange() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="mt-6 rounded-b-lg">
+        <CardFooter className="mt-6 rounded-b-lg relative z-10">
           <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full">
-            <Button onClick={handleSubmit} disabled={!selectedImage || !!pendingImageId} className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold">
-              {pendingImageId ? <TextShimmerWave>Generating...</TextShimmerWave> : "Generate"}
+            <Button
+              onClick={handleSubmit}
+              disabled={!selectedImage || (pendingImageId && tasks[pendingImageId]?.status === "PENDING")}
+              className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-base font-bold"
+            >
+              {pendingImageId && tasks[pendingImageId]?.status === "PENDING" ? (
+                <TextShimmerWave>Generating...</TextShimmerWave>
+              ) : (
+                "Generate"
+              )}
             </Button>
           </motion.div>
         </CardFooter>
