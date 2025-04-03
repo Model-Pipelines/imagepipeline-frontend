@@ -40,6 +40,7 @@ import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 import { useCanvasStore } from "@/lib/store";
+import { ShinyGradientSkeletonHorizontal } from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
 
 const STORAGE_KEYS = {
   "Aspect-Ratio": "AspectRatioStore",
@@ -88,6 +89,7 @@ const ImagePromptUI = () => {
   const [showDescribeButton, setShowDescribeButton] = useState(false);
   const [savedTabsCount, setSavedTabsCount] = useState(0);
   const [pendingImageId, setPendingImageId] = useState<string | null>(null);
+  const [isSkeletonVisible, setIsSkeletonVisible] = useState(false); // New state for skeleton
   const { user } = useUser();
   const { getToken } = useAuth();
   const { userId } = useAuth();
@@ -126,11 +128,12 @@ const ImagePromptUI = () => {
     onTaskStarted: (taskId) => {
       console.log("Task started with ID:", taskId);
       setGenerateTaskId(taskId);
+      setIsSkeletonVisible(true); // Show skeleton immediately
       const position = calculatePosition();
       const scaleFactor = 200 / Math.max(height, width);
       const scaledHeight = height * scaleFactor;
       const scaledWidth = width * scaleFactor;
-      const pendingId = taskId; // Use taskId consistently
+      const pendingId = taskId;
       addPendingImage({
         id: pendingId,
         position,
@@ -327,11 +330,11 @@ const ImagePromptUI = () => {
 
   useEffect(() => {
     if (!generateTaskStatus || !pendingImageId) return;
-  
+
     console.log("Generate task status:", generateTaskStatus);
     console.log("Current pendingImageId:", pendingImageId);
     console.log("Pending images in store:", pendingImages);
-  
+
     if (generateTaskStatus.status === "SUCCESS") {
       const imageUrl = generateTaskStatus.download_urls?.[0] || generateTaskStatus.image_url;
       console.log("Image URL from status:", imageUrl);
@@ -345,13 +348,13 @@ const ImagePromptUI = () => {
         console.log("Removed pending image due to missing URL, ID:", pendingImageId);
         setPendingImageId(null);
         setGenerateTaskId(null);
+        setIsSkeletonVisible(false);
         return;
       }
-  
+
       const img = new Image();
       img.src = imageUrl;
       img.onload = () => {
-        // Retrieve the position from the pendingImages entry
         const pendingImage = pendingImages.find((pending) => pending.id === pendingImageId);
         if (!pendingImage) {
           toast({
@@ -362,19 +365,20 @@ const ImagePromptUI = () => {
           removePendingImage(pendingImageId);
           setPendingImageId(null);
           setGenerateTaskId(null);
+          setIsSkeletonVisible(false);
           return;
         }
-  
-        const position = pendingImage.position; // Use the stored position
+
+        const position = pendingImage.position;
         const scaleFactor = 200 / Math.max(height, width);
         const scaledHeight = height * scaleFactor;
         const scaledWidth = width * scaleFactor;
-  
+
         const newImageId = uuidv4();
         addImage({
           id: newImageId,
           url: imageUrl,
-          position, // Use the stored position
+          position,
           size: { width: scaledWidth, height: scaledHeight },
           element: img,
         });
@@ -387,6 +391,7 @@ const ImagePromptUI = () => {
         });
         setPendingImageId(null);
         setGenerateTaskId(null);
+        setIsSkeletonVisible(false);
       };
       img.onerror = () => {
         toast({
@@ -398,6 +403,7 @@ const ImagePromptUI = () => {
         console.log("Removed pending image due to load error, ID:", pendingImageId);
         setPendingImageId(null);
         setGenerateTaskId(null);
+        setIsSkeletonVisible(false);
       };
     } else if (generateTaskStatus.status === "FAILURE") {
       toast({
@@ -409,9 +415,10 @@ const ImagePromptUI = () => {
       console.log("Removed pending image on failure, ID:", pendingImageId);
       setPendingImageId(null);
       setGenerateTaskId(null);
+      setIsSkeletonVisible(false);
     }
   }, [generateTaskStatus, addImage, toast, height, width, removePendingImage, pendingImageId, pendingImages]);
-  
+
   const handleTogglePublic = () => {
     if (isFreePlan()) {
       openUpgradePopup();
@@ -530,6 +537,7 @@ const ImagePromptUI = () => {
     }
 
     try {
+      setIsSkeletonVisible(true); // Show skeleton immediately
       await handleGenerate();
       console.log("Generate initiated");
     } catch (error) {
@@ -538,6 +546,7 @@ const ImagePromptUI = () => {
         description: error instanceof Error ? error.message : "Failed to start image generation",
         variant: "destructive",
       });
+      setIsSkeletonVisible(false); // Hide skeleton on error
     }
   };
 
@@ -565,6 +574,13 @@ const ImagePromptUI = () => {
     <>
       <div className="relative bg-text dark:bg-secondary px-4 pt-1 pb-2 rounded-xl shadow-lg w-full max-w-4xl mx-auto">
         <div className="flex flex-col gap-4">
+          {/* Skeleton Display */}
+          {isSkeletonVisible && (
+            <div className="absolute z-50 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              <ShinyGradientSkeletonHorizontal />
+            </div>
+          )}
+
           {(isUploading || image_url) && (
             <div className="relative mt-4 z-[100]">
               <div className="flex flex-wrap gap-2 items-center">
