@@ -18,7 +18,7 @@ import { uploadBackendFiles } from "@/AxiosApi/GenerativeApi";
 import { useAuth } from "@clerk/nextjs";
 import { useToast } from "@/hooks/use-toast";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
-import { BackgroundTaskPoller } from "@/components/Canvas/ImageEditor/BackgroundPoller"; // Import the poller
+import { BackgroundTaskPoller } from "@/components/Canvas/ImageEditor/BackgroundPoller";
 
 const HANDLE_SIZE = 8;
 const INITIAL_IMAGE_SIZE = 200;
@@ -66,8 +66,8 @@ export default function InfiniteCanvas() {
         const gridSize = Math.ceil(Math.sqrt(numImages + 1));
         const spacing = 50;
         const newPosition = {
-          x: ((numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.x,
-          y: (Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing)) / scale - offset.y,
+          x: (numImages % gridSize) * (INITIAL_IMAGE_SIZE + spacing),
+          y: Math.floor(numImages / gridSize) * (INITIAL_IMAGE_SIZE + spacing),
         };
         addImage({
           id: crypto.randomUUID(),
@@ -383,7 +383,8 @@ export default function InfiniteCanvas() {
         ))}
         {pendingImages.map((pending) => {
           const task = tasks[pending.id];
-          if (!task || task.status !== "PENDING") return null; // Only render skeleton if task is PENDING
+          console.log("Rendering pending image:", pending.id, "Task:", task); // Debug log
+          if (!task || task.status !== "PENDING") return null;
           return (
             <div
               key={pending.id}
@@ -401,7 +402,7 @@ export default function InfiniteCanvas() {
         })}
       </div>
       <ParentPrompt />
-      <BackgroundTaskPoller /> {/* Add the poller to handle task updates */}
+      <BackgroundTaskPoller />
     </div>
   );
 }
