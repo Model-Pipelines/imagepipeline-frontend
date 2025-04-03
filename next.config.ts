@@ -11,24 +11,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  compiler: {
+    removeConsole: true
+  }
 };
 
 export default async function getNextConfig() {
   if (process.env.NODE_ENV === 'development') {
     await setupDevPlatform();
   }
-
-  if (process.env.NODE_ENV === 'production') {
-    disableConsoleLogs();
-  }
-
   return nextConfig;
-}
-
-function disableConsoleLogs() {
-  console.log = () => {};
-  console.info = () => {};
-  console.warn = () => {};
-  console.error = () => {};
-  console.debug = () => {};
 }
