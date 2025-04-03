@@ -40,7 +40,7 @@ import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 import { useCanvasStore } from "@/lib/store";
-import { ShinyGradientSkeletonHorizontal } from "../ImageSkeleton/ShinyGradientSkeletonHorizontal";
+import { ShinyGradientSkeletonHorizontal } from "@/components/ImageSkeleton/ShinyGradientSkeletonHorizontal";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"; // Add this import
 
 const STORAGE_KEYS = {
