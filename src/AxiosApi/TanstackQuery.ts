@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation } from "@tanstack/react-query";
 
 import {
   generateImage,
@@ -14,6 +14,7 @@ import {
   uploadFiles,
   uploadBackendFiles,
   describeImage,
+  styleEditImage, // Correct import for style editing
 } from "@/AxiosApi/GenerativeApi";
 import {
   ChangeBackgroundPayload,
@@ -27,7 +28,8 @@ import {
   RecolorImagePayload,
   RenderSketchPayload,
   UpscaleImagePayload,
-} from './types';
+  StyleEditImagePayload, // Type for style editing
+} from "./types";
 
 // Define UploadFilesPayload if not already in ./types
 interface UploadFilesPayload {
@@ -36,18 +38,18 @@ interface UploadFilesPayload {
 }
 
 /**
- * Generic mutation handler without any task-related logic.
+ * Generic mutation handler with optional custom error handling.
  *
  * @param key - A unique key for the mutation.
  * @param mutationFn - The function to call when performing the mutation, requiring data and token.
  * @param imageHandler - Optional image handler function to process the response.
  */
-const createMutation = <T,>(
+const createMutation = <T>(
   key: string,
   mutationFn: (data: T, token: string) => Promise<any>,
   imageHandler?: (response: any) => void
 ) => {
-  return () => {
+  return (onError?: (error: any) => void) => { // Added optional onError callback
     return useMutation({
       mutationKey: [key],
       mutationFn: (variables: { data: T; token: string }) =>
@@ -59,7 +61,8 @@ const createMutation = <T,>(
         return response;
       },
       onError: (error: any) => {
-        console.error("Mutation error:", error);
+        console.error(`Mutation error for ${key}:`, error);
+        if (onError) onError(error); // Call custom error handler if provided
       },
     });
   };
@@ -67,67 +70,73 @@ const createMutation = <T,>(
 
 // File Upload Mutations
 export const useUploadFiles = createMutation<UploadFilesPayload>(
-  'uploadFiles',
+  "uploadFiles",
   (data, token) => uploadFiles(data.userUploadedImage, data.maskImageUrl, token)
 );
 
 export const useUploadBackendFiles = createMutation<File>(
-  'uploadBackendFiles',
+  "uploadBackendFiles",
   (file, token) => uploadBackendFiles(file, token)
 );
 
 // Generative Mutations
 export const useGenerateImage = createMutation<GenerateImagePayload>(
-  'generateImage',
+  "generateImage",
   generateImage
 );
 
 export const useDescribeImage = createMutation<DescribeImagePayload>(
-  'describeImage',
+  "describeImage",
   describeImage
 );
 
 export const useControlNet = createMutation<ControlNetPayload>(
-  'controlNet',
+  "controlNet",
   controlNet
 );
 
 export const useRenderSketch = createMutation<RenderSketchPayload>(
-  'renderSketch',
+  "renderSketch",
   renderSketch
 );
 
 export const useRecolorImage = createMutation<RecolorImagePayload>(
-  'recolorImage',
+  "recolorImage",
   recolorImage
 );
 
 export const useInteriorDesign = createMutation<InteriorDesignPayload>(
-  'interiorDesign',
+  "interiorDesign",
   interiorDesign
 );
 
 export const useGenerateLogo = createMutation<GenerateLogoPayload>(
-  'generateLogo',
+  "generateLogo",
   generateLogo
 );
 
 export const useFaceControl = createMutation<FaceControlPayload>(
-  'faceControl',
+  "faceControl",
   faceControl
 );
 
 export const useChangeBackground = createMutation<ChangeBackgroundPayload>(
-  'changeBackground',
+  "changeBackground",
   changeBackground
 );
 
 export const useChangeHuman = createMutation<ChangeHumanPayload>(
-  'changeHuman',
+  "changeHuman",
   changeHuman
 );
 
 export const useUpscaleImage = createMutation<UpscaleImagePayload>(
-  'upscaleImage',
+  "upscaleImage",
   upscaleImage
+);
+
+// New Style Change Mutation
+export const useChangeStyleImage = createMutation<StyleEditImagePayload>(
+  "changeStyleImage",
+  styleEditImage
 );

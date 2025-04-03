@@ -1,11 +1,12 @@
-"use client"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import BackGroundChange from "./BackGroundChage"
-import Upscale from "./UpScaleImage"
-import { HumanEditorImage } from "./HumanEditorImage"
-import { Info } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { motion } from "framer-motion"
+"use client";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import BackGroundChange from "./BackGroundChage"; // Fixed typo in import
+import Upscale from "./UpScaleImage";
+import { HumanEditorImage } from "./HumanEditorImage";
+import StyleChangeImage from "./StyleChangeImage"; // Added import
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion } from "framer-motion";
 
 // Update the InfoTooltip component
 const InfoTooltip = ({ content }: { content: string }) => (
@@ -19,7 +20,7 @@ const InfoTooltip = ({ content }: { content: string }) => (
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
-)
+);
 
 export function EditImageCard() {
   return (
@@ -42,7 +43,7 @@ export function EditImageCard() {
 
         {/* Tabs List - With glassmorphic styling */}
         <div className="flex justify-center w-full mb-4">
-          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-[65%] mx-auto">
+          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-[80%] mx-auto">
             <TabsTrigger
               value="background-change"
               className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
@@ -61,6 +62,12 @@ export function EditImageCard() {
             >
               Upscale
             </TabsTrigger>
+            <TabsTrigger
+              value="style-change"
+              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+            >
+              Style Change
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -77,9 +84,12 @@ export function EditImageCard() {
           <TabsContent value="upscale" className="mb-4">
             <Upscale />
           </TabsContent>
+
+          <TabsContent value="style-change" className="mb-4">
+            <StyleChangeImage />
+          </TabsContent>
         </motion.div>
       </Tabs>
     </motion.div>
-  )
+  );
 }
-

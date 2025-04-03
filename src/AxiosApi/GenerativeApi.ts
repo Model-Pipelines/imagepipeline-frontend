@@ -16,7 +16,16 @@ import {
   GenerateImageWithStyleAndFacePayload,
   GenerateImageWithStyleAndReferencePayload,
   DescribeImageResponse,
+  StyleEditImagePayload,
 } from "./types";
+
+// Define response type for style editing
+export interface StyleEditImageResponse {
+  id: string;
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  output_url?: string; // Assuming this is the field name; adjust if different
+  error?: string;
+}
 
 /**
  * Utility Function: Converts a Base64 string to a File.
@@ -101,7 +110,7 @@ export const uploadBackendFiles = async (file: File, token: string): Promise<str
  * Generate Image
  */
 export const generateImage = async (data: GenerateImagePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/generate/v3', data, {
+  const response = await apiClient.post("/generate/v3", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -111,7 +120,7 @@ export const generateImage = async (data: GenerateImagePayload, token: string): 
  * Describe Image
  */
 export const describeImage = async (data: DescribeImagePayload, token: string): Promise<{ id: string }> => {
-  const response = await apiClient.post('/image2prompt/v1', data, {
+  const response = await apiClient.post("/image2prompt/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -121,7 +130,7 @@ export const describeImage = async (data: DescribeImagePayload, token: string): 
  * ControlNet (Outline, Depth, Pose)
  */
 export const controlNet = async (data: ControlNetPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/control/v1', data, {
+  const response = await apiClient.post("/control/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -131,7 +140,7 @@ export const controlNet = async (data: ControlNetPayload, token: string): Promis
  * Render Sketch
  */
 export const renderSketch = async (data: RenderSketchPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -141,7 +150,7 @@ export const renderSketch = async (data: RenderSketchPayload, token: string): Pr
  * Recolor Image
  */
 export const recolorImage = async (data: RecolorImagePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -151,7 +160,7 @@ export const recolorImage = async (data: RecolorImagePayload, token: string): Pr
  * Interior Design
  */
 export const interiorDesign = async (data: InteriorDesignPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -161,7 +170,7 @@ export const interiorDesign = async (data: InteriorDesignPayload, token: string)
  * Generate Logo
  */
 export const generateLogo = async (data: GenerateLogoPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/logo/v1', data, {
+  const response = await apiClient.post("/logo/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -171,14 +180,14 @@ export const generateLogo = async (data: GenerateLogoPayload, token: string): Pr
  * Face Control
  */
 export const faceControl = async (data: FaceControlPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/text2image/v1', data, {
+  const response = await apiClient.post("/sdxl/text2image/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
 export const faceControlReference = async (data: FaceControlPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -186,28 +195,28 @@ export const faceControlReference = async (data: FaceControlPayload, token: stri
 
 // Style
 export const styleControlNoReference = async (data: GenerateStyleImagePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/generate/v3', data, {
+  const response = await apiClient.post("/generate/v3", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
 export const styleControlFaceNoReference = async (data: GenerateStyleImageWithUploadPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/text2image/v1', data, {
+  const response = await apiClient.post("/sdxl/text2image/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
 export const styleControlSingleFace = async (data: GenerateImageWithStyleAndFacePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/text2image/v1', data, {
+  const response = await apiClient.post("/sdxl/text2image/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
 export const styleControlFaceReference = async (data: GenerateImageWithStyleAndReferencePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -217,18 +226,17 @@ export const styleControlFaceReference = async (data: GenerateImageWithStyleAndR
  * Style Control with Reference (no Face)
  */
 export const styleControlReference = async (data: GenerateImageWithStyleAndReferencePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/sdxl/controlnet/v1', data, {
+  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
 
-
 /**
  * Change Background
  */
 export const changeBackground = async (data: ChangeBackgroundPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/bgchanger/v1', data, {
+  const response = await apiClient.post("/bgchanger/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -238,7 +246,7 @@ export const changeBackground = async (data: ChangeBackgroundPayload, token: str
  * Change Human
  */
 export const changeHuman = async (data: ChangeHumanPayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/modelswitch/v1', data, {
+  const response = await apiClient.post("/modelswitch/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -248,10 +256,25 @@ export const changeHuman = async (data: ChangeHumanPayload, token: string): Prom
  * Upscale Image
  */
 export const upscaleImage = async (data: UpscaleImagePayload, token: string): Promise<any> => {
-  const response = await apiClient.post('/upscaler/v1', data, {
+  const response = await apiClient.post("/upscaler/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
+};
+
+/**
+ * Style Image
+ */
+export const styleEditImage = async (data: StyleEditImagePayload, token: string): Promise<StyleEditImageResponse> => {
+  try {
+    const response = await apiClient.post("/style/v1", data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Style edit error:", error);
+    throw new Error(error.response?.data?.detail || "Failed to initiate style edit");
+  }
 };
 
 /* ============================================================
@@ -354,15 +377,15 @@ export const getBackgroundTaskStatus = async (taskId: string, token: string): Pr
   const response = await apiClient.get(`/bgchanger/v1/status/${taskId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  
+
   // If the response contains multiple images, only return the first one
   if (response.data.download_urls && Array.isArray(response.data.download_urls)) {
     return {
       ...response.data,
-      download_urls: [response.data.download_urls[0]] // Only take the first URL
+      download_urls: [response.data.download_urls[0]], // Only take the first URL
     };
   }
-  
+
   return response.data;
 };
 
@@ -384,6 +407,21 @@ export const getUpscaleImageStatus = async (taskId: string, token: string): Prom
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
+};
+
+/**
+ * Get Style Edit Image Status
+ */
+export const getStyleEditImageStatus = async (taskId: string, token: string): Promise<StyleEditImageResponse> => {
+  try {
+    const response = await apiClient.get(`/style/v1/status/${taskId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Style status error:", error);
+    throw new Error(error.response?.data?.detail || "Failed to fetch style edit status");
+  }
 };
 
 /**
@@ -474,9 +512,7 @@ export const fetchUserPlan = async (userId: string, token: string) => {
   return response.data;
 };
 
-
-// new function to fetch user dedicated servers plan 
-
+// New function to fetch user dedicated servers plan
 export const fetchDedicatedServer = async (userId: string, token: string) => {
   const response = await apiClient.get(`/user/${userId}/subscriptions`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -484,11 +520,10 @@ export const fetchDedicatedServer = async (userId: string, token: string) => {
   return response.data;
 };
 
-// new function to fetch user model 
+// New function to fetch user model
 export const fetchUserModel = async (userId: string, token: string) => {
   const response = await apiClient.get(`/user/${userId}/models`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
 };
-

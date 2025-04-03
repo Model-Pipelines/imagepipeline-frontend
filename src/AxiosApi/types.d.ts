@@ -103,7 +103,7 @@ export interface GenerateStyleImagePayload {
   prompt: string; // Required
   num_inference_steps?: number;
   samples?: number;
-  style?: "realistic" | "anime" | "cartoon" | "indian" | "logo" | "book-cover" | "pixar" | "fashion" | "nsfw";
+  style?: "ghibli" | "realistic" | "anime" | "cartoon" | "indian" | "logo" | "book-cover" | "pixar" | "fashion" | "nsfw";
   enhance_prompt?: boolean;
   palette?: string[];
   height?: number;
@@ -191,6 +191,13 @@ export interface UpscaleImagePayload {
   input_image: string; // Required (public URL for the selected image)
 }
 
+// Style Edit Image Payload (Simplified)
+export interface StyleEditImagePayload {
+  style: string; // Style name (e.g., "ghibli", "van-gogh", etc.)
+  prompt?: string; // Optional text prompt
+  init_image: string; // Required (public URL for the input image)
+}
+
 // Upload Files Payload
 export interface UploadFilesPayload {
   userUploadedImage: File; // Required
@@ -201,3 +208,11 @@ export interface FaceControlStatus {
   status: "SUCCESS" | "FAILURE" | "PROCESSING"
   // add other status response fields as needed
 }
+
+
+// export interface StyleEditImageResponse {
+//   id: string;
+//   status: 'PROCESSING' | 'SUCCESS' | 'FAILURE';
+//   output_url?: string; // URL of the styled image
+//   error?: string;
+// }

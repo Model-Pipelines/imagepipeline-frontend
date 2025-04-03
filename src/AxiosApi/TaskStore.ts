@@ -1,11 +1,11 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-type TaskType = 'background' | 'human' | 'upscale';
+type TaskType = "background" | "human" | "upscale" | "style"; // Added "style"
 
 interface BackgroundTask {
   id: string;
   type: TaskType;
-  status: 'PENDING' | 'SUCCESS' | 'FAILURE';
+  status: "PENDING" | "SUCCESS" | "FAILURE";
   download_urls?: string[];
   image_url?: string;
   init_image_id?: string;
@@ -27,16 +27,16 @@ export const useBackgroundTaskStore = create<BackgroundTaskStore>((set) => ({
       [taskId]: {
         id: taskId,
         type,
-        status: 'PENDING',
-        init_image_id: initImageId
-      }
-    }
+        status: "PENDING",
+        init_image_id: initImageId,
+      },
+    },
   })),
   updateTask: (taskId, update) => set((state) => ({
     tasks: {
       ...state.tasks,
-      [taskId]: { ...state.tasks[taskId], ...update }
-    }
+      [taskId]: { ...state.tasks[taskId], ...update },
+    },
   })),
   removeTask: (taskId) => set((state) => {
     const newTasks = { ...state.tasks };

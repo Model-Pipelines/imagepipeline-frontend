@@ -38,7 +38,7 @@ interface TaskResponse {
   error?: string;
 }
 
-const STYLE_OPTIONS = ["realistic", "anime", "cartoon", "indian", "logo", "book-cover", "pixar", "fashion", "nsfw"] as const;
+const STYLE_OPTIONS = ["ghibli","realistic", "anime", "cartoon", "indian", "logo", "book-cover", "pixar", "fashion", "nsfw"] as const;
 
 type StyleOption = typeof STYLE_OPTIONS[number];
 
