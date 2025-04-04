@@ -11,9 +11,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  compiler: {
-    removeConsole: true
-  }
+  // compiler: {
+  //   removeConsole: true
+  // }
 };
 
 export default async function getNextConfig() {

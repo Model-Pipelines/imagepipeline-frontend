@@ -413,6 +413,7 @@ export const getUpscaleImageStatus = async (taskId: string, token: string): Prom
  * Get Style Edit Image Status
  */
 export const getStyleEditImageStatus = async (taskId: string, token: string): Promise<StyleEditImageResponse> => {
+  console.log(`Fetching status from: /style/v1/status/${taskId}`);
   try {
     const response = await apiClient.get(`/style/v1/status/${taskId}`, {
       headers: { Authorization: `Bearer ${token}` },
