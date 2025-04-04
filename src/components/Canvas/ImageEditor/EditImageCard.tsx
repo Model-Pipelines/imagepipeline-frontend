@@ -1,11 +1,16 @@
 "use client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import BackGroundChange from "./BackGroundChage"; // Fixed typo in import
+import BackGroundChange from "./BackGroundChage";
 import Upscale from "./UpScaleImage";
 import { HumanEditorImage } from "./HumanEditorImage";
-import StyleChangeImage from "./StyleChangeImage"; // Added import
+import StyleChangeImage from "./StyleChangeImage";
 import { Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { motion } from "framer-motion";
 
 // Update the InfoTooltip component
@@ -28,7 +33,13 @@ export function EditImageCard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="bg-white/5 backdrop-blur-[2.5px] border border-white/20 dark:border-white/10 rounded-xl shadow-lg text-black dark:text-white p-4"
+      className="border border-white/25 dark:border-gray-800/25 rounded-xl shadow-2xl text-black dark:text-white p-4"
+      style={{
+        backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "rgba(17, 24, 39, -0.06)" // Dark mode: gray-900 with 6% opacity
+          : "rgba(255, 255, 255, -0.11)", // Light mode: white with 11% opacity
+      }}
     >
       <Tabs defaultValue="background-change" className="w-full">
         {/* Description Section */}
@@ -39,40 +50,46 @@ export function EditImageCard() {
           className="flex items-center gap-2 p-4"
         >
           <h2 className="text-xl font-bold">Image Editor</h2>
+          {/* You can add the InfoTooltip here if desired */}
+          {/* <InfoTooltip content="Edit your images with various tools" /> */}
         </motion.div>
 
-        {/* Tabs List - With glassmorphic styling */}
+        {/* Tabs List - With refined glassmorphic styling */}
         <div className="flex justify-center w-full mb-4">
-          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-full mx-auto">
+          <TabsList className="bg-white/[0.04] dark:bg-gray-900/[0.04] backdrop-blur-lg rounded-lg p-1 w-full mx-auto border border-white/20 dark:border-gray-800/20">
             <TabsTrigger
               value="background-change"
-              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold transition-all data-[state=active]:bg-white/[0.08] dark:data-[state=active]:bg-gray-800/[0.08] data-[state=active]:backdrop-blur-md hover:bg-white/[0.06] dark:hover:bg-gray-800/[0.06]"
             >
               Background Change
             </TabsTrigger>
             <TabsTrigger
               value="human"
-              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold transition-all data-[state=active]:bg-white/[0.08] dark:data-[state=active]:bg-gray-800/[0.08] data-[state=active]:backdrop-blur-md hover:bg-white/[0.06] dark:hover:bg-gray-800/[0.06]"
             >
               Human Editor
             </TabsTrigger>
             <TabsTrigger
               value="upscale"
-              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold transition-all data-[state=active]:bg-white/[0.08] dark:data-[state=active]:bg-gray-800/[0.08] data-[state=active]:backdrop-blur-md hover:bg-white/[0.06] dark:hover:bg-gray-800/[0.06]"
             >
               Upscale
             </TabsTrigger>
             <TabsTrigger
               value="style-change"
-              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold transition-all data-[state=active]:bg-white/[0.08] dark:data-[state=active]:bg-gray-800/[0.08] data-[state=active]:backdrop-blur-md hover:bg-white/[0.06] dark:hover:bg-gray-800/[0.06]"
             >
               Style Change
             </TabsTrigger>
           </TabsList>
         </div>
 
-        {/* Tabs Content with consistent spacing and glassmorphic styling */}
-        <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
+        {/* Tabs Content with consistent spacing */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+        >
           <TabsContent value="background-change" className="mb-4">
             <BackGroundChange />
           </TabsContent>
