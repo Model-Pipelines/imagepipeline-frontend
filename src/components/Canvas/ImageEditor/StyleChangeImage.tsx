@@ -1,45 +1,47 @@
-"use client";
+"use client"
 
-import React, { useCallback, useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input"; // Assuming you have an Input component
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { useToast } from "@/hooks/use-toast";
-import { TextShimmerWave } from "@/components/ui/text-shimmer-wave";
-import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"; // Corrected import
-import { useAuth } from "@clerk/nextjs";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { styleEditImage, getStyleEditImageStatus } from "@/AxiosApi/GenerativeApi";
-import { useChangeStyleImage } from "@/AxiosApi/TanstackQuery";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
-import { motion } from "framer-motion";
-import { useCanvasStore } from "@/lib/store";
-import { v4 as uuidv4 } from "uuid";
+import { useCallback, useMemo, useState, useEffect } from "react"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { useImageStore } from "@/AxiosApi/ZustandImageStore"
+import { useToast } from "@/hooks/use-toast"
+import { TextShimmerWave } from "@/components/ui/text-shimmer-wave"
+import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore"
+import { useAuth } from "@clerk/nextjs"
+import { useQuery } from "@tanstack/react-query"
+import { getStyleEditImageStatus } from "@/AxiosApi/GenerativeApi"
+import { useChangeStyleImage } from "@/AxiosApi/TanstackQuery"
+import { InfoTooltip } from "@/components/ui/info-tooltip"
+import { motion } from "framer-motion"
+import { useCanvasStore } from "@/lib/store"
+import { v4 as uuidv4 } from "uuid"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Define the TaskResponse interface to match StyleEditImageResponse from GenerativeApi.ts
 interface TaskResponse {
-  status: "PENDING" | "SUCCESS" | "FAILURE";
-  output_url?: string; // Matches the API response field
-  error?: string;
+  status: "PENDING" | "SUCCESS" | "FAILURE"
+  output_url?: string
+  error?: string
 }
 
 const StyleChangeImage = () => {
-  const [style] = useState<string>("ghibli"); // Fixed style as "ghibli"
-  const [prompt, setPrompt] = useState<string>(""); // Prompt input state
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [pendingImageId, setPendingImageId] = useState<string | null>(null);
-  const { toast } = useToast();
-  const { addTask } = useBackgroundTaskStore();
-  const { getToken } = useAuth();
-  const { selectedImageId, images, addImage, addPendingImage, removePendingImage, pendingImages } = useImageStore();
-  const { scale, offset } = useCanvasStore();
-  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId]);
+  const [style, setStyle] = useState<string>("ghibli")
+  const styleOptions = ["ghibli", "realistic", "anime", "cartoon", "indian", "logo", "book-cover", "pixar", "fashion"]
+  const [prompt, setPrompt] = useState<string>("")
+  const [taskId, setTaskId] = useState<string | null>(null)
+  const [pendingImageId, setPendingImageId] = useState<string | null>(null)
+  const { toast } = useToast()
+  const { addTask } = useBackgroundTaskStore()
+  const { getToken } = useAuth()
+  const { selectedImageId, images, addImage, addPendingImage, removePendingImage, pendingImages } = useImageStore()
+  const { scale, offset } = useCanvasStore()
+  const selectedImage = useMemo(() => images.find((img) => img.id === selectedImageId), [images, selectedImageId])
 
   const calculatePosition = useCallback(() => {
-    const lastImage = images[images.length - 1];
-    const spacing = 50;
+    const lastImage = images[images.length - 1]
+    const spacing = 50
     return lastImage
       ? {
           x: (lastImage.position.x + lastImage.size.width + spacing) / scale - offset.x,
@@ -48,43 +50,42 @@ const StyleChangeImage = () => {
       : {
           x: spacing / scale - offset.x,
           y: (spacing * 2) / scale - offset.y,
-        };
-  }, [images, scale, offset]);
+        }
+  }, [images, scale, offset])
 
-  // Use TanStack Query mutation for style change
-  const { mutate: changeStyleImageMutation } = useChangeStyleImage();
+  const { mutate: changeStyleImageMutation } = useChangeStyleImage()
 
   const { data: taskStatus } = useQuery<TaskResponse, Error>({
     queryKey: ["styleChangeTask", taskId],
     queryFn: async () => {
-      const token = await getToken();
-      if (!token) throw new Error("Authentication token not available");
-      return getStyleEditImageStatus(taskId!, token); // Use the correct status endpoint
+      const token = await getToken()
+      if (!token) throw new Error("Authentication token not available")
+      return getStyleEditImageStatus(taskId!, token)
     },
     enabled: !!taskId,
     refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 5000 : false),
     staleTime: 0,
     retry: false,
     refetchOnWindowFocus: false,
-  });
+  })
 
   const handleSubmit = useCallback(async () => {
     if (!selectedImage) {
-      toast({ title: "Error", description: "Please select an image to process", variant: "destructive" });
-      return;
+      toast({ title: "Error", description: "Please select an image to process", variant: "destructive" })
+      return
     }
 
-    const token = await getToken();
+    const token = await getToken()
     if (!token) {
-      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" });
-      return;
+      toast({ title: "Error", description: "Authentication token not available", variant: "destructive" })
+      return
     }
 
     const payload = {
       style,
       prompt,
-      init_image: selectedImage.url, // Use selected image as init_image
-    };
+      init_image: selectedImage.url,
+    }
 
     changeStyleImageMutation(
       {
@@ -94,67 +95,88 @@ const StyleChangeImage = () => {
       {
         onSuccess: (response) => {
           if (!response.id) {
-            toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" });
-            return;
+            toast({ title: "Error", description: "Invalid response: Missing task ID", variant: "destructive" })
+            return
           }
-          setTaskId(response.id);
-          setPendingImageId(response.id);
-          addTask(response.id, selectedImageId!, "style"); // Add task to store with "style" type
-          const position = calculatePosition();
-          const scaleFactor = 200 / Math.max(selectedImage!.size.width, selectedImage!.size.height);
-          const scaledHeight = selectedImage!.size.height * scaleFactor;
-          const scaledWidth = selectedImage!.size.width * scaleFactor;
-          addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } });
-          toast({ title: "Processing", description: "Style change in progress..." });
+          setTaskId(response.id)
+          setPendingImageId(response.id)
+          addTask(response.id, selectedImageId!, "style")
+          const position = calculatePosition()
+          const scaleFactor = 200 / Math.max(selectedImage!.size.width, selectedImage!.size.height)
+          const scaledHeight = selectedImage!.size.height * scaleFactor
+          const scaledWidth = selectedImage!.size.width * scaleFactor
+          addPendingImage({ id: response.id, position, size: { width: scaledWidth, height: scaledHeight } })
+          toast({ title: "Processing", description: "Style change in progress..." })
         },
         onError: (error: any) => {
-          toast({ title: "Error", description: error.message || "Failed to start style change", variant: "destructive" });
-          setTaskId(null);
-          setPendingImageId(null);
+          toast({
+            title: "Error",
+            description: error.message || "Failed to start style change",
+            variant: "destructive",
+          })
+          setTaskId(null)
+          setPendingImageId(null)
         },
-      }
-    );
-  }, [selectedImage, changeStyleImageMutation, toast, getToken, addTask, selectedImageId, calculatePosition, addPendingImage, style, prompt]);
+      },
+    )
+  }, [
+    selectedImage,
+    changeStyleImageMutation,
+    toast,
+    getToken,
+    addTask,
+    selectedImageId,
+    calculatePosition,
+    addPendingImage,
+    style,
+    prompt,
+  ])
 
   useEffect(() => {
-    if (!taskStatus || !taskId || !pendingImageId) return;
+    if (!taskStatus || !taskId || !pendingImageId) return
 
     if (taskStatus.status === "SUCCESS" && taskStatus.output_url) {
-      const element = new Image();
-      element.src = taskStatus.output_url; // Use output_url from API response
+      const element = new Image()
+      element.src = taskStatus.output_url
       element.onload = () => {
-        const pendingImage = pendingImages.find((p) => p.id === pendingImageId);
+        const pendingImage = pendingImages.find((p) => p.id === pendingImageId)
         if (!pendingImage) {
-          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" });
-          removePendingImage(taskId);
-          setTaskId(null);
-          setPendingImageId(null);
-          return;
+          toast({ title: "Error", description: "Pending image not found.", variant: "destructive" })
+          removePendingImage(taskId)
+          setTaskId(null)
+          setPendingImageId(null)
+          return
         }
-        const position = pendingImage.position;
-        const scaleFactor = 200 / Math.max(element.width, element.height);
-        const scaledHeight = element.height * scaleFactor;
-        const scaledWidth = element.width * scaleFactor;
-        const newImageId = uuidv4();
-        removePendingImage(pendingImageId);
-        addImage({ id: newImageId, url: taskStatus.output_url!, element, position, size: { width: scaledWidth, height: scaledHeight } });
-        toast({ title: "Success", description: "Style changed successfully!" });
-        setTaskId(null);
-        setPendingImageId(null);
-      };
+        const position = pendingImage.position
+        const scaleFactor = 200 / Math.max(element.width, element.height)
+        const scaledHeight = element.height * scaleFactor
+        const scaledWidth = element.width * scaleFactor
+        const newImageId = uuidv4()
+        removePendingImage(pendingImageId)
+        addImage({
+          id: newImageId,
+          url: taskStatus.output_url!,
+          element,
+          position,
+          size: { width: scaledWidth, height: scaledHeight },
+        })
+        toast({ title: "Success", description: "Style changed successfully!" })
+        setTaskId(null)
+        setPendingImageId(null)
+      }
       element.onerror = () => {
-        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" });
-        removePendingImage(pendingImageId);
-        setTaskId(null);
-        setPendingImageId(null);
-      };
+        toast({ title: "Error", description: "Failed to load image.", variant: "destructive" })
+        removePendingImage(pendingImageId)
+        setTaskId(null)
+        setPendingImageId(null)
+      }
     } else if (taskStatus.status === "FAILURE") {
-      toast({ title: "Error", description: taskStatus.error || "Failed to change style", variant: "destructive" });
-      removePendingImage(pendingImageId);
-      setTaskId(null);
-      setPendingImageId(null);
+      toast({ title: "Error", description: taskStatus.error || "Failed to change style", variant: "destructive" })
+      removePendingImage(pendingImageId)
+      setTaskId(null)
+      setPendingImageId(null)
     }
-  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast]);
+  }, [taskStatus, taskId, pendingImageId, pendingImages, addImage, removePendingImage, toast])
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
@@ -186,9 +208,24 @@ const StyleChangeImage = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <Label className="text-base font-normal">Style</Label>
-                <InfoTooltip content="The style to apply to your image (fixed as Ghibli)" />
+                <InfoTooltip content="Choose the style to apply to your image" />
               </div>
-              <p className="text-base font-normal text-gray-300">Ghibli</p> {/* Display fixed style */}
+              <Select value={style} onValueChange={setStyle}>
+                <SelectTrigger className="w-full bg-white/10 border-white/20 dark:bg-slate-800/10 dark:border-white/10 text-white">
+                  <SelectValue placeholder="select a style" />
+                </SelectTrigger>
+                <SelectContent>
+                  {styleOptions.map((styleOption) => (
+                    <SelectItem
+                      key={styleOption}
+                      value={styleOption}
+                      className="text-lowercase" // Add custom class to enforce lowercase
+                    >
+                      {styleOption.toLowerCase()} {/* Explicitly lowercase the display */}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <div className="flex items-center gap-2">
@@ -217,7 +254,7 @@ const StyleChangeImage = () => {
         </CardFooter>
       </Card>
     </motion.div>
-  );
-};
+  )
+}
 
-export default StyleChangeImage;
+export default StyleChangeImage

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-type TaskType = "background" | "human" | "upscale" | "style"; // Added "style"
+type TaskType = "background" | "human" | "upscale" | "style"; // Already includes "style"
 
 interface BackgroundTask {
   id: string;

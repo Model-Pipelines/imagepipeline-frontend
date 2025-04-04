@@ -193,7 +193,7 @@ export interface UpscaleImagePayload {
 
 // Style Edit Image Payload (Simplified)
 export interface StyleEditImagePayload {
-  style: string; // Style name (e.g., "ghibli", "van-gogh", etc.)
+  style: "ghibli" | "realistic" | "anime" | "cartoon" | "indian" | "logo" | "book-cover" | "pixar" | "fashion" | "nsfw"; // Updated to specific union type
   prompt?: string; // Optional text prompt
   init_image: string; // Required (public URL for the input image)
 }
