@@ -249,8 +249,8 @@ const AspectRatioTab = () => {
             variant={storedRatio === ratio ? "default" : "outline"}
             className={`px-2 dark:text-text ${
               storedRatio === ratio
-                ? "bg-accent text-text"
-                : "bg-gray-bordergray hover:bg-[var(--muted)] dark:hover:bg-[var(--muted-foreground)]"
+                ? "bg-secondary dark:bg-chart-4 hover:bg-creative dark:hover:bg-primary text-text"
+                : "bg-gray-bordergray hover:bg-[var(--muted)] dark:hover:bg-primary"
             }`}
             onClick={() => handleRatioClick(ratio)}
           >

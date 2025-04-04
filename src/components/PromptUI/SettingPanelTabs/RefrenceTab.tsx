@@ -196,7 +196,11 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
         </SelectTrigger>
         <SelectContent>
           {REFERENCE_TYPES.map((t) => (
-            <SelectItem key={t.value} value={t.value}>
+            <SelectItem 
+              key={t.value} 
+              value={t.value}
+              className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-2 pr-8 text-sm outline-none hover:bg-creative dark:hover:bg-primary focus:bg-creative dark:focus:bg-primary data-[state=checked]:bg-secondary dark:data-[state=checked]:bg-chart-4 data-[state=checked]:text-white dark:data-[state=checked]:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+            >
               {t.label}
             </SelectItem>
           ))}

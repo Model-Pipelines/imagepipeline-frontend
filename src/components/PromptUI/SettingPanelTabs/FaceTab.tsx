@@ -332,7 +332,11 @@ const FaceTab = () => {
             key={position}
             onClick={() => togglePosition(position)}
             variant={selectedPositions.includes(position) ? "default" : "outline"}
-            className={`${selectedPositions.includes(position) ? "bg-accent" : "bg-gray-bordergray"} text-textPrimary dark:text-text dark:hover:bg-[var(--muted-foreground)] hover:bg-[var(--muted)]`}
+            className={`${
+              selectedPositions.includes(position) 
+                ? "bg-secondary dark:bg-chart-4 text-white dark:text-text" 
+                : "bg-gray-bordergray text-textPrimary dark:text-text"
+            } hover:bg-creative dark:hover:bg-primary`}
             disabled={isReferenceActive || (faceImages.length > 1 && selectedPositions.length >= faceImages.length && !selectedPositions.includes(position))}
           >
             {position}

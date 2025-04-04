@@ -43,28 +43,28 @@ export function EditImageCard() {
 
         {/* Tabs List - With glassmorphic styling */}
         <div className="flex justify-center w-full mb-4">
-          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-[80%] mx-auto">
+          <TabsList className="bg-white/10 dark:bg-slate-800/10 backdrop-blur-sm rounded-lg p-1 w-full mx-auto">
             <TabsTrigger
               value="background-change"
-              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
             >
               Background Change
             </TabsTrigger>
             <TabsTrigger
               value="human"
-              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
             >
               Human Editor
             </TabsTrigger>
             <TabsTrigger
               value="upscale"
-              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
             >
               Upscale
             </TabsTrigger>
             <TabsTrigger
               value="style-change"
-              className="px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
+              className="w-full px-2 py-1.5 text-sm font-bold data-[state=active]:bg-white/20 dark:data-[state=active]:bg-slate-700/20 data-[state=active]:backdrop-blur-md"
             >
               Style Change
             </TabsTrigger>

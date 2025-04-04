@@ -148,15 +148,15 @@ const Upscale = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       <Card className="bg-white/5 backdrop-blur-[2.5px] border border-white/20 dark:border-white/10 rounded-xl shadow-lg">
         <CardContent className="space-y-6">
-          <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
+          {/* <div className="flex items-center justify-between border-b border-white/10 dark:border-white/5 pb-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold">Image Upscaling</h3>
               <InfoTooltip content="Enhance your image quality using advanced AI upscaling." />
             </div>
-          </div>
+          </div> */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label className="text-base font-normal">Selected Image</Label>
+              <Label className="text-base mt-3 font-normal">Selected Image</Label>
               <InfoTooltip content="The image you want to upscale" />
             </div>
             {selectedImage ? (
