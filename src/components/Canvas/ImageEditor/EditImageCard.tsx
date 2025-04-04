@@ -37,8 +37,8 @@ export function EditImageCard() {
       style={{
         backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
           .matches
-          ? "rgba(17, 24, 39, -0.06)" // Dark mode: gray-900 with 6% opacity
-          : "rgba(255, 255, 255, -0.11)", // Light mode: white with 11% opacity
+          ? "rgba(255, 255, 255, 0.55)" // Dark mode: gray-900 with 6% opacity
+          : "rgba(255, 255, 255, 0.55)", // Light mode: white with 11% opacity
       }}
     >
       <Tabs defaultValue="background-change" className="w-full">
