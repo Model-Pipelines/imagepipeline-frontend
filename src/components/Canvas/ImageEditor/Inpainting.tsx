@@ -33,40 +33,99 @@ export default function Inpainting() {
   useEffect(() => {
     if (!canvasRef.current || !selectedImage) return;
   
-    console.log("Fetching image from URL:", selectedImage.url);
-  
     const loadImage = async () => {
       try {
+        // Fetch the image as a blob to handle CORS
         const response = await fetch(selectedImage.url, {
-          mode: "cors", // Attempt to handle CORS
+          mode: "cors",
           headers: {
-            // If authentication is needed, add it here, e.g.:
-            // "Authorization": "Bearer YOUR_API_TOKEN"
+            // Add authentication headers if required by your API
           },
         });
-  
         if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-  
         const blob = await response.blob();
         const url = URL.createObjectURL(blob);
   
-        console.log("Image fetched successfully, blob URL:", url);
-  
+        // Load the image
         const img = new window.Image();
         img.src = url;
-  
         img.onload = () => {
-          console.log("Image loaded successfully:", selectedImage.url);
-          // Rest of your canvas setup code here...
+          // Set original size and calculate scaled dimensions
+          setOriginalImageSize({ width: img.width, height: img.height });
+          const maxWidth = 500;
+          const maxHeight = 400;
+          const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+          const newWidth = img.width * ratio;
+          const newHeight = img.height * ratio;
+          setDimensions({ width: newWidth, height: newHeight });
+  
+          // Initialize Fabric.js canvas
+          const canvas = new fabric.Canvas(canvasRef.current, {
+            width: newWidth,
+            height: newHeight,
+            isDrawingMode: true,
+            backgroundColor: "transparent",
+          });
+          fabricRef.current = canvas;
+  
+          // Add the base image (like KonvaImage in your code)
+          const fabricImg = new fabric.Image(img, {
+            left: 0,
+            top: 0,
+            scaleX: newWidth / img.width,
+            scaleY: newHeight / img.height,
+            selectable: false,
+            evented: false,
+          });
+          canvas.add(fabricImg);
+  
+          // Add semi-transparent overlay (like Rect in Konva)
+          const overlay = new fabric.Rect({
+            left: 0,
+            top: 0,
+            width: newWidth,
+            height: newHeight,
+            fill: "rgba(0, 0, 0, 0.3)", // Matches your Konva opacity
+            selectable: false,
+            evented: false,
+          });
+          canvas.add(overlay);
+          canvas.sendToBack(overlay);
+          canvas.sendToBack(fabricImg);
+  
+          // Setup drawing tools (like Line in Konva)
+          canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
+          canvas.freeDrawingBrush.color = "white";
+          canvas.freeDrawingBrush.width = brushSize;
+  
+          // Mouse position tracking (like your mousePos state)
+          canvas.on("mouse:move", (e) => {
+            if (e.absolutePointer) {
+              setMousePos({ x: e.absolutePointer.x, y: e.absolutePointer.y });
+            }
+          });
+          canvas.on("mouse:out", () => setMousePos(null));
+  
+          // History tracking (like your Konva history)
+          canvas.on("path:created", () => {
+            const json = canvas.toJSON();
+            setHistory((prev) => [
+              ...prev.slice(0, historyIndex + 1),
+              JSON.stringify(json),
+            ]);
+            setHistoryIndex((prev) => prev + 1);
+          });
+  
+          canvas.renderAll();
         };
   
         img.onerror = () => {
-          console.error("Image failed to load after fetch:", url);
+          console.error("Image failed to load:", url);
           toast({
             title: "Error",
-            description: "Failed to load the image after fetching.",
+            description: "Failed to load the image.",
             variant: "destructive",
           });
         };
@@ -82,13 +141,14 @@ export default function Inpainting() {
   
     loadImage();
   
+    // Cleanup
     return () => {
       if (fabricRef.current) {
         fabricRef.current.dispose();
         fabricRef.current = null;
       }
     };
-  }, [selectedImage]);
+  }, [selectedImage, brushSize, historyIndex, setDimensions, setHistory, setHistoryIndex, setMousePos, setOriginalImageSize, toast]);
 
   useEffect(() => {
     if (!fabricRef.current) return;
