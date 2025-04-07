@@ -442,6 +442,7 @@ export default function ProfilePage() {
         </motion.section>
 
         {/* Subscription */}
+        {/* Subscription */}
         <section>
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Subscription
@@ -458,6 +459,24 @@ export default function ProfilePage() {
                     ).toLocaleDateString()}`
                   : "No expiry date"}
               </CardDescription>
+              <div className="pt-2">
+                <CardDescription className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                  Manage subscription
+                </CardDescription>
+                <Link
+                  href="https://billing.stripe.com/p/login/5kA6si7fjanqeli144"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Click Here
+                  </Button>
+                </Link>
+              </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6">
               {!userPlanData ? (
