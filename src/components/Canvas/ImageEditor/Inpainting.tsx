@@ -1,368 +1,318 @@
-"use client";
+"use client"
 
-import { useRef, useState, useEffect } from "react";
-import * as fabric from "fabric";
-import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
-import { Eraser, Pencil, Undo2, Redo2, Download, Circle } from "lucide-react";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { motion } from "framer-motion";
-import { InfoTooltip } from "@/components/ui/info-tooltip";
+import { useRef, useState, useEffect } from "react"
+import { useImageStore } from "@/AxiosApi/ZustandImageStore"
+import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
+import { Eraser, Pencil, Undo2, Redo2, Download, Circle } from "lucide-react"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { useToast } from "@/hooks/use-toast"
+
+interface Point {
+  x: number
+  y: number
+}
+
+interface Line {
+  tool: "pen" | "eraser"
+  points: Point[]
+  brushSize: number
+  color: string
+}
 
 export default function Inpainting() {
-  const { selectedImageId, images } = useImageStore();
-  const { toast } = useToast();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<fabric.Canvas | null>(null);
-  const [tool, setTool] = useState<"pen" | "eraser">("pen");
-  const [brushSize, setBrushSize] = useState(10);
-  const [dimensions, setDimensions] = useState({ width: 500, height: 400 });
-  const [history, setHistory] = useState<string[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
-  const [originalImageSize, setOriginalImageSize] = useState({
-    width: 0,
-    height: 0,
-  });
+  const { selectedImageId, images } = useImageStore()
+  const { toast } = useToast()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [image, setImage] = useState<HTMLImageElement | null>(null)
+  const [originalImageSize, setOriginalImageSize] = useState({ width: 0, height: 0 })
+  const [lines, setLines] = useState<Line[]>([])
+  const [history, setHistory] = useState<Line[][]>([])
+  const [historyIndex, setHistoryIndex] = useState(-1)
+  const [tool, setTool] = useState<"pen" | "eraser">("pen")
+  const [brushSize, setBrushSize] = useState(5)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [dimensions, setDimensions] = useState({ width: 500, height: 400 })
+  const [cursorStyle, setCursorStyle] = useState<string>("default")
+  const [mousePos, setMousePos] = useState<Point | null>(null)
 
-  const selectedImage = images.find((img) => img.id === selectedImageId);
-
-  useEffect(() => {
-    if (!canvasRef.current || !selectedImage) return;
-  
-    const loadImage = async () => {
-      try {
-        // Fetch the image as a blob to handle CORS
-        const response = await fetch(selectedImage.url, {
-          mode: "cors",
-          headers: {
-            // Add authentication headers if required by your API
-          },
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-  
-        // Load the image
-        const img = new window.Image();
-        img.src = url;
-        img.onload = () => {
-          // Set original size and calculate scaled dimensions
-          setOriginalImageSize({ width: img.width, height: img.height });
-          const maxWidth = 500;
-          const maxHeight = 400;
-          const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
-          const newWidth = img.width * ratio;
-          const newHeight = img.height * ratio;
-          setDimensions({ width: newWidth, height: newHeight });
-  
-          // Initialize Fabric.js canvas
-          const canvas = new fabric.Canvas(canvasRef.current, {
-            width: newWidth,
-            height: newHeight,
-            isDrawingMode: true,
-            backgroundColor: "transparent",
-          });
-          fabricRef.current = canvas;
-  
-          // Add the base image (like KonvaImage in your code)
-          const fabricImg = new fabric.Image(img, {
-            left: 0,
-            top: 0,
-            scaleX: newWidth / img.width,
-            scaleY: newHeight / img.height,
-            selectable: false,
-            evented: false,
-          });
-          canvas.add(fabricImg);
-  
-          // Add semi-transparent overlay (like Rect in Konva)
-          const overlay = new fabric.Rect({
-            left: 0,
-            top: 0,
-            width: newWidth,
-            height: newHeight,
-            fill: "rgba(0, 0, 0, 0.3)", // Matches your Konva opacity
-            selectable: false,
-            evented: false,
-          });
-          canvas.add(overlay);
-          canvas.sendToBack(overlay);
-          canvas.sendToBack(fabricImg);
-  
-          // Setup drawing tools (like Line in Konva)
-          canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-          canvas.freeDrawingBrush.color = "white";
-          canvas.freeDrawingBrush.width = brushSize;
-  
-          // Mouse position tracking (like your mousePos state)
-          canvas.on("mouse:move", (e) => {
-            if (e.absolutePointer) {
-              setMousePos({ x: e.absolutePointer.x, y: e.absolutePointer.y });
-            }
-          });
-          canvas.on("mouse:out", () => setMousePos(null));
-  
-          // History tracking (like your Konva history)
-          canvas.on("path:created", () => {
-            const json = canvas.toJSON();
-            setHistory((prev) => [
-              ...prev.slice(0, historyIndex + 1),
-              JSON.stringify(json),
-            ]);
-            setHistoryIndex((prev) => prev + 1);
-          });
-  
-          canvas.renderAll();
-        };
-  
-        img.onerror = () => {
-          console.error("Image failed to load:", url);
-          toast({
-            title: "Error",
-            description: "Failed to load the image.",
-            variant: "destructive",
-          });
-        };
-      } catch (error) {
-        console.error("Fetch error:", error.message);
-        toast({
-          title: "Error",
-          description: `Failed to fetch the image: ${error.message}`,
-          variant: "destructive",
-        });
-      }
-    };
-  
-    loadImage();
-  
-    // Cleanup
-    return () => {
-      if (fabricRef.current) {
-        fabricRef.current.dispose();
-        fabricRef.current = null;
-      }
-    };
-  }, [selectedImage, brushSize, historyIndex, setDimensions, setHistory, setHistoryIndex, setMousePos, setOriginalImageSize, toast]);
+  const selectedImage = images.find((img) => img.id === selectedImageId)
 
   useEffect(() => {
-    if (!fabricRef.current) return;
+    if (!selectedImage) return
 
-    const canvas = fabricRef.current;
-    if (tool === "pen") {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = "white";
-      canvas.freeDrawingBrush.width = brushSize;
-      // @ts-ignore
-      canvas.freeDrawingBrush.globalCompositeOperation = "source-over";
-    } else if (tool === "eraser") {
-      canvas.isDrawingMode = true;
-      canvas.freeDrawingBrush = new fabric.PencilBrush(canvas);
-      canvas.freeDrawingBrush.color = "rgba(0,0,0,1)";
-      canvas.freeDrawingBrush.width = brushSize;
-      // @ts-ignore
-      canvas.freeDrawingBrush.globalCompositeOperation = "destination-out";
+    const img = new window.Image()
+    img.src = selectedImage.url
+    img.onload = () => {
+      setImage(img)
+      setOriginalImageSize({ width: img.width, height: img.height })
+      const maxWidth = 500
+      const maxHeight = 400
+      const ratio = Math.min(maxWidth / img.width, maxHeight / img.height)
+      setDimensions({
+        width: img.width * ratio,
+        height: img.height * ratio,
+      })
     }
-  }, [tool, brushSize]);
+  }, [selectedImage])
+
+  useEffect(() => {
+    drawCanvas()
+  }, [image, lines, dimensions])
+
+  const drawCanvas = () => {
+    const canvas = canvasRef.current
+    if (!canvas || !image) return
+
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+    ctx.drawImage(image, 0, 0, dimensions.width, dimensions.height)
+
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    ctx.fillRect(0, 0, dimensions.width, dimensions.height)
+
+    lines.forEach((line) => {
+      if (line.points.length < 2) return
+
+      ctx.beginPath()
+      ctx.moveTo(line.points[0].x, line.points[0].y)
+
+      for (let i = 1; i < line.points.length; i++) {
+        ctx.lineTo(line.points[i].x, line.points[i].y)
+      }
+
+      ctx.strokeStyle = line.color
+      ctx.lineWidth = line.brushSize
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    })
+  }
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement>): Point => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+
+    const rect = canvas.getBoundingClientRect()
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    }
+  }
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    setIsDrawing(true)
+    const pos = getCanvasCoordinates(e)
+    const newLine: Line = {
+      tool,
+      points: [pos],
+      brushSize,
+      color: "white",
+    }
+    if (tool === "pen") {
+      setLines([...lines, newLine])
+    }
+  }
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const pos = getCanvasCoordinates(e)
+    setMousePos(pos)
+
+    if (!isDrawing) return
+
+    if (tool === "pen") {
+      setLines((prevLines) => {
+        const lastLine = prevLines[prevLines.length - 1]
+        const updatedLastLine = {
+          ...lastLine,
+          points: [...lastLine.points, pos],
+        }
+        return [...prevLines.slice(0, -1), updatedLastLine]
+      })
+    } else if (tool === "eraser") {
+      setLines((prevLines) => {
+        return prevLines.map((line) => {
+          const filteredPoints = line.points.filter((point) => {
+            const distance = Math.sqrt(
+              Math.pow(pos.x - point.x, 2) + Math.pow(pos.y - point.y, 2)
+            )
+            return distance > brushSize / 2
+          })
+          return { ...line, points: filteredPoints }
+        }).filter((line) => line.points.length > 0)
+      })
+    }
+  }
+
+  const handleMouseUp = () => {
+    if (!isDrawing) return
+    setIsDrawing(false)
+    setHistory([...history.slice(0, historyIndex + 1), [...lines]])
+    setHistoryIndex((prevIndex) => prevIndex + 1)
+  }
 
   const undo = () => {
-    if (historyIndex <= 0 || !fabricRef.current) return;
-    const newIndex = historyIndex - 1;
-    fabricRef.current.loadFromJSON(JSON.parse(history[newIndex]), () => {
-      fabricRef.current?.renderAll();
-    });
-    setHistoryIndex(newIndex);
-  };
+    if (historyIndex <= -1) return
+    if (historyIndex === 0) {
+      setLines([])
+      setHistoryIndex(-1)
+      return
+    }
+    const newIndex = historyIndex - 1
+    setLines([...history[newIndex]])
+    setHistoryIndex(newIndex)
+  }
 
   const redo = () => {
-    if (historyIndex >= history.length - 1 || !fabricRef.current) return;
-    const newIndex = historyIndex + 1;
-    fabricRef.current.loadFromJSON(JSON.parse(history[newIndex]), () => {
-      fabricRef.current?.renderAll();
-    });
-    setHistoryIndex(newIndex);
-  };
+    if (historyIndex >= history.length - 1) return
+    const newIndex = historyIndex + 1
+    setLines([...history[newIndex]])
+    setHistoryIndex(newIndex)
+  }
 
   const clearCanvas = () => {
-    if (!fabricRef.current) return;
-    const canvas = fabricRef.current;
-    canvas.getObjects().forEach((obj) => {
-      if (obj.type !== "image" && obj.type !== "rect") {
-        canvas.remove(obj);
-      }
-    });
-    canvas.renderAll();
-    const json = canvas.toJSON();
-    setHistory((prev) => [...prev, JSON.stringify(json)]);
-    setHistoryIndex((prev) => prev + 1);
-  };
+    setLines([])
+    setHistory((prevHistory) => [...prevHistory, []])
+    setHistoryIndex((prevIndex) => prevIndex + 1)
+  }
 
   const handleExport = () => {
-    if (!fabricRef.current || !selectedImage) return;
+    const canvas = document.createElement('canvas')
+    canvas.width = originalImageSize.width
+    canvas.height = originalImageSize.height
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
 
-    const canvas = fabricRef.current;
-    const tempCanvas = document.createElement("canvas");
-    const exportCanvas = new fabric.Canvas(tempCanvas, {
-      width: originalImageSize.width,
-      height: originalImageSize.height,
-      backgroundColor: "transparent",
-    });
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)'
+    ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    const scaleX = originalImageSize.width / dimensions.width;
-    const scaleY = originalImageSize.height / dimensions.height;
+    const scaleX = originalImageSize.width / dimensions.width
+    const scaleY = originalImageSize.height / dimensions.height
 
-    canvas.getObjects().forEach((obj) => {
-      obj.clone((cloned: fabric.Object) => {
-        cloned.scaleX = (cloned.scaleX || 1) * scaleX;
-        cloned.scaleY = (cloned.scaleY || 1) * scaleY;
-        cloned.left = (cloned.left || 0) * scaleX;
-        cloned.top = (cloned.top || 0) * scaleY;
-        if (cloned instanceof fabric.Path) {
-          // @ts-ignore
-          cloned.globalCompositeOperation = obj.globalCompositeOperation;
-        }
-        exportCanvas.add(cloned);
-      });
-    });
+    lines.forEach((line) => {
+      if (line.points.length < 2) return
 
-    const dataURL = exportCanvas.toDataURL({
-      format: "png",
-      quality: 1,
-      multiplier: 1,
-    });
+      ctx.beginPath()
+      ctx.moveTo(line.points[0].x * scaleX, line.points[0].y * scaleY)
 
-    const link = document.createElement("a");
-    link.download = "inpainting-result.png";
-    link.href = dataURL;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      for (let i = 1; i < line.points.length; i++) {
+        ctx.lineTo(line.points[i].x * scaleX, line.points[i].y * scaleY)
+      }
 
-    exportCanvas.dispose();
-    tempCanvas.remove();
+      ctx.strokeStyle = line.color
+      ctx.lineWidth = line.brushSize * Math.max(scaleX, scaleY)
+      ctx.lineCap = 'round'
+      ctx.lineJoin = 'round'
+      ctx.stroke()
+    })
+
+    const dataURL = canvas.toDataURL('image/png')
+    const link = document.createElement("a")
+    link.download = "mask.png"
+    link.href = dataURL
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
 
     toast({
       title: "Success",
-      description: "Image with mask exported successfully!",
-    });
-  };
+      description: "Mask exported successfully!",
+    })
+  }
+
+  const handleMouseEnter = () => setCursorStyle("crosshair")
+  const handleMouseLeave = () => {
+    setCursorStyle("default")
+    setMousePos(null)
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <Card
-        className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md rounded-xl shadow-lg"
-        style={{
-          backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
-            .matches
-            ? "rgba(17, 24, 39, -0.06)"
-            : "rgba(255, 255, 255, -0.11)",
-        }}
-      >
-        <CardContent className="space-y-6 p-4">
-          {!selectedImage ? (
-            <p className="text-gray-500 text-base font-normal">
-              No image selected
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap gap-2 mb-2">
-                <Button
-                  size="sm"
-                  variant={tool === "pen" ? "default" : "outline"}
-                  onClick={() => setTool("pen")}
-                >
-                  <Pencil className="mr-1 h-3 w-3" /> Pencil
-                </Button>
-                <Button
-                  size="sm"
-                  variant={tool === "eraser" ? "default" : "outline"}
-                  onClick={() => setTool("eraser")}
-                >
-                  <Eraser className="mr-1 h-3 w-3" /> Eraser
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={undo}
-                  disabled={historyIndex <= 0}
-                >
-                  <Undo2 className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={redo}
-                  disabled={historyIndex >= history.length - 1}
-                >
-                  <Redo2 className="h-3 w-3" />
-                </Button>
-                <Button size="sm" variant="outline" onClick={clearCanvas}>
-                  Clear
-                </Button>
-              </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardContent className="space-y-3 p-4">
+        <div className="flex items-center justify-between border-b pb-2">
+          <h3 className="text-base font-medium">Image Inpainting</h3>
+        </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs">Brush Size: {brushSize}px</Label>
-                <Slider
-                  defaultValue={[brushSize]}
-                  min={1}
-                  max={50}
-                  step={1}
-                  onValueChange={(value) => setBrushSize(value[0])}
-                />
-              </div>
+        {!selectedImage ? (
+          <div className="flex items-center justify-center h-40">
+            <p className="text-gray-500 text-sm">Please select an image first</p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 mb-2">
+              <Button size="sm" variant={tool === "pen" ? "default" : "outline"} onClick={() => setTool("pen")}>
+                <Pencil className="mr-1 h-3 w-3" /> Pencil
+              </Button>
+              <Button size="sm" variant={tool === "eraser" ? "default" : "outline"} onClick={() => setTool("eraser")}>
+                <Eraser className="mr-1 h-3 w-3" /> Eraser
+              </Button>
+              <Button size="sm" variant="outline" onClick={undo} disabled={historyIndex < 0}>
+                <Undo2 className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={redo} disabled={historyIndex >= history.length - 1}>
+                <Redo2 className="h-3 w-3" />
+              </Button>
+              <Button size="sm" variant="outline" onClick={clearCanvas}>
+                Clear
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleExport}>
+                <Download className="h-3 w-3 mr-1" /> Export
+              </Button>
+            </div>
 
-              <div className="relative border rounded-md overflow-hidden">
-                <canvas
-                  ref={canvasRef}
+            <div className="space-y-1">
+              <Label className="text-xs">Brush Size: {brushSize}px</Label>
+              <Slider
+                defaultValue={[brushSize]}
+                min={1}
+                max={30}
+                step={1}
+                onValueChange={(value) => setBrushSize(value[0])}
+              />
+            </div>
+
+            <div className="border rounded-md overflow-hidden relative">
+              <canvas
+                ref={canvasRef}
+                width={dimensions.width}
+                height={dimensions.height}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseLeave}
+                onMouseEnter={handleMouseEnter}
+                style={{
+                  cursor: cursorStyle,
+                  width: '100%',
+                  height: 'auto',
+                  backgroundColor: '#f0f0f0'
+                }}
+              />
+              {mousePos && (
+                <div
+                  className="absolute pointer-events-none"
                   style={{
-                    cursor: "crosshair",
-                    width: `${dimensions.width}px`,
-                    height: `${dimensions.height}px`,
+                    left: mousePos.x - brushSize / 2,
+                    top: mousePos.y - brushSize / 2,
                   }}
-                />
-                {mousePos && (
-                  <div
-                    className="absolute pointer-events-none"
+                >
+                  <Circle
+                    className="text-white"
+                    size={brushSize}
                     style={{
-                      left: mousePos.x - brushSize / 2,
-                      top: mousePos.y - brushSize / 2,
+                      filter: "drop-shadow(0 0 2px rgba(0,0,0,0.5))",
                     }}
-                  >
-                    <Circle
-                      className={tool === "pen" ? "text-white" : "text-black"}
-                      size={brushSize}
-                      style={{
-                        filter: "drop-shadow(0 0 2px rgba(0,0,0,0.5))",
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-        <CardFooter className="flex justify-end p-3">
-          <Button
-            size="sm"
-            onClick={handleExport}
-            disabled={!selectedImage}
-            className="bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4"
-          >
-            <Download className="mr-1 h-3 w-3" /> Export
-          </Button>
-        </CardFooter>
-      </Card>
-    </motion.div>
-  );
+                  />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
