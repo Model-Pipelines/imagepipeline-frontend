@@ -150,7 +150,7 @@ export const renderSketch = async (data: RenderSketchPayload, token: string): Pr
  * Recolor Image
  */
 export const recolorImage = async (data: RecolorImagePayload, token: string): Promise<any> => {
-  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
+  const response = await apiClient.post("/control/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -160,7 +160,7 @@ export const recolorImage = async (data: RecolorImagePayload, token: string): Pr
  * Interior Design
  */
 export const interiorDesign = async (data: InteriorDesignPayload, token: string): Promise<any> => {
-  const response = await apiClient.post("/sdxl/controlnet/v1", data, {
+  const response = await apiClient.post("/control/v1", data, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -315,7 +315,7 @@ export const getRenderSketchStatus = async (taskId: string, token: string): Prom
  * Get Recolor Image Status
  */
 export const getRecolorImageStatus = async (taskId: string, token: string): Promise<any> => {
-  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`, {
+  const response = await apiClient.get(`/control/v1/status/${taskId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;
@@ -325,7 +325,7 @@ export const getRecolorImageStatus = async (taskId: string, token: string): Prom
  * Get Interior Design Status
  */
 export const getInteriorDesignStatus = async (taskId: string, token: string): Promise<any> => {
-  const response = await apiClient.get(`/sdxl/controlnet/v1/status/${taskId}`, {
+  const response = await apiClient.get(`/control/v1/status/${taskId}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   return response.data;

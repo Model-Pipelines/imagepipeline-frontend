@@ -6,7 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
 import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 import { useAspectRatioStore } from "@/AxiosApi/ZustandAspectRatioStore";
-import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore"; // Corrected import
+import { useFaceTabStore } from "@/AxiosApi/ZustandFaceStore";
 import { useStyleStore } from "@/AxiosApi/ZustandStyleStore";
 import {
   controlNet,
@@ -18,7 +18,7 @@ import {
   faceControl,
   styleControlFaceReference,
   styleControlSingleFace,
-  styleControlReference, // Newly added
+  styleControlReference,
 } from "@/AxiosApi/GenerativeApi";
 
 const REFERENCE_TYPES = [
@@ -40,7 +40,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
   const { toast } = useToast();
   const { getToken } = useAuth();
 
-  const { controlnet, referenceImage, num_inference_steps, samples, model_id, negative_prompt, controlnet_weights, logo_prompt } = useReferenceStore();
+  const { controlnet, referenceImage, num_inference_steps, samples, model_id, negative_prompt, controlnet_weights, logo_prompt, scheduler } = useReferenceStore();
   const {
     ip_adapter_image,
     ip_adapter_mask_images,
@@ -52,7 +52,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
     height: faceHeight,
     width: faceWidth,
     embeddings,
-    scheduler,
+    scheduler: faceScheduler,
     seed,
     ip_adapter,
     ip_adapter_scale,
@@ -80,9 +80,7 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
       const selectedRef = REFERENCE_TYPES.find((t) => t.controlnet === controlnet || (t.value === "logo" && controlnet === null));
       const hasReferenceTab = selectedRef && selectedRef.value !== "none";
 
-      // Condition 1: StyleTab + ReferenceTab (no FaceTab images allowed)
       if (hasStyleTab && hasReferenceTab) {
-        // Check if FaceTab has images
         if (hasFaceTab) {
           throw new Error("Images are detected in the FaceTab. Please remove all images from the FaceTab to use StyleTab and ReferenceTab together.");
         }
@@ -97,17 +95,17 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
         if (uploadedStyleImages.length === 1) {
           const payload = {
-            model_id: styleTabState.model_id || "sdxl",
+            model_id: styleTabState.model_id || model_id,
             prompt: text,
-            num_inference_steps: styleTabState.num_inference_steps || 30,
-            samples: styleTabState.samples || 1,
-            controlnet: [controlnet],
-            init_image: [referenceImage],
-            controlnet_weight: controlnet_weights || 1.0,
-            negative_prompt: styleTabState.negative_prompt || "pixelated, (((random words, repetitive letters, wrong spellings))), ((((low res, blurry faces))), jpeg artifacts, Compression artifacts, bad art, worst quality, low resolution, low quality, bad limbs, conjoined, featureless, bad features, incorrect objects, watermark, signature, logo, cropped, out of focus, weird artifacts, imperfect faces, frame, text, ((deformed eyes)), glitch, noise, noisy, off-center, deformed, ((cross-eyed)), bad anatomy, ugly, disfigured, sloppy, duplicate, mutated, black and white",
+            num_inference_steps: styleTabState.num_inference_steps || num_inference_steps,
+            samples: styleTabState.samples || samples,
+            controlnets: [controlnet],
+            init_images: [referenceImage],
+            controlnet_weights,
+            negative_prompt: styleTabState.negative_prompt || negative_prompt,
             guidance_scale: styleTabState.guidance_scale || 5.0,
             embeddings: styleTabState.embeddings || ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-            scheduler: styleTabState.scheduler || "DPMSolverMultistepSchedulerSDE",
+            scheduler: styleTabState.scheduler || scheduler,
             seed: styleTabState.seed || -1,
             ip_adapter_image: [uploadedStyleImages[0]],
             ip_adapter: ["ip-adapter-plus_sdxl_vit-h"],
@@ -121,7 +119,6 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         }
       }
 
-      // Condition 2: StyleTab + FaceTab (no ReferenceTab)
       if (hasStyleTab && hasFaceTab && !hasReferenceTab) {
         const uploadedStyleImages = styleTabState.uploadSections
           ?.filter((section: any) => section.image)
@@ -134,17 +131,17 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
         if (uploadedStyleImages.length > 0 && faceImages.length === 1) {
           const payload = {
-            model_id: styleTabState.model_id || "sdxl",
+            model_id: styleTabState.model_id || faceModelId || model_id,
             prompt: text,
-            num_inference_steps: styleTabState.num_inference_steps || 30,
-            samples: styleTabState.samples || 1,
-            negative_prompt: styleTabState.negative_prompt || faceTabState.negative_prompt || "",
-            guidance_scale: styleTabState.guidance_scale || faceTabState.guidance_scale || 5.0,
-            height: styleTabState.height || faceTabState.height || 1024,
-            width: styleTabState.width || faceTabState.width || 1024,
-            embeddings: styleTabState.embeddings || faceTabState.embeddings || ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-            scheduler: styleTabState.scheduler || faceTabState.scheduler || "DPMSolverMultistepSchedulerSDE",
-            seed: styleTabState.seed || faceTabState.seed || -1,
+            num_inference_steps: styleTabState.num_inference_steps || faceNumInferenceSteps || num_inference_steps,
+            samples: styleTabState.samples || faceSamples || samples,
+            negative_prompt: styleTabState.negative_prompt || faceNegativePrompt || negative_prompt,
+            guidance_scale: styleTabState.guidance_scale || faceTabState.guidance_scale || guidance_scale || 5.0,
+            height: styleTabState.height || faceHeight || height || 1024,
+            width: styleTabState.width || faceWidth || width || 1024,
+            embeddings: styleTabState.embeddings || faceTabState.embeddings || embeddings || ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
+            scheduler: styleTabState.scheduler || faceScheduler || scheduler,
+            seed: styleTabState.seed || faceTabState.seed || seed || -1,
             ip_adapter_style_images: uploadedStyleImages,
             ip_adapter_image: faceImages[0],
             ip_adapter: ["ip-adapter-plus_sdxl_vit-h", "ip-adapter-plus-face_sdxl_vit-h"],
@@ -157,7 +154,6 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         }
       }
 
-      // Condition 3: StyleTab only (dropdown style, no uploaded images, no FaceTab, no ReferenceTab)
       if (hasStyleTab && !hasFaceTab && !hasReferenceTab) {
         const uploadedImages = styleTabState.uploadSections
           ?.filter((section: any) => section.image)
@@ -167,8 +163,8 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         if (uploadedImages.length === 0 && selectedStyle) {
           const payload = {
             prompt: text.trim(),
-            num_inference_steps: 30,
-            samples: 1,
+            num_inference_steps: num_inference_steps,
+            samples: samples,
             style: selectedStyle,
             enhance_prompt: magic_prompt,
             palette: hex_color,
@@ -184,20 +180,19 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         }
       }
 
-      // Condition 4: ReferenceTab + FaceTab
       if (hasReferenceTab && hasFaceTab && !hasStyleTab) {
         const payload = {
-          model_id: faceTabState.model_id || faceModelId || "sdxl",
+          model_id: faceTabState.model_id || faceModelId || model_id,
           prompt: text,
-          num_inference_steps: faceTabState.num_inference_steps || faceNumInferenceSteps || 30,
-          samples: faceTabState.samples || faceSamples || 1,
-          controlnet: [controlnet],
-          init_image: [referenceImage],
-          controlnet_weight: controlnet_weights || 1.0,
-          negative_prompt: faceTabState.negative_prompt || faceNegativePrompt || "",
+          num_inference_steps: faceTabState.num_inference_steps || faceNumInferenceSteps || num_inference_steps,
+          samples: faceTabState.samples || faceSamples || samples,
+          controlnets: [controlnet],
+          init_images: [referenceImage],
+          controlnet_weights,
+          negative_prompt: faceTabState.negative_prompt || faceNegativePrompt || negative_prompt,
           guidance_scale: faceTabState.guidance_scale || guidance_scale || 5.0,
           embeddings: faceTabState.embeddings || embeddings || ["e5b0ac9e-fc90-45f0-b36c-54c7e03f21bb"],
-          scheduler: faceTabState.scheduler || scheduler || "DPMSolverMultistepSchedulerSDE",
+          scheduler: faceTabState.scheduler || faceScheduler || scheduler,
           seed: faceTabState.seed || seed || -1,
           ip_adapter_image: faceTabState.ip_adapter_image || ip_adapter_image,
           ip_adapter: faceTabState.ip_adapter || ip_adapter || ["ip-adapter-plus-face_sdxl_vit-h"],
@@ -206,13 +201,12 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
         if (!payload.ip_adapter_image?.length) throw new Error("Please upload exactly one face image in FaceTab when using Reference.");
         if (payload.ip_adapter_image.length > 1) throw new Error("Only one face image is allowed when Reference is active.");
-        if (!payload.init_image[0]) throw new Error("Please upload a reference image in ReferenceTab.");
+        if (!payload.init_images[0]) throw new Error("Please upload a reference image in ReferenceTab.");
         if (!text.trim()) throw new Error("Please enter a description in the Prompt UI.");
         console.log("Reference + Face Payload:", payload);
         return await styleControlFaceReference(payload, token);
       }
 
-      // Condition 5: StyleTab with uploaded images (no FaceTab, no ReferenceTab)
       if (hasStyleTab && !hasFaceTab && !hasReferenceTab) {
         const uploadedImages = styleTabState.uploadSections
           ?.filter((section: any) => section.image)
@@ -220,14 +214,14 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
 
         if (uploadedImages.length > 0) {
           const payload = {
-            model_id: styleTabState.model_id || "sdxl",
+            model_id: styleTabState.model_id || model_id,
             prompt: text,
-            num_inference_steps: styleTabState.num_inference_steps || 30,
-            samples: styleTabState.samples || 1,
-            negative_prompt: styleTabState.negative_prompt || "",
+            num_inference_steps: styleTabState.num_inference_steps || num_inference_steps,
+            samples: styleTabState.samples || samples,
+            negative_prompt: styleTabState.negative_prompt || negative_prompt,
             guidance_scale: styleTabState.guidance_scale || 5.0,
             embeddings: styleTabState.embeddings || [],
-            scheduler: styleTabState.scheduler || "DPMSolverMultistepSchedulerSDE",
+            scheduler: styleTabState.scheduler || scheduler,
             seed: styleTabState.seed || -1,
             ip_adapter_image: uploadedImages,
             ip_adapter: styleTabState.ip_adapter || ["ip-adapter-plus_sdxl_vit-h"],
@@ -240,20 +234,19 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         }
       }
 
-      // Condition 6: FaceTab only (no StyleTab, no ReferenceTab)
       if (hasFaceTab && !hasReferenceTab && !hasStyleTab) {
         const payload = {
-          model_id: faceTabState.model_id || faceModelId || "sdxl",
+          model_id: faceTabState.model_id || faceModelId || model_id,
           prompt: text,
-          num_inference_steps: faceTabState.num_inference_steps || faceNumInferenceSteps || 30,
-          samples: faceTabState.samples || faceSamples || 1,
-          negative_prompt: faceTabState.negative_prompt || faceNegativePrompt || "",
+          num_inference_steps: faceTabState.num_inference_steps || faceNumInferenceSteps || num_inference_steps,
+          samples: faceTabState.samples || faceSamples || samples,
+          negative_prompt: faceTabState.negative_prompt || faceNegativePrompt || negative_prompt,
           guidance_scale: faceTabState.guidance_scale || guidance_scale || 5.0,
-          height: faceTabState.height || faceHeight || 1024,
-          width: faceTabState.width || faceWidth || 1024,
+          height: faceTabState.height || faceHeight || height || 1024,
+          width: faceTabState.width || faceWidth || width || 1024,
           ip_adapter_mask_images: faceTabState.ip_adapter_mask_images || ip_adapter_mask_images,
           embeddings: faceTabState.embeddings || embeddings || [],
-          scheduler: faceTabState.scheduler || scheduler || "DPMSolverMultistepSchedulerSDE",
+          scheduler: faceTabState.scheduler || faceScheduler || scheduler,
           seed: faceTabState.seed || seed || -1,
           ip_adapter_image: faceTabState.ip_adapter_image || ip_adapter_image,
           ip_adapter: faceTabState.ip_adapter || ip_adapter || ["ip-adapter-plus-face_sdxl_vit-h"],
@@ -269,7 +262,6 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         return await faceControl(payload, token);
       }
 
-      // Condition 7: ReferenceTab only (no FaceTab, no StyleTab)
       if (hasReferenceTab && !hasFaceTab && !hasStyleTab) {
         if (!text.trim()) throw new Error("Please enter a description in the Prompt UI");
         if (controlnet !== null && !referenceImage) throw new Error("Reference image is required for this type");
@@ -290,31 +282,26 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
               init_images: [referenceImage],
               num_inference_steps,
               samples,
-              controlnet_weights: controlnet_weights || 1.0,
+              scheduler,
+              controlnet_weights,
             };
             return await renderSketch(payload, token);
           case "reference-only":
             payload = {
-              model_id,
-              controlnets: [selectedRef.controlnet!],
+              controlnet: "recolor",
               prompt: text,
-              negative_prompt,
-              init_images: [referenceImage],
+              image: referenceImage,
               num_inference_steps,
               samples,
-              controlnet_weights: controlnet_weights || 1.0,
             };
             return await recolorImage(payload, token);
           case "mlsd":
             payload = {
-              model_id,
-              controlnets: [selectedRef.controlnet!],
+              controlnet: "interior-design",
               prompt: text,
-              negative_prompt,
-              init_images: [referenceImage],
+              image: referenceImage,
               num_inference_steps,
               samples,
-              controlnet_weights: controlnet_weights || 1.0,
             };
             return await interiorDesign(payload, token);
           case "logo":
@@ -326,12 +313,11 @@ export const GenerateHandler = ({ onTaskStarted }: GenerateHandlerProps) => {
         }
       }
 
-      // Default: No tabs active
       if (!text.trim()) throw new Error("Please enter a description in the Prompt UI");
       const payload = {
         prompt: text.trim(),
-        num_inference_steps: 30,
-        samples: 1,
+        num_inference_steps: num_inference_steps,
+        samples: samples,
         enhance_prompt: magic_prompt,
         palette: hex_color,
         height: height || 1024,
