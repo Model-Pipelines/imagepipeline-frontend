@@ -11,9 +11,8 @@ import { useMutation } from "@tanstack/react-query";
 import { Info } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import useReferenceStore from "@/AxiosApi/ZustandReferenceStore";
-import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore"; // Import for text
+import { useSettingPanelStore } from "@/AxiosApi/SettingPanelStore";
 
-// Define reference types with API-specific controlnet values and endpoints
 const REFERENCE_TYPES = [
   { value: "none", label: "None", api: "controlNet", controlnet: "none", endpoint: "https://api.imagepipeline.io/control/v1" },
   { value: "canny", label: "Outline", api: "controlNet", controlnet: "canny", endpoint: "https://api.imagepipeline.io/control/v1" },
@@ -25,14 +24,12 @@ const REFERENCE_TYPES = [
   { value: "logo", label: "Logo", api: "generateLogo", controlnet: null, endpoint: "https://api.imagepipeline.io/logo/v1" },
 ] as const;
 
-// Component descriptions
 const COMPONENT_DESCRIPTIONS = {
   typeSelector: "Choose the type of reference-based generation",
   imageUploader: "Upload a reference image to guide the generation",
   logoPrompt: "Provide a specific prompt for logo generation",
 };
 
-// InfoButton component
 const InfoButton = ({ description }: { description: string }) => (
   <div className="relative inline-block ml-2 group">
     <Info size={16} className="text-muted-foreground hover:text-bordergraydark cursor-help" />
@@ -52,6 +49,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     negative_prompt,
     controlnet_weights,
     logo_prompt,
+    scheduler,
     setControlNet,
     setReferenceImage,
     setNumInferenceSteps,
@@ -60,10 +58,11 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     setNegativePrompt,
     setControlnetWeights,
     setLogoPrompt,
+    setScheduler,
     reset,
   } = useReferenceStore();
 
-  const { text } = useSettingPanelStore(); // Get text from ImagePromptUI
+  const { text } = useSettingPanelStore();
   const { getToken } = useAuth();
 
   const { mutateAsync: uploadImageMutation } = useMutation({
@@ -112,30 +111,42 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       case "openpose":
         referenceState = {
           controlnet: controlnet,
-          prompt: text, // Use text from ImagePromptUI
+          prompt: text,
           image: referenceImage,
           num_inference_steps,
           samples,
         };
         break;
       case "scribble":
+        referenceState = {
+          model_id,
+          controlnets: [controlnet],
+          prompt: text,
+          negative_prompt,
+          init_images: [referenceImage],
+          num_inference_steps,
+          samples,
+          scheduler, // Added scheduler
+          controlnet_weights, // Already an array
+        };
+        break;
       case "reference-only":
       case "mlsd":
         referenceState = {
           model_id,
           controlnets: [controlnet],
-          prompt: text, // Use text from ImagePromptUI
+          prompt: text,
           negative_prompt,
           init_images: [referenceImage],
           num_inference_steps,
           samples,
-          controlnet_weights,
+          controlnet_weights, // Already an array
         };
         break;
       case "logo":
         referenceState = {
           logo_prompt,
-          prompt: text, // Use text from ImagePromptUI as secondary prompt
+          prompt: text,
           image: referenceImage,
         };
         break;
@@ -165,10 +176,11 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
       setReferenceImage(parsedState.image || parsedState.init_images?.[0] || "");
       setNumInferenceSteps(parsedState.num_inference_steps || 30);
       setSamples(parsedState.samples || 1);
-      setModelId(parsedState.model_id || "sdxl");
+      setModelId(parsedState.model_id || "4891daf2-0edc-4c7b-9345-be68ac3ddc81");
       setNegativePrompt(parsedState.negative_prompt || "lowres, bad anatomy, worst quality, low quality");
-      setControlnetWeights(parsedState.controlnet_weights || [1.0]);
+      setControlnetWeights(parsedState.controlnet_weights || [0.7]);
       setLogoPrompt(parsedState.logo_prompt || "");
+      setScheduler(parsedState.scheduler || "DPMSolverMultistepSchedulerSDE"); // Added scheduler
     }
   }, [
     setControlNet,
@@ -179,6 +191,7 @@ const ReferenceTab = ({ onTypeChange }: { onTypeChange: (type: string) => void }
     setNegativePrompt,
     setControlnetWeights,
     setLogoPrompt,
+    setScheduler,
   ]);
 
   return (
