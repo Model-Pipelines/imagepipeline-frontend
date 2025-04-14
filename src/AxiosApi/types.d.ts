@@ -209,6 +209,12 @@ export interface FaceControlStatus {
   // add other status response fields as needed
 }
 
+export interface InpaintingPayload {
+  init_image: string;
+  mask_image: string;
+  prompt: string;
+}
+
 
 // export interface StyleEditImageResponse {
 //   id: string;

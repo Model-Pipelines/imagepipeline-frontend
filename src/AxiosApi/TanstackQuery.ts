@@ -14,7 +14,8 @@ import {
   uploadFiles,
   uploadBackendFiles,
   describeImage,
-  styleEditImage, // Correct import for style editing
+  styleEditImage,
+  inpaintImage, // New import for inpainting
 } from "@/AxiosApi/GenerativeApi";
 import {
   ChangeBackgroundPayload,
@@ -28,7 +29,8 @@ import {
   RecolorImagePayload,
   RenderSketchPayload,
   UpscaleImagePayload,
-  StyleEditImagePayload, // Type for style editing
+  StyleEditImagePayload,
+  InpaintingPayload, // New type for inpainting
 } from "./types";
 
 // Define UploadFilesPayload if not already in ./types
@@ -49,7 +51,7 @@ const createMutation = <T>(
   mutationFn: (data: T, token: string) => Promise<any>,
   imageHandler?: (response: any) => void
 ) => {
-  return (onError?: (error: any) => void) => { // Added optional onError callback
+  return (onError?: (error: any) => void) => {
     return useMutation({
       mutationKey: [key],
       mutationFn: (variables: { data: T; token: string }) =>
@@ -62,7 +64,7 @@ const createMutation = <T>(
       },
       onError: (error: any) => {
         console.error(`Mutation error for ${key}:`, error);
-        if (onError) onError(error); // Call custom error handler if provided
+        if (onError) onError(error);
       },
     });
   };
@@ -139,4 +141,10 @@ export const useUpscaleImage = createMutation<UpscaleImagePayload>(
 export const useChangeStyleImage = createMutation<StyleEditImagePayload>(
   "changeStyleImage",
   styleEditImage
+);
+
+// New Inpainting Mutation
+export const useInpaintImage = createMutation<InpaintingPayload>(
+  "inpaintImage",
+  inpaintImage
 );
