@@ -17,13 +17,22 @@ import {
   GenerateImageWithStyleAndReferencePayload,
   DescribeImageResponse,
   StyleEditImagePayload,
+  InpaintingPayload, // New type for inpainting
 } from "./types";
 
 // Define response type for style editing
 export interface StyleEditImageResponse {
   id: string;
   status: "PENDING" | "SUCCESS" | "FAILURE";
-  output_url?: string; // Assuming this is the field name; adjust if different
+  output_url?: string;
+  error?: string;
+}
+
+// Define response type for inpainting
+export interface InpaintingResponse {
+  id: string;
+  status: "PENDING" | "SUCCESS" | "FAILURE";
+  output_url?: string;
   error?: string;
 }
 
@@ -277,6 +286,21 @@ export const styleEditImage = async (data: StyleEditImagePayload, token: string)
   }
 };
 
+/**
+ * Inpainting
+ */
+export const inpaintImage = async (data: InpaintingPayload, token: string): Promise<InpaintingResponse> => {
+  try {
+    const response = await apiClient.post("/generate/v3", data, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Inpainting error:", error);
+    throw new Error(error.response?.data?.detail || "Failed to initiate inpainting");
+  }
+};
+
 /* ============================================================
    GET Requests (Task Status Endpoints)
    ============================================================ */
@@ -422,6 +446,21 @@ export const getStyleEditImageStatus = async (taskId: string, token: string): Pr
   } catch (error: any) {
     console.error("Style status error:", error);
     throw new Error(error.response?.data?.detail || "Failed to fetch style edit status");
+  }
+};
+
+/**
+ * Get Inpainting Task Status
+ */
+export const getInpaintingStatus = async (taskId: string, token: string): Promise<InpaintingResponse> => {
+  try {
+    const response = await apiClient.get(`/generate/v3/status/${taskId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("Inpainting status error:", error);
+    throw new Error(error.response?.data?.detail || "Failed to fetch inpainting status");
   }
 };
 
