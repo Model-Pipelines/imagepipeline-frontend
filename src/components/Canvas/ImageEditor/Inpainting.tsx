@@ -544,7 +544,7 @@ export default function Inpainting() {
                   variant="outline"
                   className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
                 >
-                  Clear Saved
+                   Clear Saved {/*clear btn */}
                 </Button>
               </motion.div>
             </>
@@ -553,4 +553,5 @@ export default function Inpainting() {
       </Card>
     </motion.div>
   );
+
 }
