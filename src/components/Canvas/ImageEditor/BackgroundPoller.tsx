@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getBackgroundTaskStatus, getChangeHuman, getUpscaleImageStatus } from "@/AxiosApi/GenerativeApi";
+import { getBackgroundTaskStatus, getChangeHuman, getUpscaleImageStatus, getStyleEditImageStatus } from "@/AxiosApi/GenerativeApi";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
 import { toast } from "@/hooks/use-toast";
@@ -19,6 +19,16 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
 
   const currentStatus = task.status;
 
+  // Mapping of task types to toast messages
+  const toastMessages: Record<string, string> = {
+    background: "Background changed successfully!",
+    human: "Human modified successfully!",
+    upscale: "Image upscaled successfully!",
+    style: "Style changed successfully!",
+    inpainting: "Inpainting completed successfully!",
+    outpainting: "Outpainting completed successfully!",
+  };
+
   const queryFn = useCallback(async () => {
     const token = await getToken();
     if (!token) {
@@ -30,6 +40,9 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
     }
     if (task?.type === "upscale") {
       return getUpscaleImageStatus(taskId, token);
+    }
+    if (task?.type === "style") {
+      return getStyleEditImageStatus(taskId, token);
     }
     return getBackgroundTaskStatus(taskId, token);
   }, [task?.type, taskId, getToken]);
@@ -61,7 +74,7 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
 
     if (data.status === "SUCCESS") {
       (async () => {
-        const imageUrl = data.download_urls?.[0] || data.image_url;
+        const imageUrl = data.download_urls?.[0] || data.image_url || data.output_url;
         if (!imageUrl) return;
 
         if (images.some((img) => img.url === imageUrl)) {
@@ -106,14 +119,12 @@ const TaskProcessor = ({ taskId }: { taskId: string }) => {
           size: { width, height },
         });
 
+        // Use the task type to determine the toast message
+        const successMessage = toastMessages[task.type] || "Task completed successfully!";
+
         toast({
           title: "Success",
-          description:
-            task.type === "upscale"
-              ? "Image upscaled successfully!"
-              : task.type === "human"
-                ? "Human modified successfully!"
-                : "Background changed!",
+          description: successMessage,
         });
 
         removePendingImage(taskId); // Remove skeleton on success
