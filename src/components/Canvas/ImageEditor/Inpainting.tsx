@@ -523,7 +523,7 @@ export default function Inpainting() {
               >
                 <Button
                   onClick={handleGenerate}
-                  disabled={!inpaintingParams || (pendingTaskId && tasks[pendingTaskId]?.status === "PENDING")}
+                  disabled={pendingTaskId && tasks[pendingTaskId]?.status === "PENDING"}
                   className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
                 >
                   {pendingTaskId && tasks[pendingTaskId]?.status === "PENDING" ? (
