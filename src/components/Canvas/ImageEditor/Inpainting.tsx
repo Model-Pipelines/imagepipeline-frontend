@@ -2,7 +2,7 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 import { useImageStore } from "@/AxiosApi/ZustandImageStore";
-import { useInpaintingStore } from "@/AxiosApi/InpaintingStore"; // New store
+import { useInpaintingStore } from "@/AxiosApi/InpaintingStore";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -155,11 +155,11 @@ export default function Inpainting() {
         const lastLine = prevLines[prevLines.length - 1];
         if (!lastLine || lastLine.tool !== "pen") return prevLines;
 
-        const updatedLastLine = {
+        const updatedLine = {
           ...lastLine,
           points: [...lastLine.points, pos],
         };
-        return [...prevLines.slice(0, -1), updatedLastLine];
+        return [...prevLines.slice(0, -1), updatedLine];
       });
     } else if (tool === "eraser") {
       setLines((prevLines) => {
@@ -214,7 +214,7 @@ export default function Inpainting() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    ctx.fillStyle = "#000000"; // Solid black background
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     const scaleX = originalImageSize.width / dimensions.width;
@@ -392,7 +392,7 @@ export default function Inpainting() {
       transition={{ duration: 0.3 }}
     >
       <Card
-        className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md rounded-xl shadow-lg w-full max-w-md mx-auto h-[85vh] max-h-[900px] overflow-y-auto"
+        className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md rounded-xl shadow-lg w-full max-w-md mx-auto h-[80vh] max-h-[900px] overflow-y-auto"
         style={{
           backgroundColor: window.matchMedia("(prefers-color-scheme: dark)").matches
             ? "rgba(17, 24, 39, -0.06)"
@@ -514,7 +514,7 @@ export default function Inpainting() {
                   onClick={handleExport}
                   className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
                 >
-                  <Download className="h-3 w-3 mr-1" /> Save Mask
+                  <Download className="h-3 w-3" /> Save Mask
                 </Button>
               </motion.div>
               <motion.div
@@ -544,7 +544,7 @@ export default function Inpainting() {
                   variant="outline"
                   className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
                 >
-                   Clear Saved {/*clear btn */}
+                  Clear Saved
                 </Button>
               </motion.div>
             </>
@@ -553,5 +553,4 @@ export default function Inpainting() {
       </Card>
     </motion.div>
   );
-
 }

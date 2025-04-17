@@ -210,7 +210,7 @@ export default function BackgroundChange() {
       transition={{ duration: 0.3 }}
     >
       <Card
-        className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md rounded-xl shadow-lg"
+        className="bg-white/20 backdrop-blur-md dark:bg-slate-900/40 dark:backdrop-blur-md rounded-xl shadow-lg w-full mx-auto h-[80vh] max-h-[900px] overflow-y-auto"
         style={{
           backgroundColor: window.matchMedia("(prefers-color-scheme: dark)")
             .matches
