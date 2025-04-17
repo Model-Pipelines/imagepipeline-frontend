@@ -79,11 +79,24 @@ export default function Inpainting() {
   useEffect(() => {
     if (pendingTaskId) {
       const task = tasks[pendingTaskId];
-      if (task && (task.status === "SUCCESS" || task.status === "FAILURE")) {
-        setPendingTaskId(null);
+      if (task) {
+        if (task.status === "SUCCESS") {
+          toast({
+            title: "Success",
+            description: "Image generated successfully!",
+          });
+          setPendingTaskId(null);
+        } else if (task.status === "FAILURE") {
+          toast({
+            title: "Error",
+            description: "Inpainting failed. Please try again.",
+            variant: "destructive",
+          });
+          setPendingTaskId(null);
+        }
       }
     }
-  }, [tasks, pendingTaskId]);
+  }, [tasks, pendingTaskId, toast]);
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
