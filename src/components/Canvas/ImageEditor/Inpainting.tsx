@@ -6,7 +6,7 @@ import { useInpaintingStore } from "@/AxiosApi/InpaintingStore";
 import { useBackgroundTaskStore } from "@/AxiosApi/TaskStore";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Eraser, Pencil, Undo2, Redo2, Download } from "lucide-react";
+import { Eraser, Pencil, Undo2, Redo2 } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -259,7 +259,18 @@ export default function Inpainting() {
     });
   }, [lines, originalImageSize, dimensions]);
 
-  const handleExport = useCallback(async () => {
+  const handleGenerate = useCallback(async () => {
+    // Validate prompt
+    if (!prompt.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a prompt first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate selected image
     if (!selectedImage) {
       toast({
         title: "Error",
@@ -269,6 +280,7 @@ export default function Inpainting() {
       return;
     }
 
+    // Get authentication token
     const token = await getToken();
     if (!token) {
       toast({
@@ -279,6 +291,7 @@ export default function Inpainting() {
       return;
     }
 
+    // Create and upload mask
     const maskFile = await createMaskFile();
     if (!maskFile) {
       toast({
@@ -289,10 +302,12 @@ export default function Inpainting() {
       return;
     }
 
+    // Upload mask and proceed with inpainting
     uploadImage(
       { data: maskFile, token },
       {
         onSuccess: (maskUrl) => {
+          // Set inpainting parameters
           setInpaintingParams({
             init_image: selectedImage.url,
             mask_image: maskUrl,
@@ -300,8 +315,56 @@ export default function Inpainting() {
           });
           toast({
             title: "Success",
-            description: "Mask saved successfully!",
+            description: "Mask generated successfully!",
           });
+
+          // Proceed with inpainting
+          const payload = {
+            init_image: selectedImage.url,
+            mask_image: maskUrl,
+            prompt,
+          };
+
+          const newId = uuidv4();
+          const position = selectedImage ? { x: selectedImage.position.x, y: selectedImage.position.y } : { x: 50, y: 100 };
+          const scaleFactor = 200 / Math.max(originalImageSize.width, originalImageSize.height);
+          const scaledWidth = originalImageSize.width * scaleFactor;
+          const scaledHeight = originalImageSize.height * scaleFactor;
+
+          startInpainting(
+            { data: payload, token },
+            {
+              onSuccess: (response) => {
+                if (!response?.id) {
+                  toast({
+                    title: "Error",
+                    description: "Missing task ID.",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                setPendingTaskId(response.id);
+                addTask(response.id, selectedImageId!, "inpainting");
+                addPendingImage({
+                  id: response.id,
+                  position,
+                  size: { width: scaledWidth, height: scaledHeight },
+                });
+                toast({
+                  title: "Started",
+                  description: "Inpainting in progress...",
+                });
+              },
+              onError: (error: any) => {
+                toast({
+                  title: "Error",
+                  description: error.message || "Failed to start inpainting.",
+                  variant: "destructive",
+                });
+                setPendingTaskId(null);
+              },
+            }
+          );
         },
         onError: (error: any) => {
           toast({
@@ -312,80 +375,15 @@ export default function Inpainting() {
         },
       }
     );
-  }, [selectedImage, prompt, createMaskFile, uploadImage, getToken, setInpaintingParams, toast]);
-
-  const handleGenerate = useCallback(async () => {
-    if (!inpaintingParams) {
-      toast({
-        title: "Error",
-        description: "Please save the mask and provide a prompt first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const token = await getToken();
-    if (!token) {
-      toast({
-        title: "Error",
-        description: "Authentication token not available.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const payload = {
-      init_image: inpaintingParams.init_image,
-      mask_image: inpaintingParams.mask_image,
-      prompt: inpaintingParams.prompt,
-    };
-
-    const newId = uuidv4();
-    const position = selectedImage ? { x: selectedImage.position.x, y: selectedImage.position.y } : { x: 50, y: 100 };
-    const scaleFactor = 200 / Math.max(originalImageSize.width, originalImageSize.height);
-    const scaledWidth = originalImageSize.width * scaleFactor;
-    const scaledHeight = originalImageSize.height * scaleFactor;
-
-    startInpainting(
-      { data: payload, token },
-      {
-        onSuccess: (response) => {
-          if (!response?.id) {
-            toast({
-              title: "Error",
-              description: "Missing task ID.",
-              variant: "destructive",
-            });
-            return;
-          }
-          setPendingTaskId(response.id);
-          addTask(response.id, selectedImageId!, "inpainting");
-          addPendingImage({
-            id: response.id,
-            position,
-            size: { width: scaledWidth, height: scaledHeight },
-          });
-          toast({
-            title: "Started",
-            description: "Inpainting in progress...",
-          });
-        },
-        onError: (error: any) => {
-          toast({
-            title: "Error",
-            description: error.message || "Failed to start inpainting.",
-            variant: "destructive",
-          });
-          setPendingTaskId(null);
-        },
-      }
-    );
   }, [
-    inpaintingParams,
+    prompt,
     selectedImage,
     selectedImageId,
     originalImageSize,
     getToken,
+    createMaskFile,
+    uploadImage,
+    setInpaintingParams,
     startInpainting,
     addTask,
     addPendingImage,
@@ -518,18 +516,6 @@ export default function Inpainting() {
         <CardFooter className="rounded-b-lg flex gap-2">
           {selectedImage && (
             <>
-              <motion.div
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex-1"
-              >
-                <Button
-                  onClick={handleExport}
-                  className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
-                >
-                  <Download className="h-3 w-3" /> Save Mask
-                </Button>
-              </motion.div>
               <motion.div
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
