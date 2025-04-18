@@ -49,6 +49,7 @@ export default function Inpainting() {
   const [mousePos, setMousePos] = useState<Point | null>(null);
   const [prompt, setPrompt] = useState("");
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false); // New loading state
   const { mutate: uploadImage } = useUploadBackendFiles();
   const { mutate: startInpainting } = useInpaintImage();
 
@@ -86,6 +87,7 @@ export default function Inpainting() {
             description: "Image generated successfully!",
           });
           setPendingTaskId(null);
+          setIsLoading(false); // Reset loading state
         } else if (task.status === "FAILURE") {
           toast({
             title: "Error",
@@ -93,6 +95,7 @@ export default function Inpainting() {
             variant: "destructive",
           });
           setPendingTaskId(null);
+          setIsLoading(false); // Reset loading state
         }
       }
     }
@@ -260,6 +263,9 @@ export default function Inpainting() {
   }, [lines, originalImageSize, dimensions]);
 
   const handleGenerate = useCallback(async () => {
+    // Set loading state immediately
+    setIsLoading(true);
+
     // Validate prompt
     if (!prompt.trim()) {
       toast({
@@ -267,6 +273,7 @@ export default function Inpainting() {
         description: "Please enter a prompt first.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
@@ -277,6 +284,7 @@ export default function Inpainting() {
         description: "No image selected.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
@@ -288,6 +296,7 @@ export default function Inpainting() {
         description: "Authentication token not available.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
@@ -299,6 +308,7 @@ export default function Inpainting() {
         description: "Failed to create mask file.",
         variant: "destructive",
       });
+      setIsLoading(false);
       return;
     }
 
@@ -341,6 +351,7 @@ export default function Inpainting() {
                     description: "Missing task ID.",
                     variant: "destructive",
                   });
+                  setIsLoading(false);
                   return;
                 }
                 setPendingTaskId(response.id);
@@ -354,6 +365,7 @@ export default function Inpainting() {
                   title: "Started",
                   description: "Inpainting in progress...",
                 });
+                // Keep isLoading true until task completes (handled in useEffect)
               },
               onError: (error: any) => {
                 toast({
@@ -361,7 +373,7 @@ export default function Inpainting() {
                   description: error.message || "Failed to start inpainting.",
                   variant: "destructive",
                 });
-                setPendingTaskId(null);
+                setIsLoading(false);
               },
             }
           );
@@ -372,6 +384,7 @@ export default function Inpainting() {
             description: error.message || "Failed to upload mask.",
             variant: "destructive",
           });
+          setIsLoading(false);
         },
       }
     );
@@ -523,10 +536,10 @@ export default function Inpainting() {
               >
                 <Button
                   onClick={handleGenerate}
-                  disabled={pendingTaskId && tasks[pendingTaskId]?.status === "PENDING"}
+                  disabled={isLoading}
                   className="w-full bg-secondary hover:bg-creative dark:bg-primary dark:hover:bg-chart-4 text-text dark:text-text font-bold"
                 >
-                  {pendingTaskId && tasks[pendingTaskId]?.status === "PENDING" ? (
+                  {isLoading ? (
                     <TextShimmerWave>Generating...</TextShimmerWave>
                   ) : (
                     "Generate"
