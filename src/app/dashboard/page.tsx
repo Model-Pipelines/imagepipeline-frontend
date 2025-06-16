@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,8 +31,7 @@ import {
 } from "lucide-react";
 import * as Tooltip from "@radix-ui/react-tooltip";
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL_DASHBOARD || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 // Define interfaces for type safety
 interface MetricDataPoint {
@@ -358,8 +358,9 @@ const SQSMetricsDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("24h");
   const [metricsData, setMetricsData] = useState<MetricsData>({});
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setLastError] = useState<string>("");
+  const [error, setError] = useState<string>("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const { getToken } = useAuth();
 
   const metrics: MetricConfig[] = [
     {
@@ -414,13 +415,19 @@ const SQSMetricsDashboard: React.FC = () => {
 
   const fetchMetrics = async () => {
     setLoading(true);
-    setLastError("");
+    setError("");
 
     try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("No authentication token available");
+      }
+
       const response = await fetch(`${API_BASE_URL}/sqs/metrics-timeline`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -445,7 +452,7 @@ const SQSMetricsDashboard: React.FC = () => {
       setLastUpdated(new Date());
     } catch (err: any) {
       console.error("Error fetching metrics:", err);
-      setLastError(err.message || "Failed to fetch metrics");
+      setError(err.message || "Failed to fetch metrics");
     } finally {
       setLoading(false);
     }
