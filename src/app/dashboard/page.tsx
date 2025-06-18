@@ -29,7 +29,7 @@ import {
   MoreHorizontal,
   AlertCircle,
 } from "lucide-react";
-import * as Tooltip from "@radix-ui/react-tooltip";
+import dynamic from "next/dynamic";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -63,6 +63,37 @@ interface MetricCardProps {
   loading: boolean;
   description: string;
 }
+
+// Client-side only tooltip component
+const ClientTooltip = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Root),
+  { ssr: false },
+);
+
+const ClientTooltipTrigger = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Trigger),
+  { ssr: false },
+);
+
+const ClientTooltipPortal = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Portal),
+  { ssr: false },
+);
+
+const ClientTooltipContent = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Content),
+  { ssr: false },
+);
+
+const ClientTooltipArrow = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Arrow),
+  { ssr: false },
+);
+
+const ClientTooltipProvider = dynamic(
+  () => import("@radix-ui/react-tooltip").then((mod) => mod.Provider),
+  { ssr: false },
+);
 
 // Metric descriptions for tooltips
 const metricDescriptions: { [key: string]: string } = {
@@ -116,6 +147,23 @@ const transformMetricsData = (
   return metricsMap;
 };
 
+// Client-side only component wrapper
+const ClientOnlyWrapper: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  if (!hasMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+};
+
 const MetricCard: React.FC<MetricCardProps> = ({
   title,
   data,
@@ -137,23 +185,25 @@ const MetricCard: React.FC<MetricCardProps> = ({
               {title}
             </CardTitle>
             <div className="flex items-center gap-3">
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
-                      side="top"
-                      align="center"
-                    >
-                      {description}
-                      <Tooltip.Arrow className="fill-white dark:fill-gray-800" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              </Tooltip.Provider>
+              <ClientOnlyWrapper>
+                <ClientTooltipProvider>
+                  <ClientTooltip>
+                    <ClientTooltipTrigger asChild>
+                      <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
+                    </ClientTooltipTrigger>
+                    <ClientTooltipPortal>
+                      <ClientTooltipContent
+                        className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
+                        side="top"
+                        align="center"
+                      >
+                        {description}
+                        <ClientTooltipArrow className="fill-white dark:fill-gray-800" />
+                      </ClientTooltipContent>
+                    </ClientTooltipPortal>
+                  </ClientTooltip>
+                </ClientTooltipProvider>
+              </ClientOnlyWrapper>
               <MoreHorizontal className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer" />
             </div>
           </div>
@@ -178,23 +228,25 @@ const MetricCard: React.FC<MetricCardProps> = ({
               {title}
             </CardTitle>
             <div className="flex items-center gap-3">
-              <Tooltip.Provider>
-                <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
-                  </Tooltip.Trigger>
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
-                      side="top"
-                      align="center"
-                    >
-                      {description}
-                      <Tooltip.Arrow className="fill-white dark:fill-gray-800" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                </Tooltip.Root>
-              </Tooltip.Provider>
+              <ClientOnlyWrapper>
+                <ClientTooltipProvider>
+                  <ClientTooltip>
+                    <ClientTooltipTrigger asChild>
+                      <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
+                    </ClientTooltipTrigger>
+                    <ClientTooltipPortal>
+                      <ClientTooltipContent
+                        className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
+                        side="top"
+                        align="center"
+                      >
+                        {description}
+                        <ClientTooltipArrow className="fill-white dark:fill-gray-800" />
+                      </ClientTooltipContent>
+                    </ClientTooltipPortal>
+                  </ClientTooltip>
+                </ClientTooltipProvider>
+              </ClientOnlyWrapper>
               <MoreHorizontal className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer" />
             </div>
           </div>
@@ -218,23 +270,25 @@ const MetricCard: React.FC<MetricCardProps> = ({
             {title}
           </CardTitle>
           <div className="flex items-center gap-3">
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
-                    side="top"
-                    align="center"
-                  >
-                    {description}
-                    <Tooltip.Arrow className="fill-white dark:fill-gray-800" />
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </Tooltip.Provider>
+            <ClientOnlyWrapper>
+              <ClientTooltipProvider>
+                <ClientTooltip>
+                  <ClientTooltipTrigger asChild>
+                    <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
+                  </ClientTooltipTrigger>
+                  <ClientTooltipPortal>
+                    <ClientTooltipContent
+                      className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
+                      side="top"
+                      align="center"
+                    >
+                      {description}
+                      <ClientTooltipArrow className="fill-white dark:fill-gray-800" />
+                    </ClientTooltipContent>
+                  </ClientTooltipPortal>
+                </ClientTooltip>
+              </ClientTooltipProvider>
+            </ClientOnlyWrapper>
             <MoreHorizontal className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer" />
           </div>
         </div>
@@ -360,6 +414,7 @@ const SQSMetricsDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [isClient, setIsClient] = useState(false);
   const { getToken } = useAuth();
 
   const metrics: MetricConfig[] = [
@@ -413,6 +468,10 @@ const SQSMetricsDashboard: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const fetchMetrics = async () => {
     setLoading(true);
     setError("");
@@ -437,7 +496,6 @@ const SQSMetricsDashboard: React.FC = () => {
       }
 
       const rawData = await response.json();
-
       const hours =
         timeRange === "1h"
           ? 1
@@ -459,69 +517,68 @@ const SQSMetricsDashboard: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMetrics();
-  }, [timeRange]);
+    if (isClient) {
+      fetchMetrics();
+    }
+  }, [timeRange, isClient]);
 
   const handleRefresh = () => {
     fetchMetrics();
   };
 
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gray-900 p-4 sm:p-6 lg:p-8 flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+          <p>Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-900 p-4 sm:p-6 lg:p-8">
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+        <h1 className="text-3xl sm:text-3xl font-bold text-gray-100 mb-4">
           SQS Metrics Dashboard
         </h1>
-        <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+        <p className="text-gray-400 text-sm sm:text-base">
           Real-time monitoring of your SQS queue metrics
         </p>
       </div>
 
-      {/* Error Message */}
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2 text-red-700 dark:text-red-300"
-        >
-          <AlertCircle className="h-5 w-5" />
-          <span className="text-sm">{error}</span>
-        </motion.div>
-      )}
-
       {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Time Range:
-          </span>
+          <span className="text-sm font-medium text-gray-300">Time Range:</span>
           <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 shadow-sm">
+            <SelectTrigger className="w-32 bg-gray-800 text-gray-200 border-gray-700 shadow-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+            <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem
                 value="1h"
-                className="text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="text-gray-200 hover:bg-gray-700"
               >
                 1 Hour
               </SelectItem>
               <SelectItem
                 value="3h"
-                className="text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="text-gray-200 hover:bg-gray-700"
               >
                 3 Hours
               </SelectItem>
               <SelectItem
                 value="12h"
-                className="text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="text-gray-200 hover:bg-gray-700"
               >
                 12 Hours
               </SelectItem>
               <SelectItem
                 value="24h"
-                className="text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="text-gray-200 hover:bg-gray-700"
               >
                 24 Hours
               </SelectItem>
@@ -530,7 +587,7 @@ const SQSMetricsDashboard: React.FC = () => {
         </div>
         <div className="flex items-center gap-4">
           {lastUpdated && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-400">
               Last updated:{" "}
               {lastUpdated.toLocaleTimeString("en-US", { hour12: true })}
             </span>
@@ -540,7 +597,7 @@ const SQSMetricsDashboard: React.FC = () => {
             size="sm"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+            className="flex items-center gap-2 bg-gray-800 text-gray-200 border-gray-700 shadow-sm hover:bg-gray-700"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             Refresh
