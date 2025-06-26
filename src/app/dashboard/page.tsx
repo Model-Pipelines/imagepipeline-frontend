@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = "https://metrics.imagepipeline.io";
 
 // Define interfaces for type safety
 interface MetricDataPoint {
@@ -61,10 +61,24 @@ interface MetricCardProps {
   color: string;
   chartType: "line" | "bar";
   loading: boolean;
+  error: boolean;
   description: string;
+  onRetry: () => void;
 }
 
-// Client-side only tooltip component
+interface UserPlan {
+  user_id: string;
+  subscription_id: string;
+  plan: string;
+  pod_id: string;
+  pod_status: string;
+  period_start: string;
+  period_end: string;
+  subscription_status: string;
+  sqs: string;
+}
+
+// Client-side only tooltip components
 const ClientTooltip = dynamic(
   () => import("@radix-ui/react-tooltip").then((mod) => mod.Root),
   { ssr: false },
@@ -118,7 +132,6 @@ const transformMetricsData = (
 ): MetricsData => {
   const metricsMap: MetricsData = {};
 
-  // Group data by metric name
   rawData.forEach((item) => {
     if (!metricsMap[item.metric_name]) {
       metricsMap[item.metric_name] = [];
@@ -135,7 +148,6 @@ const transformMetricsData = (
     });
   });
 
-  // Sort by timestamp and filter by time range
   const cutoffTime = new Date(Date.now() - hours * 60 * 60 * 1000);
 
   Object.keys(metricsMap).forEach((metric) => {
@@ -171,10 +183,88 @@ const MetricCard: React.FC<MetricCardProps> = ({
   color,
   chartType = "line",
   loading = false,
+  error = false,
   description,
+  onRetry,
 }) => {
   const currentValue =
     data && data.length > 0 ? data[data.length - 1]?.value || 0 : 0;
+
+  if (error) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="h-full min-h-[300px] shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold text-gray-900 dark:text-gray-100">
+                {title}
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                <ClientOnlyWrapper>
+                  <ClientTooltipProvider>
+                    <ClientTooltip>
+                      <ClientTooltipTrigger asChild>
+                        <HelpCircle className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-help" />
+                      </ClientTooltipTrigger>
+                      <ClientTooltipPortal>
+                        <ClientTooltipContent
+                          className="max-w-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg text-sm text-gray-700 dark:text-gray-300"
+                          side="top"
+                          align="center"
+                        >
+                          {description}
+                          <ClientTooltipArrow className="fill-white dark:fill-gray-800" />
+                        </ClientTooltipContent>
+                      </ClientTooltipPortal>
+                    </ClientTooltip>
+                  </ClientTooltipProvider>
+                </ClientOnlyWrapper>
+                <MoreHorizontal className="h-5 w-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer" />
+              </div>
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">
+              {unit}
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0 flex items-center justify-center h-[220px]">
+            <div className="text-center text-gray-500 dark:text-gray-400">
+              <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <AlertCircle className="h-8 w-8 mx-auto mb-2 text-red-500" />
+              </motion.div>
+              <div className="text-sm font-medium mb-4">
+                Something went wrong
+              </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRetry}
+                  className="flex items-center gap-2 bg-gray-800 text-gray-200 border-gray-700 shadow-sm hover:bg-gray-700"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
+              </motion.div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    );
+  }
 
   if (loading) {
     return (
@@ -412,17 +502,18 @@ const SQSMetricsDashboard: React.FC = () => {
   const [timeRange, setTimeRange] = useState<string>("24h");
   const [metricsData, setMetricsData] = useState<MetricsData>({});
   const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [error, setError] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { getToken } = useAuth();
+  const [sqsUrl, setSqsUrl] = useState<string | null>(null);
+  const { getToken, userId } = useAuth();
 
   const metrics: MetricConfig[] = [
     {
       key: "ApproximateNumberOfMessagesVisible",
       title: "Messages Visible",
       unit: "Count",
-      color: "#2563eb", // Blue
+      color: "#2563eb",
       chartType: "line",
       description: metricDescriptions.ApproximateNumberOfMessagesVisible,
     },
@@ -430,7 +521,7 @@ const SQSMetricsDashboard: React.FC = () => {
       key: "ApproximateNumberOfMessagesDelayed",
       title: "Messages Delayed",
       unit: "Count",
-      color: "#dc2626", // Red
+      color: "#dc2626",
       chartType: "line",
       description: metricDescriptions.ApproximateNumberOfMessagesDelayed,
     },
@@ -438,7 +529,7 @@ const SQSMetricsDashboard: React.FC = () => {
       key: "ApproximateNumberOfMessagesNotVisible",
       title: "Messages Not Visible",
       unit: "Count",
-      color: "#059669", // Green
+      color: "#059669",
       chartType: "line",
       description: metricDescriptions.ApproximateNumberOfMessagesNotVisible,
     },
@@ -446,7 +537,7 @@ const SQSMetricsDashboard: React.FC = () => {
       key: "NumberOfMessagesSent",
       title: "Messages Sent",
       unit: "Count",
-      color: "#d97706", // Amber
+      color: "#d97706",
       chartType: "bar",
       description: metricDescriptions.NumberOfMessagesSent,
     },
@@ -454,7 +545,7 @@ const SQSMetricsDashboard: React.FC = () => {
       key: "NumberOfMessagesReceived",
       title: "Messages Received",
       unit: "Count",
-      color: "#7c3aed", // Purple
+      color: "#7c3aed",
       chartType: "bar",
       description: metricDescriptions.NumberOfMessagesReceived,
     },
@@ -462,7 +553,7 @@ const SQSMetricsDashboard: React.FC = () => {
       key: "NumberOfMessagesDeleted",
       title: "Messages Deleted",
       unit: "Count",
-      color: "#0891b2", // Cyan
+      color: "#0891b2",
       chartType: "bar",
       description: metricDescriptions.NumberOfMessagesDeleted,
     },
@@ -472,27 +563,81 @@ const SQSMetricsDashboard: React.FC = () => {
     setIsClient(true);
   }, []);
 
-  const fetchMetrics = async () => {
+  const fetchUserPlan = async () => {
+    if (!userId) {
+      setError(true);
+      return;
+    }
+
     setLoading(true);
-    setError("");
+    setError(false);
 
     try {
       const token = await getToken();
       if (!token) {
-        throw new Error("No authentication token available");
+        setError(true);
+        return;
       }
 
-      const response = await fetch(`${API_BASE_URL}/sqs/metrics-timeline`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `https://api.imagepipeline.io/user/${userId}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `HTTP ${response.status}`);
+        setError(true);
+        return;
+      }
+
+      const userPlan: UserPlan = await response.json();
+      if (!userPlan.sqs) {
+        setError(true);
+        return;
+      }
+
+      setSqsUrl(userPlan.sqs);
+    } catch (err: any) {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMetrics = async () => {
+    if (!sqsUrl) {
+      return;
+    }
+
+    setLoading(true);
+    setError(false);
+
+    try {
+      const token = await getToken();
+      if (!token) {
+        setError(true);
+        return;
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/sqs/metrics-timeline?sqs_url=${encodeURIComponent(sqsUrl)}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        setError(true);
+        return;
       }
 
       const rawData = await response.json();
@@ -509,22 +654,37 @@ const SQSMetricsDashboard: React.FC = () => {
       setMetricsData(transformedData);
       setLastUpdated(new Date());
     } catch (err: any) {
-      console.error("Error fetching metrics:", err);
-      setError(err.message || "Failed to fetch metrics");
+      setError(true);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (isClient) {
+  const handleRetry = () => {
+    setError(false);
+    if (userId && !sqsUrl) {
+      fetchUserPlan();
+    } else if (sqsUrl) {
       fetchMetrics();
     }
-  }, [timeRange, isClient]);
+  };
 
   const handleRefresh = () => {
+    setError(false);
     fetchMetrics();
   };
+
+  useEffect(() => {
+    if (isClient && userId) {
+      fetchUserPlan();
+    }
+  }, [isClient, userId]);
+
+  useEffect(() => {
+    if (isClient && sqsUrl) {
+      fetchMetrics();
+    }
+  }, [timeRange, isClient, sqsUrl]);
 
   if (!isClient) {
     return (
@@ -539,7 +699,6 @@ const SQSMetricsDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 p-4 sm:p-6 lg:p-8">
-      {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl sm:text-3xl font-bold text-gray-100 mb-4">
           SQS Metrics Dashboard
@@ -549,7 +708,6 @@ const SQSMetricsDashboard: React.FC = () => {
         </p>
       </div>
 
-      {/* Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 gap-4">
         <div className="flex items-center gap-4">
           <span className="text-sm font-medium text-gray-300">Time Range:</span>
@@ -596,7 +754,7 @@ const SQSMetricsDashboard: React.FC = () => {
             variant="outline"
             size="sm"
             onClick={handleRefresh}
-            disabled={loading}
+            disabled={loading || !sqsUrl}
             className="flex items-center gap-2 bg-gray-800 text-gray-200 border-gray-700 shadow-sm hover:bg-gray-700"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -605,7 +763,6 @@ const SQSMetricsDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Metrics Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {metrics.map((metric, index) => (
           <motion.div
@@ -622,7 +779,9 @@ const SQSMetricsDashboard: React.FC = () => {
               color={metric.color}
               chartType={metric.chartType}
               loading={loading}
+              error={error}
               description={metric.description}
+              onRetry={handleRetry}
             />
           </motion.div>
         ))}
