@@ -580,7 +580,7 @@ const SQSMetricsDashboard: React.FC = () => {
       }
 
       const response = await fetch(
-        `https://api.imagepipeline.io/user/${userId}`,
+        `https://api.imagepipeline.io/user/${userId}/subscription`,
         {
           method: "GET",
           headers: {
