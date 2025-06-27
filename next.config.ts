@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
 
 const nextConfig: NextConfig = {
   images: {
@@ -11,14 +10,9 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // compiler: {
-  //   removeConsole: true
-  // }
+  compiler: {
+    removeConsole: true,
+  },
 };
 
-export default async function getNextConfig() {
-  if (process.env.NODE_ENV === 'development') {
-    await setupDevPlatform();
-  }
-  return nextConfig;
-}
+export default nextConfig;
