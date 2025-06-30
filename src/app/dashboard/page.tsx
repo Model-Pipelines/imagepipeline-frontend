@@ -628,7 +628,7 @@ const SQSMetricsDashboard: React.FC = () => {
 
       // Use the new endpoint
       const response = await fetch(
-        `${API_BASE_URL}/user/user_id=${userId}/metrics`,
+        `${API_BASE_URL}/user/${userId}/metrics`,
         {
           method: "GET",
           headers: {
