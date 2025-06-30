@@ -689,10 +689,10 @@ export default function ProfilePage() {
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Dedicated Servers
           </h2>
-          {/* Add this block */}
-          {dedicatedServerData && (
-            <div className="mb-4">
-              <a
+          {/* Only show Metrics button if there is at least one dedicated server */}
+          {dedicatedServer?.length > 0 && (
+            <div className="pt-2 flex justify-between items-center">
+              <Link
                 href="https://app.imagepipeline.io/dashboard"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -700,13 +700,13 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="bg-blue-600 text-white hover:bg-blue-700"
+                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
                 >
-                  Dedicated Server Metrics
+                  Metrics
                 </Button>
-              </a>
+              </Link>
             </div>
-          )} 
+          )}
           <div className="space-y-4">
             {dedicatedServer?.length > 0 ? (
               dedicatedServer.map((server) => (
@@ -727,7 +727,7 @@ export default function ProfilePage() {
                           Pod Status:{" "}
                           <span
                             className={
-                              server.pod_status === "unknown"
+                              server.pod_status === "active"
                                 ? "text-gray-500"
                                 : "text-success"
                             }
