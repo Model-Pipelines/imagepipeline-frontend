@@ -595,13 +595,15 @@ const SQSMetricsDashboard: React.FC = () => {
         return;
       }
 
-      const userPlan: UserPlan = await response.json();
-      if (!userPlan.sqs) {
+      const userPlans: UserPlan[] = await response.json();
+      // Pick the first plan with an SQS URL
+      const planWithSqs = userPlans.find((plan) => !!plan.sqs);
+      if (!planWithSqs) {
         setError(true);
         return;
       }
 
-      setSqsUrl(userPlan.sqs);
+      setSqsUrl(planWithSqs.sqs);
     } catch (err: any) {
       setError(true);
     } finally {
