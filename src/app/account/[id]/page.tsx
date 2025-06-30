@@ -689,24 +689,6 @@ export default function ProfilePage() {
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Dedicated Servers
           </h2>
-          {/* Only show Metrics button if there is at least one dedicated server */}
-          {dedicatedServer?.length > 0 && (
-            <div className="pt-2 flex justify-between items-center">
-              <Link
-                href="https://app.imagepipeline.io/dashboard"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  Metrics
-                </Button>
-              </Link>
-            </div>
-          )}
           <div className="space-y-4">
             {dedicatedServer?.length > 0 ? (
               dedicatedServer.map((server) => (
@@ -744,6 +726,20 @@ export default function ProfilePage() {
                           {new Date(server.period_end).toLocaleDateString()}
                         </p>
                       </div>
+                      {/* Metrics button inside the card */}
+                      <Link
+                        href="https://app.imagepipeline.io/dashboard"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Metrics
+                        </Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>
