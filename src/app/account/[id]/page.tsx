@@ -705,7 +705,7 @@ export default function ProfilePage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Pod Id: {server.pod_id}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {/* <p className="text-sm text-gray-500 dark:text-gray-400">
                           Pod Status:{" "}
                           <span
                             className={
@@ -716,7 +716,7 @@ export default function ProfilePage() {
                           >
                             {server.pod_status}
                           </span>
-                        </p>
+                        </p> */}
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Status: {server.subscription_status}
                         </p>
