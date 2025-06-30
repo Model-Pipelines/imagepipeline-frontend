@@ -649,13 +649,9 @@ const SQSMetricsDashboard: React.FC = () => {
 
       // Prepare the metricsData object for the dashboard
       const hours =
-        timeRange === "1h"
-          ? 1
-          : timeRange === "3h"
-            ? 3
-            : timeRange === "12h"
-              ? 12
-              : 24;
+        timeRange === "3h"
+          ? 3
+          : 24;
 
       const metricsData: MetricsData = {};
 
@@ -755,22 +751,10 @@ const SQSMetricsDashboard: React.FC = () => {
             </SelectTrigger>
             <SelectContent className="bg-gray-800 border-gray-700">
               <SelectItem
-                value="1h"
-                className="text-gray-200 hover:bg-gray-700"
-              >
-                1 Hour
-              </SelectItem>
-              <SelectItem
                 value="3h"
                 className="text-gray-200 hover:bg-gray-700"
               >
                 3 Hours
-              </SelectItem>
-              <SelectItem
-                value="12h"
-                className="text-gray-200 hover:bg-gray-700"
-              >
-                12 Hours
               </SelectItem>
               <SelectItem
                 value="24h"
