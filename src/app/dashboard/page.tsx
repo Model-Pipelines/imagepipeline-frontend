@@ -626,8 +626,9 @@ const SQSMetricsDashboard: React.FC = () => {
         return;
       }
 
+      // Use the new endpoint
       const response = await fetch(
-        `${API_BASE_URL}/sqs/metrics-timeline?sqs_url=${encodeURIComponent(sqsUrl)}`,
+        `${API_BASE_URL}/metrics?user_id=${userId}`,
         {
           method: "GET",
           headers: {
@@ -642,7 +643,11 @@ const SQSMetricsDashboard: React.FC = () => {
         return;
       }
 
-      const rawData = await response.json();
+      const data = await response.json();
+      // Find the right queue's metrics
+      const queueMetrics = data.sqs_metrics[sqsUrl] || {};
+
+      // Prepare the metricsData object for the dashboard
       const hours =
         timeRange === "1h"
           ? 1
@@ -651,9 +656,40 @@ const SQSMetricsDashboard: React.FC = () => {
             : timeRange === "12h"
               ? 12
               : 24;
-      const transformedData = transformMetricsData(rawData, hours);
 
-      setMetricsData(transformedData);
+      const metricsData: MetricsData = {};
+
+      // Handle snapshot metrics
+      ["ApproximateNumberOfMessagesVisible", "ApproximateNumberOfMessagesDelayed", "ApproximateNumberOfMessagesNotVisible"].forEach((key) => {
+        metricsData[key] = [
+          {
+            time: "",
+            fullTime: new Date(),
+            value: queueMetrics[key] ?? 0,
+            timestamp: "",
+          },
+        ];
+      });
+
+      // Handle time series metrics
+      ["NumberOfMessagesSent", "NumberOfMessagesReceived", "NumberOfMessagesDeleted"].forEach((key) => {
+        // Pick the correct period label
+        const periodLabel = hours <= 3 ? "last_3_hours" : "last_24_hours";
+        const timeseriesKey = `${key}_${periodLabel}_timeseries`;
+        const timeseries = Array.isArray(queueMetrics[timeseriesKey]) ? queueMetrics[timeseriesKey] : [];
+        metricsData[key] = timeseries.map((point: any) => ({
+          time: new Date(point.timestamp).toLocaleTimeString("en-US", {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }),
+          fullTime: new Date(point.timestamp),
+          value: Number(point.value) || 0,
+          timestamp: point.timestamp,
+        }));
+      });
+
+      setMetricsData(metricsData);
       setLastUpdated(new Date());
     } catch (err: any) {
       setError(true);
