@@ -705,18 +705,18 @@ export default function ProfilePage() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Pod Id: {server.pod_id}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {/* <p className="text-sm text-gray-500 dark:text-gray-400">
                           Pod Status:{" "}
                           <span
                             className={
-                              server.pod_status === "unknown"
+                              server.pod_status === "active"
                                 ? "text-gray-500"
                                 : "text-success"
                             }
                           >
                             {server.pod_status}
                           </span>
-                        </p>
+                        </p> */}
                         <p className="text-sm text-gray-500 dark:text-gray-400">
                           Status: {server.subscription_status}
                         </p>
@@ -726,6 +726,20 @@ export default function ProfilePage() {
                           {new Date(server.period_end).toLocaleDateString()}
                         </p>
                       </div>
+                      {/* Metrics button inside the card */}
+                      <Link
+                        href="https://app.imagepipeline.io/dashboard"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Metrics
+                        </Button>
+                      </Link>
                     </div>
                   </CardContent>
                 </Card>
