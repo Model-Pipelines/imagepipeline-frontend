@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import dynamic from "next/dynamic";
 
-const API_BASE_URL = "https://metrics.imagepipeline.io";
+const API_BASE_URL = "https://api.imagepipeline.io";
 
 // Define interfaces for type safety
 interface MetricDataPoint {
