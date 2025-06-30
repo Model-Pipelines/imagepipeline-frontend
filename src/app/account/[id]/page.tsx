@@ -689,6 +689,24 @@ export default function ProfilePage() {
           <h2 className="text-lg sm:text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Dedicated Servers
           </h2>
+          {/* Add this block */}
+          {dedicatedServerData && (
+            <div className="mb-4">
+              <a
+                href="https://app.imagepipeline.io/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Dedicated Server Metrics
+                </Button>
+              </a>
+            </div>
+          )} 
           <div className="space-y-4">
             {dedicatedServer?.length > 0 ? (
               dedicatedServer.map((server) => (
